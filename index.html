@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Olympus Reborn Idle</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/main.css?v=47" />
+  <link rel="stylesheet" href="css/hud.css?v=47" />
+  <link rel="stylesheet" href="css/map.css?v=47" />
+  <link rel="stylesheet" href="css/ui.css?v=47" />
+  <link rel="stylesheet" href="css/animations.css?v=47" />
+  <link rel="stylesheet" href="css/bottom-panel.css?v=47" />
+  <link rel="stylesheet" href="css/buildings.css?v=47" />
+  <link rel="stylesheet" href="css/help-panel.css?v=47" />
+</head>
+<body>
+  <div id="era-screen-flash"></div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       ÉCRAN DE CHARGEMENT
+  ════════════════════════════════════════════════════════ -->
+  <!-- ═══ ÉCRAN TITRE ══════════════════════════════════════ -->
+  <div id="title-screen">
+    <div class="ts-bg"></div>
+    <div class="ts-content">
+      <div class="ts-emblem">⚡</div>
+      <h1 class="ts-title">OLYMPUS REBORN</h1>
+      <p class="ts-sub">Bâtissez l'empire des dieux</p>
+      <div class="ts-buttons">
+        <button class="ts-btn ts-btn-new" id="btn-new-game">⚡ Nouvelle Partie</button>
+        <button class="ts-btn ts-btn-continue" id="btn-continue" disabled>🏛️ Continuer</button>
+      </div>
+      <p class="ts-save-info" id="ts-save-info"></p>
+    </div>
+  </div>
+
+  <!-- ═══ ÉCRAN DE CHARGEMENT (après choix) ════════════════ -->
+  <div id="loading-screen" style="display:none">
+    <div class="loading-content">
+      <div class="loading-emblem">⚡</div>
+      <h1 class="loading-title">OLYMPUS REBORN</h1>
+      <div class="loading-bar-container">
+        <div class="loading-bar" id="loading-bar"></div>
+      </div>
+      <p class="loading-subtitle" id="loading-text">Éveil des dieux...</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       CONTENEUR PRINCIPAL DU JEU
+  ════════════════════════════════════════════════════════ -->
+  <div id="game-container" class="hidden">
+
+    <!-- HUD SUPÉRIEUR -->
+    <header id="hud-top">
+      <div id="hud-title">
+        <span class="hud-game-name">⚡ OLYMPUS REBORN</span>
+      </div>
+
+      <div id="resources-bar">
+        <!-- Drachmes -->
+        <div class="resource-item" id="res-drachmes" data-tooltip="Drachmes de Cuivre — Monnaie principale">
+          <div class="resource-icon">🪙</div>
+          <div class="resource-info">
+            <span class="resource-name">Drachmes</span>
+            <span class="resource-value" id="val-drachmes">0</span>
+            <span class="resource-rate" id="rate-drachmes">+0/s</span>
+          </div>
+        </div>
+        <!-- Bois -->
+        <div class="resource-item" id="res-bois" data-tooltip="Bois de Styx — Matériau de construction">
+          <div class="resource-icon">🪵</div>
+          <div class="resource-info">
+            <span class="resource-name">Bois de Styx</span>
+            <span class="resource-value" id="val-bois">0</span>
+            <span class="resource-rate" id="rate-bois">+0/s</span>
+          </div>
+        </div>
+        <!-- Nourriture -->
+        <div class="resource-item" id="res-nourr" data-tooltip="Ambroisie de Synthèse — Nourrit vos survivants">
+          <div class="resource-icon">🌾</div>
+          <div class="resource-info">
+            <span class="resource-name">Ambroisie</span>
+            <span class="resource-value" id="val-nourr">0</span>
+            <span class="resource-rate" id="rate-nourr">+0/s</span>
+          </div>
+        </div>
+        <!-- Fer -->
+        <div class="resource-item" id="res-fer" data-tooltip="Fer Céleste — Métal divin pour constructions avancées">
+          <div class="resource-icon">⚙️</div>
+          <div class="resource-info">
+            <span class="resource-name">Fer Céleste</span>
+            <span class="resource-value" id="val-fer">0</span>
+            <span class="resource-rate" id="rate-fer">+0/s</span>
+          </div>
+        </div>
+        <!-- Éther -->
+        <div class="resource-item resource-prestige" id="res-ether" data-tooltip="Éther — Monnaie permanente obtenue au Prestige. Dépensez-le dans l'arbre Éther (onglet ✨ Talents).">
+          <div class="resource-icon">✨</div>
+          <div class="resource-info">
+            <span class="resource-name">Éther</span>
+            <span class="resource-value" id="val-ether">0</span>
+            <span class="resource-rate" id="rate-ether" style="color:#c090ff"></span>
+          </div>
+        </div>
+        <!-- Habitants : géré dans le panel population en bas, pas ici -->
+        <!-- Foudre (Era 1+) -->
+        <div class="resource-item resource-era2" id="res-foudre" style="display:none" data-tooltip="Foudre — Alimente les bâtiments avancés">
+          <div class="resource-icon">⚡</div>
+          <div class="resource-info">
+            <span class="resource-name">Foudre</span>
+            <span class="resource-value" id="val-foudre">0</span>
+            <span class="resource-rate" id="rate-foudre"></span>
+          </div>
+        </div>
+        <!-- Nectar (Era 2) -->
+        <div class="resource-item resource-era2" id="res-nectar" style="display:none" data-tooltip="Nectar — Ressource des Vergers d'Apollon">
+          <div class="resource-icon">🍯</div>
+          <div class="resource-info">
+            <span class="resource-name">Nectar</span>
+            <span class="resource-value" id="val-nectar">0</span>
+            <span class="resource-rate" id="rate-nectar"></span>
+          </div>
+        </div>
+        <!-- Bronze (Era 2) -->
+        <div class="resource-item resource-era2" id="res-bronze" style="display:none" data-tooltip="Bronze — Atelier du Forgeron">
+          <div class="resource-icon">🟫</div>
+          <div class="resource-info">
+            <span class="resource-name">Bronze</span>
+            <span class="resource-value" id="val-bronze">0</span>
+            <span class="resource-rate" id="rate-bronze"></span>
+          </div>
+        </div>
+        <!-- Acier (Era 2) -->
+        <div class="resource-item resource-era2" id="res-acier" style="display:none" data-tooltip="Acier — Fonderie Céleste">
+          <div class="resource-icon">🔩</div>
+          <div class="resource-info">
+            <span class="resource-name">Acier</span>
+            <span class="resource-value" id="val-acier">0</span>
+            <span class="resource-rate" id="rate-acier"></span>
+          </div>
+        </div>
+        <!-- Farine (Era 2) -->
+        <div class="resource-item resource-era2" id="res-farine" style="display:none" data-tooltip="Farine Sacrée — Moulin à Grain">
+          <div class="resource-icon">🌾✨</div>
+          <div class="resource-info">
+            <span class="resource-name">Farine Sacrée</span>
+            <span class="resource-value" id="val-farine">0</span>
+            <span class="resource-rate" id="rate-farine"></span>
+          </div>
+        </div>
+        <!-- Orichalque (Era 3) -->
+        <div class="resource-item resource-era3" id="res-orichalque" style="display:none" data-tooltip="Orichalque — Métal légendaire, Era 3">
+          <div class="resource-icon">🌟</div>
+          <div class="resource-info">
+            <span class="resource-name">Orichalque</span>
+            <span class="resource-value" id="val-orichalque">0</span>
+            <span class="resource-rate" id="rate-orichalque"></span>
+          </div>
+        </div>
+        <!-- Metal Divin (Era 3) -->
+        <div class="resource-item resource-era3" id="res-metal_divin" style="display:none" data-tooltip="Métal Divin — Forge Divine, Era 3">
+          <div class="resource-icon">⚙️✨</div>
+          <div class="resource-info">
+            <span class="resource-name">Métal Divin</span>
+            <span class="resource-value" id="val-metal_divin">0</span>
+            <span class="resource-rate" id="rate-metal_divin"></span>
+          </div>
+        </div>
+        <!-- Amrita (Era 3) -->
+        <div class="resource-item resource-era3" id="res-amrita" style="display:none" data-tooltip="Amrita — Ressource transcendante, Era 3">
+          <div class="resource-icon">💎</div>
+          <div class="resource-info">
+            <span class="resource-name">Amrita</span>
+            <span class="resource-value" id="val-amrita">0</span>
+            <span class="resource-rate" id="rate-amrita"></span>
+          </div>
+        </div>
+      </div>
+
+      <div id="era-badge" style="display:none;font-family:Cinzel,serif;font-size:11px;color:#c8a840;padding:4px 10px;border:1px solid rgba(200,168,64,0.4);border-radius:8px;margin-right:8px;align-self:center;letter-spacing:1px;">⛩ Antiquité</div>
+      <div id="hud-actions">
+        <button class="hud-btn" id="btn-save" title="Sauvegarder">💾</button>
+        <button class="hud-btn" id="btn-help" title="Encyclopédie">?</button>
+        <button class="hud-btn" id="burger-btn" title="Menu">☰</button>
+        <div id="score-renaissance">
+          <span class="score-label">Score de Renaissance</span>
+          <span class="score-value" id="val-score">0</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- BURGER MENU MOBILE -->
+    <div id="burger-menu">
+      <button class="burger-item" id="burger-save">💾 Sauvegarder</button>
+      <button class="burger-item" id="burger-help">📖 Encyclopédie</button>
+      <button class="burger-item burger-item-danger" id="burger-reset">🗑️ Réinitialiser</button>
+    </div>
+
+    <!-- ZONE CARTE -->
+    <main id="map-container">
+      <canvas id="game-canvas"></canvas>
+
+      <!-- Bouton Talents en superposition haut gauche -->
+      <button id="btn-talents" title="Ouvrir les Talents">🧠 Talents</button>
+
+      <!-- Drawer bas remplace le tooltip -->
+
+      <!-- Debug: reveal all (visible si ?debug dans l'URL) -->
+      <button id="btn-reveal-all" style="display:none;position:absolute;bottom:12px;left:12px;z-index:200;background:rgba(200,80,80,.85);border:1px solid #e05050;color:#fff;font-family:Cinzel,serif;font-size:12px;padding:8px 14px;border-radius:6px;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.5)">🗺 Tout Révéler</button>
+
+      <!-- Contrôles de zoom -->
+      <div id="zoom-controls">
+        <button id="btn-zoom-in" class="zoom-btn">+</button>
+        <button id="btn-zoom-reset" class="zoom-btn">⌂</button>
+        <button id="btn-zoom-out" class="zoom-btn">−</button>
+      </div>
+
+      <!-- Info tick -->
+      <div id="tick-indicator">⚡ <span id="tick-count">0</span></div>
+    </main>
+
+    <!-- BARRE INFÉRIEURE (infos contextuelles) -->
+    <footer id="hud-bottom">
+      <div id="info-panel">
+        <span id="info-text">Cliquez sur une case pour explorer le monde...</span>
+      </div>
+      <div id="survivors-panel">
+        <span id="pop-icon">👥</span>
+        <span id="pop-workers">0</span>
+        <span id="pop-sep"> / </span>
+        <span id="pop-total">0</span>
+        <span id="pop-label"> hab.</span>
+        <div id="pop-bar-wrap"><div id="pop-bar"></div></div>
+        <span id="pop-alert" style="display:none">⚠️ Logements pleins !</span>
+      </div>
+    </footer>
+
+  </div><!-- fin #game-container -->
+
+  <!-- ═══════════════════════════════════════════════════════
+       SCRIPTS (ordre de chargement important)
+  ════════════════════════════════════════════════════════ -->
+  <script src="src/utils/MathUtils.js?v=47"></script>
+  <script src="src/utils/HexUtils.js?v=47"></script>
+  <script src="src/utils/Compression.js?v=47"></script>
+  <script src="src/engine/EventBus.js?v=47"></script>
+  <script src="src/engine/SaveManager.js?v=47"></script>
+  <script src="src/map/HexCell.js?v=47"></script>
+  <script src="src/map/HexGrid.js?v=47"></script>
+  <script src="src/map/Camera.js?v=47"></script>
+  <script src="src/map/MapRenderer.js?v=47"></script>
+  <script src="src/systems/ResourceManager.js?v=47"></script>
+  <script src="src/systems/TalentManager.js?v=47"></script>
+  <script src="src/systems/ScoutManager.js?v=47"></script>
+  <script src="src/systems/PrestigeManager.js?v=47"></script>
+  <script src="src/systems/BuildingManager.js?v=47"></script>
+  <script src="src/ui/HUD.js?v=47"></script>
+  <script src="src/ui/BuildingPanel.js?v=47"></script>
+  <script src="src/ui/HelpPanel.js?v=47"></script>
+  <script src="src/ui/OfflineModal.js?v=47"></script>
+  <script src="src/engine/GameLoop.js?v=47"></script>
+
+  <script>
+  // ── Écran Titre ───────────────────────────────────────────
+  (function() {
+    var hasSave = SaveManager.hasSave();
+    var btnNew  = document.getElementById('btn-new-game');
+    var btnCont = document.getElementById('btn-continue');
+    var info    = document.getElementById('ts-save-info');
+
+    if (hasSave) {
+      btnCont.disabled = false;
+      // Essayer de lire la date de sauvegarde
+      try {
+        var raw  = localStorage.getItem('olympus_reborn_save');
+        var data = raw ? Compression.decode(raw) : null;
+        if (data && data.timestamp) {
+          var d = new Date(data.timestamp);
+          info.textContent = 'Dernière sauvegarde : ' + d.toLocaleDateString('fr-FR') + ' à ' + d.toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'});
+        }
+      } catch(e) {}
+    } else {
+      info.textContent = 'Aucune sauvegarde trouvée';
+    }
+
+    function startGame(newGame) {
+      if (newGame) {
+        if (hasSave && !confirm('Commencer une nouvelle partie effacera la progression actuelle. Continuer ?')) return;
+        SaveManager.clear();
+      }
+      document.getElementById('title-screen').style.display = 'none';
+      document.getElementById('loading-screen').style.display = 'flex';
+      var loop = new GameLoop();
+      loop.init();
+    }
+
+    btnNew.addEventListener('click',  function() { startGame(true); });
+    btnCont.addEventListener('click', function() { startGame(false); });
+  })();
+  </script>
+
+</body>
+</html>
