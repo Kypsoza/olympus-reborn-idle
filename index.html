@@ -8,14 +8,14 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="css/main.css?v=47" />
-  <link rel="stylesheet" href="css/hud.css?v=47" />
-  <link rel="stylesheet" href="css/map.css?v=47" />
-  <link rel="stylesheet" href="css/ui.css?v=47" />
-  <link rel="stylesheet" href="css/animations.css?v=47" />
-  <link rel="stylesheet" href="css/bottom-panel.css?v=47" />
-  <link rel="stylesheet" href="css/buildings.css?v=47" />
-  <link rel="stylesheet" href="css/help-panel.css?v=47" />
+  <link rel="stylesheet" href="css/main.css?v=49" />
+  <link rel="stylesheet" href="css/hud.css?v=49" />
+  <link rel="stylesheet" href="css/map.css?v=49" />
+  <link rel="stylesheet" href="css/ui.css?v=49" />
+  <link rel="stylesheet" href="css/animations.css?v=49" />
+  <link rel="stylesheet" href="css/bottom-panel.css?v=49" />
+  <link rel="stylesheet" href="css/buildings.css?v=49" />
+  <link rel="stylesheet" href="css/help-panel.css?v=49" />
 </head>
 <body>
   <div id="era-screen-flash"></div>
@@ -30,11 +30,46 @@
       <div class="ts-emblem">⚡</div>
       <h1 class="ts-title">OLYMPUS REBORN</h1>
       <p class="ts-sub">Bâtissez l'empire des dieux</p>
-      <div class="ts-buttons">
-        <button class="ts-btn ts-btn-new" id="btn-new-game">⚡ Nouvelle Partie</button>
-        <button class="ts-btn ts-btn-continue" id="btn-continue" disabled>🏛️ Continuer</button>
+
+      <div id="ts-auth-zone">
+
+        <!-- Chargement Google -->
+        <div id="ts-state-loading" class="ts-state">
+          <div class="ts-spinner"></div>
+          <p class="ts-state-text">Initialisation…</p>
+        </div>
+
+        <!-- Non connecté -->
+        <div id="ts-state-signout" class="ts-state" style="display:none">
+          <button class="ts-btn ts-btn-google" id="btn-google-signin">
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20" height="20" alt="">
+            Continuer avec Google
+          </button>
+          <div class="ts-divider"><span>ou</span></div>
+          <button class="ts-btn ts-btn-local" id="btn-local-new">⚡ Jouer sans compte</button>
+          <p class="ts-state-hint">Sans compte Google, la save reste uniquement dans ce navigateur.</p>
+        </div>
+
+        <!-- Connecté -->
+        <div id="ts-state-signin" class="ts-state" style="display:none">
+          <div class="ts-user-card">
+            <img id="ts-user-pic" src="" width="36" height="36" alt="" class="ts-user-pic">
+            <div class="ts-user-info">
+              <div class="ts-user-name" id="ts-user-name">…</div>
+              <div class="ts-user-email" id="ts-user-email">…</div>
+            </div>
+            <button class="ts-signout-btn" id="btn-signout" title="Se déconnecter">✕</button>
+          </div>
+          <div class="ts-save-status" id="ts-save-status">
+            <div class="ts-spinner-sm"></div> Recherche de sauvegarde…
+          </div>
+          <div class="ts-play-buttons" id="ts-play-buttons" style="display:none">
+            <button class="ts-btn ts-btn-new" id="btn-new-game">⚡ Nouvelle Partie</button>
+            <button class="ts-btn ts-btn-continue" id="btn-continue" disabled>🏛️ Continuer</button>
+          </div>
+        </div>
+
       </div>
-      <p class="ts-save-info" id="ts-save-info"></p>
     </div>
   </div>
 
@@ -245,62 +280,212 @@
   <!-- ═══════════════════════════════════════════════════════
        SCRIPTS (ordre de chargement important)
   ════════════════════════════════════════════════════════ -->
-  <script src="src/utils/MathUtils.js?v=47"></script>
-  <script src="src/utils/HexUtils.js?v=47"></script>
-  <script src="src/utils/Compression.js?v=47"></script>
-  <script src="src/engine/EventBus.js?v=47"></script>
-  <script src="src/engine/SaveManager.js?v=47"></script>
-  <script src="src/map/HexCell.js?v=47"></script>
-  <script src="src/map/HexGrid.js?v=47"></script>
-  <script src="src/map/Camera.js?v=47"></script>
-  <script src="src/map/MapRenderer.js?v=47"></script>
-  <script src="src/systems/ResourceManager.js?v=47"></script>
-  <script src="src/systems/TalentManager.js?v=47"></script>
-  <script src="src/systems/ScoutManager.js?v=47"></script>
-  <script src="src/systems/PrestigeManager.js?v=47"></script>
-  <script src="src/systems/BuildingManager.js?v=47"></script>
-  <script src="src/ui/HUD.js?v=47"></script>
-  <script src="src/ui/BuildingPanel.js?v=47"></script>
-  <script src="src/ui/HelpPanel.js?v=47"></script>
-  <script src="src/ui/OfflineModal.js?v=47"></script>
-  <script src="src/engine/GameLoop.js?v=47"></script>
+  <script src="src/utils/MathUtils.js?v=49"></script>
+  <script src="src/utils/HexUtils.js?v=49"></script>
+  <script src="src/utils/Compression.js?v=49"></script>
+  <script src="src/engine/EventBus.js?v=49"></script>
+  <script src="src/engine/SaveManager.js?v=49"></script>
+  <script src="src/map/HexCell.js?v=49"></script>
+  <script src="src/map/HexGrid.js?v=49"></script>
+  <script src="src/map/Camera.js?v=49"></script>
+  <script src="src/map/MapRenderer.js?v=49"></script>
+  <script src="src/systems/ResourceManager.js?v=49"></script>
+  <script src="src/systems/TalentManager.js?v=49"></script>
+  <script src="src/systems/ScoutManager.js?v=49"></script>
+  <script src="src/systems/PrestigeManager.js?v=49"></script>
+  <script src="src/systems/BuildingManager.js?v=49"></script>
+  <script src="src/ui/HUD.js?v=49"></script>
+  <script src="src/ui/BuildingPanel.js?v=49"></script>
+  <script src="src/ui/HelpPanel.js?v=49"></script>
+  <script src="src/ui/OfflineModal.js?v=49"></script>
+  <script src="src/engine/GoogleDriveSync.js?v=49"></script>
+  <script src="src/engine/GameLoop.js?v=49"></script>
 
   <script>
-  // ── Écran Titre ───────────────────────────────────────────
+  /* ── Écran Titre + Google Drive Sync ───────────────────── */
   (function() {
-    var hasSave = SaveManager.hasSave();
-    var btnNew  = document.getElementById('btn-new-game');
-    var btnCont = document.getElementById('btn-continue');
-    var info    = document.getElementById('ts-save-info');
 
-    if (hasSave) {
-      btnCont.disabled = false;
-      // Essayer de lire la date de sauvegarde
-      try {
-        var raw  = localStorage.getItem('olympus_reborn_save');
-        var data = raw ? Compression.decode(raw) : null;
-        if (data && data.timestamp) {
-          var d = new Date(data.timestamp);
-          info.textContent = 'Dernière sauvegarde : ' + d.toLocaleDateString('fr-FR') + ' à ' + d.toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'});
-        }
-      } catch(e) {}
-    } else {
-      info.textContent = 'Aucune sauvegarde trouvée';
+    // ── Helpers UI ──────────────────────────────────────────
+    function showState(id) {
+      ['ts-state-loading','ts-state-signout','ts-state-signin'].forEach(function(s) {
+        var el = document.getElementById(s);
+        if (el) el.style.display = (s === id) ? 'block' : 'none';
+      });
     }
 
-    function startGame(newGame) {
-      if (newGame) {
-        if (hasSave && !confirm('Commencer une nouvelle partie effacera la progression actuelle. Continuer ?')) return;
-        SaveManager.clear();
+    function setSaveStatus(html) {
+      var el = document.getElementById('ts-save-status');
+      if (el) el.innerHTML = html;
+    }
+
+    function showPlayButtons(hasDriveSave, hasLocalSave) {
+      var btns = document.getElementById('ts-play-buttons');
+      var btnCont = document.getElementById('btn-continue');
+      if (!btns || !btnCont) return;
+      btns.style.display = 'flex';
+      btnCont.disabled = !(hasDriveSave || hasLocalSave);
+    }
+
+    function fmtDate(iso) {
+      try {
+        var d = new Date(iso);
+        return d.toLocaleDateString('fr-FR') + ' à ' + d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+      } catch(e) { return iso; }
+    }
+
+    // ── Démarrer le jeu ─────────────────────────────────────
+    function launchGame(saveData) {
+      // saveData = encoded string à injecter dans localStorage, ou null
+      if (saveData) {
+        localStorage.setItem('olympus_reborn_save', saveData);
       }
       document.getElementById('title-screen').style.display = 'none';
       document.getElementById('loading-screen').style.display = 'flex';
       var loop = new GameLoop();
+      // Patch autosave pour synchroniser Drive
+      var origSave = loop._doSave ? loop._doSave.bind(loop) : null;
+      if (origSave) {
+        loop._doSave = function() {
+          origSave();
+          if (GoogleDriveSync.isSignedIn()) {
+            var raw = localStorage.getItem('olympus_reborn_save');
+            if (raw) GoogleDriveSync.saveToDrive(raw).catch(function(e){
+              console.warn('[GDriveSync] Autosave Drive échouée:', e);
+            });
+          }
+        };
+      }
       loop.init();
     }
 
-    btnNew.addEventListener('click',  function() { startGame(true); });
-    btnCont.addEventListener('click', function() { startGame(false); });
+    // ── Logique après connexion Google ──────────────────────
+    async function onSignedIn() {
+      showState('ts-state-signin');
+
+      // Afficher infos utilisateur
+      var info = await GoogleDriveSync.getUserInfo();
+      if (info) {
+        var pic = document.getElementById('ts-user-pic');
+        var nm  = document.getElementById('ts-user-name');
+        var em  = document.getElementById('ts-user-email');
+        if (pic) { pic.src = info.picture || ''; pic.style.display = info.picture ? 'block' : 'none'; }
+        if (nm)  nm.textContent  = info.name  || 'Joueur';
+        if (em)  em.textContent  = info.email || '';
+      }
+
+      // Chercher save sur Drive
+      setSaveStatus('<div class="ts-spinner-sm"></div> Recherche de la sauvegarde sur Drive…');
+      var driveInfo = null;
+      var driveRaw  = null;
+      try {
+        var driveData = await GoogleDriveSync.loadFromDrive();
+        if (driveData) {
+          driveInfo = driveData;
+          driveRaw  = driveData.raw;
+        }
+      } catch(e) {
+        console.warn('[GDriveSync] Erreur lecture Drive:', e);
+      }
+
+      var hasLocal = SaveManager.hasSave();
+      var hasDrive = !!driveRaw;
+
+      // Status
+      if (hasDrive) {
+        setSaveStatus('☁️ Sauvegarde Drive trouvée — ' + fmtDate(driveInfo.modifiedTime));
+      } else if (hasLocal) {
+        setSaveStatus('💾 Sauvegarde locale uniquement');
+      } else {
+        setSaveStatus('Aucune sauvegarde trouvée');
+      }
+
+      showPlayButtons(hasDrive, hasLocal);
+
+      // Bouton Continuer
+      document.getElementById('btn-continue').addEventListener('click', function() {
+        if (hasDrive) {
+          launchGame(driveRaw);
+        } else {
+          launchGame(null); // charge localStorage existant
+        }
+      }, { once: true });
+
+      // Bouton Nouvelle Partie
+      document.getElementById('btn-new-game').addEventListener('click', function() {
+        var msg = (hasDrive || hasLocal)
+          ? 'Démarrer une nouvelle partie effacera la progression actuelle (Drive + locale). Continuer ?'
+          : null;
+        if (msg && !confirm(msg)) return;
+        SaveManager.clear();
+        launchGame(null);
+      }, { once: true });
+    }
+
+    // ── Mode local (sans Google) ─────────────────────────────
+    function setupLocalMode() {
+      var hasLocal = SaveManager.hasSave();
+      var btnLocal = document.getElementById('btn-local-new');
+      if (btnLocal) {
+        btnLocal.textContent = hasLocal ? '🏛️ Continuer (local)' : '⚡ Nouvelle Partie';
+        btnLocal.addEventListener('click', function() {
+          if (hasLocal && btnLocal.textContent.startsWith('🏛️')) {
+            launchGame(null);
+          } else {
+            if (hasLocal && !confirm('Nouvelle partie ? La progression locale sera perdue.')) return;
+            SaveManager.clear();
+            launchGame(null);
+          }
+        });
+      }
+      // Bouton nouvelle partie séparé si save existe
+      if (hasLocal) {
+        var extraBtn = document.createElement('button');
+        extraBtn.className = 'ts-btn ts-btn-local-new';
+        extraBtn.textContent = '⚡ Nouvelle Partie';
+        extraBtn.addEventListener('click', function() {
+          if (!confirm('Nouvelle partie ? La progression locale sera perdue.')) return;
+          SaveManager.clear(); launchGame(null);
+        });
+        var signoutZone = document.getElementById('ts-state-signout');
+        if (signoutZone) signoutZone.appendChild(extraBtn);
+      }
+    }
+
+    // ── Init ────────────────────────────────────────────────
+    showState('ts-state-loading');
+
+    GoogleDriveSync.onReady(function() {
+      showState('ts-state-signout');
+      setupLocalMode();
+    });
+
+    GoogleDriveSync.init().catch(function() {
+      // Google indisponible → mode local direct
+      showState('ts-state-signout');
+      setupLocalMode();
+    });
+
+    // Bouton connexion Google
+    document.getElementById('btn-google-signin').addEventListener('click', async function() {
+      this.disabled = true;
+      this.textContent = 'Connexion…';
+      try {
+        await GoogleDriveSync.signIn();
+        await onSignedIn();
+      } catch(e) {
+        this.disabled = false;
+        this.innerHTML = '<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20" height="20" alt=""> Continuer avec Google';
+        console.warn('[Title] Connexion annulée ou échouée:', e);
+      }
+    });
+
+    // Bouton déconnexion
+    document.getElementById('btn-signout').addEventListener('click', function() {
+      GoogleDriveSync.signOut();
+      showState('ts-state-signout');
+      setupLocalMode();
+    });
+
   })();
   </script>
 

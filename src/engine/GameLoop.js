@@ -239,6 +239,13 @@ class GameLoop {
       prestige:  this.prestigeManager.serialize(),
       hiddenAt:  this._hiddenAt || null,
     });
+    // Sync Drive si connecté (sans bloquer)
+    if (typeof GoogleDriveSync !== 'undefined' && GoogleDriveSync.isSignedIn()) {
+      const raw = localStorage.getItem('olympus_reborn_save');
+      if (raw) GoogleDriveSync.saveToDrive(raw).catch(e =>
+        console.warn('[GDriveSync] Autosave Drive:', e)
+      );
+    }
   }
 
   _doReset() {

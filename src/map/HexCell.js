@@ -124,7 +124,7 @@ class HexCell {
   serialize() {
     return {
       q: this.q, r: this.r, type: this.type,
-      state: this.state, currentHP: this.currentHP,
+      state: this.state, currentHP: this.currentHP, maxHP: this.maxHP,
       building: this.building, buildingLevel: this.buildingLevel,
       hasRoad: this.hasRoad, glowIntensity: this.glowIntensity,
       baseLevel: this.baseLevel, isHeritage: this.isHeritage, isConnected: this.isConnected
@@ -134,7 +134,8 @@ class HexCell {
   static deserialize(data) {
     const cell = new HexCell(data.q, data.r, data.type);
     cell.state         = data.state;
-    cell.currentHP     = data.currentHP;
+    cell.maxHP         = data.maxHP         ?? cell.maxHP;  // restaurer ou garder le calcul initial
+    cell.currentHP     = data.currentHP     ?? cell.maxHP;
     cell.building      = data.building      ?? null;
     cell.buildingLevel = data.buildingLevel  ?? 1;
     cell.hasRoad       = data.hasRoad        ?? false;

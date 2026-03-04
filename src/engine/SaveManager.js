@@ -4,7 +4,7 @@
 
 const SaveManager = (() => {
   const SAVE_KEY = 'olympus_reborn_save';
-  const VERSION  = '0.7.0'; // Phase 7 — Offline Progress
+  const VERSION  = '0.7.1'; // Phase 7 — Offline Progress
 
   function save(gameState) {
     try {

@@ -233,3 +233,169 @@ button { cursor: pointer; border: none; background: none; font-family: var(--fon
   font-style: italic;
   height: 18px;
 }
+
+/* ── Google Auth UI ─────────────────────────────────────── */
+.ts-state { animation: loadingFadeIn 0.3s ease; }
+
+.ts-btn-google {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 280px;
+  padding: 13px 20px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.22);
+  border-radius: 8px;
+  color: #fff;
+  font-family: var(--font-title);
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin: 0 auto 0;
+}
+.ts-btn-google:hover {
+  background: rgba(255,255,255,0.15);
+  border-color: rgba(255,255,255,0.4);
+  transform: translateY(-1px);
+}
+.ts-btn-google:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+.ts-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px auto;
+  width: 260px;
+  color: rgba(255,255,255,0.2);
+  font-size: 12px;
+}
+.ts-divider::before, .ts-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(255,255,255,0.12);
+}
+
+.ts-btn-local {
+  display: block;
+  width: 260px;
+  margin: 0 auto;
+  padding: 12px 20px;
+  background: rgba(200,149,26,0.12);
+  border: 1px solid rgba(200,149,26,0.3);
+  border-radius: 8px;
+  color: #d0a830;
+  font-family: var(--font-title);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.ts-btn-local:hover {
+  background: rgba(200,149,26,0.22);
+  border-color: rgba(200,149,26,0.55);
+  transform: translateY(-1px);
+}
+.ts-btn-local-new {
+  display: block;
+  width: 260px;
+  margin: 8px auto 0;
+  padding: 11px 20px;
+  background: transparent;
+  border: 1px solid rgba(200,149,26,0.18);
+  border-radius: 8px;
+  color: rgba(200,149,26,0.5);
+  font-family: var(--font-title);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.ts-btn-local-new:hover {
+  border-color: rgba(200,149,26,0.4);
+  color: #d0a830;
+}
+
+.ts-state-hint {
+  font-size: 11px;
+  color: rgba(255,255,255,0.22);
+  margin-top: 14px;
+  max-width: 260px;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.5;
+  font-style: italic;
+}
+
+/* Carte utilisateur */
+.ts-user-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 280px;
+  margin: 0 auto 14px;
+  padding: 10px 14px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px;
+}
+.ts-user-pic {
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 2px solid rgba(200,149,26,0.4);
+}
+.ts-user-info { flex: 1; text-align: left; }
+.ts-user-name  { font-family: var(--font-title); font-size: 13px; color: #e8d090; }
+.ts-user-email { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+.ts-signout-btn {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 6px;
+  color: rgba(255,255,255,0.35);
+  width: 26px; height: 26px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.ts-signout-btn:hover { background: rgba(200,60,60,0.25); border-color: rgba(200,60,60,0.5); color: #ff8080; }
+
+/* Save status */
+.ts-save-status {
+  font-size: 12px;
+  color: rgba(255,255,255,0.45);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 20px;
+}
+
+/* Boutons jeu */
+.ts-play-buttons {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Spinners */
+.ts-spinner {
+  width: 32px; height: 32px;
+  border: 3px solid rgba(200,149,26,0.15);
+  border-top-color: rgba(200,149,26,0.7);
+  border-radius: 50%;
+  animation: ts-spin 0.9s linear infinite;
+  margin: 0 auto 12px;
+}
+.ts-spinner-sm {
+  width: 14px; height: 14px;
+  border: 2px solid rgba(255,255,255,0.1);
+  border-top-color: rgba(255,255,255,0.5);
+  border-radius: 50%;
+  animation: ts-spin 0.9s linear infinite;
+  display: inline-block;
+  flex-shrink: 0;
+}
+@keyframes ts-spin { to { transform: rotate(360deg); } }
+.ts-state-text { color: rgba(255,255,255,0.3); font-size: 13px; margin-top: 4px; }
