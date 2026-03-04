@@ -8,14 +8,14 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="css/main.css?v=49" />
-  <link rel="stylesheet" href="css/hud.css?v=49" />
-  <link rel="stylesheet" href="css/map.css?v=49" />
-  <link rel="stylesheet" href="css/ui.css?v=49" />
-  <link rel="stylesheet" href="css/animations.css?v=49" />
-  <link rel="stylesheet" href="css/bottom-panel.css?v=49" />
-  <link rel="stylesheet" href="css/buildings.css?v=49" />
-  <link rel="stylesheet" href="css/help-panel.css?v=49" />
+  <link rel="stylesheet" href="css/main.css?v=50" />
+  <link rel="stylesheet" href="css/hud.css?v=50" />
+  <link rel="stylesheet" href="css/map.css?v=50" />
+  <link rel="stylesheet" href="css/ui.css?v=50" />
+  <link rel="stylesheet" href="css/animations.css?v=50" />
+  <link rel="stylesheet" href="css/bottom-panel.css?v=50" />
+  <link rel="stylesheet" href="css/buildings.css?v=50" />
+  <link rel="stylesheet" href="css/help-panel.css?v=50" />
 </head>
 <body>
   <div id="era-screen-flash"></div>
@@ -280,26 +280,26 @@
   <!-- ═══════════════════════════════════════════════════════
        SCRIPTS (ordre de chargement important)
   ════════════════════════════════════════════════════════ -->
-  <script src="src/utils/MathUtils.js?v=49"></script>
-  <script src="src/utils/HexUtils.js?v=49"></script>
-  <script src="src/utils/Compression.js?v=49"></script>
-  <script src="src/engine/EventBus.js?v=49"></script>
-  <script src="src/engine/SaveManager.js?v=49"></script>
-  <script src="src/map/HexCell.js?v=49"></script>
-  <script src="src/map/HexGrid.js?v=49"></script>
-  <script src="src/map/Camera.js?v=49"></script>
-  <script src="src/map/MapRenderer.js?v=49"></script>
-  <script src="src/systems/ResourceManager.js?v=49"></script>
-  <script src="src/systems/TalentManager.js?v=49"></script>
-  <script src="src/systems/ScoutManager.js?v=49"></script>
-  <script src="src/systems/PrestigeManager.js?v=49"></script>
-  <script src="src/systems/BuildingManager.js?v=49"></script>
-  <script src="src/ui/HUD.js?v=49"></script>
-  <script src="src/ui/BuildingPanel.js?v=49"></script>
-  <script src="src/ui/HelpPanel.js?v=49"></script>
-  <script src="src/ui/OfflineModal.js?v=49"></script>
-  <script src="src/engine/GoogleDriveSync.js?v=49"></script>
-  <script src="src/engine/GameLoop.js?v=49"></script>
+  <script src="src/utils/MathUtils.js?v=50"></script>
+  <script src="src/utils/HexUtils.js?v=50"></script>
+  <script src="src/utils/Compression.js?v=50"></script>
+  <script src="src/engine/EventBus.js?v=50"></script>
+  <script src="src/engine/SaveManager.js?v=50"></script>
+  <script src="src/map/HexCell.js?v=50"></script>
+  <script src="src/map/HexGrid.js?v=50"></script>
+  <script src="src/map/Camera.js?v=50"></script>
+  <script src="src/map/MapRenderer.js?v=50"></script>
+  <script src="src/systems/ResourceManager.js?v=50"></script>
+  <script src="src/systems/TalentManager.js?v=50"></script>
+  <script src="src/systems/ScoutManager.js?v=50"></script>
+  <script src="src/systems/PrestigeManager.js?v=50"></script>
+  <script src="src/systems/BuildingManager.js?v=50"></script>
+  <script src="src/ui/HUD.js?v=50"></script>
+  <script src="src/ui/BuildingPanel.js?v=50"></script>
+  <script src="src/ui/HelpPanel.js?v=50"></script>
+  <script src="src/ui/OfflineModal.js?v=50"></script>
+  <script src="src/engine/GoogleDriveSync.js?v=50"></script>
+  <script src="src/engine/GameLoop.js?v=50"></script>
 
   <script>
   /* ── Écran Titre + Google Drive Sync ───────────────────── */
@@ -456,6 +456,15 @@
 
     GoogleDriveSync.onReady(function() {
       showState('ts-state-signout');
+      // En mode local (file://) : cacher le bouton Google, afficher message
+      if (GoogleDriveSync.isLocalMode()) {
+        var btnG = document.getElementById('btn-google-signin');
+        var div  = document.querySelector('.ts-divider');
+        var hint = document.querySelector('.ts-state-hint');
+        if (btnG) btnG.style.display = 'none';
+        if (div)  div.style.display  = 'none';
+        if (hint) hint.textContent   = '⚠️ Ouvrez le jeu via un serveur web ou GitHub Pages pour activer la synchronisation Google Drive.';
+      }
       setupLocalMode();
     });
 

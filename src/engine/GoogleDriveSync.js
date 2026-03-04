@@ -11,6 +11,9 @@ const GoogleDriveSync = (() => {
   const SAVE_FILE  = 'olympus_reborn_save.json';
   const DISCOVERY  = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
 
+  // Désactivé si on tourne en file:// (OAuth ne fonctionne qu'en HTTPS)
+  const IS_LOCAL = location.protocol === 'file:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+
   let _tokenClient  = null;
   let _accessToken  = null;
   let _gapiReady    = false;
@@ -29,6 +32,14 @@ const GoogleDriveSync = (() => {
   }
 
   async function init() {
+    // En file:// ou localhost : pas de Google OAuth, mode local uniquement
+    if (IS_LOCAL) {
+      console.log('[GDriveSync] Mode local (file:// ou localhost) — Google Drive désactivé.');
+      _gapiReady = true;
+      _gisReady  = true;
+      _checkReady();
+      return;
+    }
     try {
       await Promise.all([
         _loadScript('https://apis.google.com/js/api.js'),
@@ -39,6 +50,10 @@ const GoogleDriveSync = (() => {
       console.log('[GDriveSync] Initialisé.');
     } catch(e) {
       console.warn('[GDriveSync] Impossible de charger les scripts Google:', e);
+      // Fallback : déclencher quand même les callbacks pour afficher le mode local
+      _gapiReady = true;
+      _gisReady  = true;
+      _checkReady();
     }
   }
 
@@ -93,6 +108,7 @@ const GoogleDriveSync = (() => {
   // ── Connexion ────────────────────────────────────────────
   function signIn() {
     return new Promise((res, rej) => {
+      if (IS_LOCAL) { rej(new Error('Google Drive non disponible en mode local')); return; }
       if (!_tokenClient) { rej(new Error('GIS non initialisé')); return; }
       const origCb = _tokenClient.callback;
       _tokenClient.callback = (resp) => {
@@ -213,5 +229,5 @@ const GoogleDriveSync = (() => {
   }
 
   return { init, onReady, signIn, signOut, isSignedIn, getUserInfo,
-           loadFromDrive, saveToDrive, getDriveSaveInfo };
+           loadFromDrive, saveToDrive, getDriveSaveInfo, isLocalMode: () => IS_LOCAL };
 })();
