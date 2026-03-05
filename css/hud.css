@@ -102,10 +102,10 @@
   z-index: 400;
 }
 
-/* Zoom controls — PC : sous les boutons hud-actions */
+/* Zoom controls — PC : sous les boutons hud-actions (4 boutons : 💾 ? 🧠 ☰) */
 #zoom-controls {
   position: fixed;
-  top: calc(var(--hud-top-h) + 8px + 3 * 48px + 3 * 6px + 12px);
+  top: calc(var(--hud-top-h) + 8px + 4 * 48px + 4 * 6px + 12px);
   right: 10px;
   display: flex;
   flex-direction: column;
@@ -121,6 +121,10 @@
 
 /* Sur touch, hud-actions (zoom) reste visible mais sans les boutons PC */
 .is-touch #score-renaissance { display: none !important; }
+/* Sur touch non-mobile : 2 boutons visibles (🧠 ☰) */
+.is-touch #zoom-controls {
+  top: calc(var(--hud-top-h) + 8px + 2 * 52px + 2 * 6px + 12px);
+}
 
 /* Mobile ≤ 600px : burger haut-droite, zoom milieu-droite */
 @media (max-width: 600px) {

@@ -342,6 +342,13 @@ class HUD {
       }
     });
 
+    // Bouton Talents PC (dans hud-actions)
+    document.getElementById('btn-talents-hud')?.addEventListener('click', () => {
+      const realBtn = document.getElementById('btn-talents');
+      if (realBtn) realBtn.click();
+      else EventBus.emit('talents:toggle');
+    });
+
     // ── Boutons PC ───────────────────────────────────────
     document.getElementById('btn-save')?.addEventListener('click', () => {
       EventBus.emit('save:request'); this.setInfo('💾 Partie sauvegardée !');
