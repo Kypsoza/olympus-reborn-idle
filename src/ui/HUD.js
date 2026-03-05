@@ -197,9 +197,9 @@ class HUD {
         const full = total > 0 && available === 0;
         alert.style.display = full ? '' : 'none';
       }
-      // Mettre à jour le panel si ouvert
-      const panel = document.getElementById('survivors-panel');
-      if (panel) panel.classList.toggle('pop-full', total > 0 && available === 0);
+      // Mettre à jour classe pop-full sur le nouvel item HUD
+      const popItem = document.getElementById('res-pop');
+      if (popItem) popItem.classList.toggle('pop-full', total > 0 && available === 0);
     });
 
     EventBus.on('cell:hover', ({ cell, screenX, screenY }) => {
@@ -269,6 +269,18 @@ class HUD {
         burgerMenu.classList.remove('open');
         EventBus.emit('save:reset');
       });
+
+      // Profil Google dans le burger
+      this._updateBurgerProfile();
+
+      document.getElementById('burger-signout-google')?.addEventListener('click', () => {
+        burgerMenu.classList.remove('open');
+        if (typeof GoogleDriveSync !== 'undefined' && GoogleDriveSync.isSignedIn()) {
+          GoogleDriveSync.signOut();
+          this._updateBurgerProfile();
+          this.setInfo('🔓 Déconnecté de Google — sauvegarde locale uniquement.');
+        }
+      });
     }
 
     document.getElementById('btn-save')?.addEventListener('click', () => {
@@ -281,5 +293,32 @@ class HUD {
     document.getElementById('btn-zoom-in')?.addEventListener('click', () => EventBus.emit('zoom:in'));
     document.getElementById('btn-zoom-out')?.addEventListener('click', () => EventBus.emit('zoom:out'));
     document.getElementById('btn-zoom-reset')?.addEventListener('click', () => EventBus.emit('zoom:reset'));
+  }
+
+  _updateBurgerProfile() {
+    const profile = document.getElementById('burger-google-profile');
+    if (!profile) return;
+
+    const isConnected = typeof GoogleDriveSync !== 'undefined' && GoogleDriveSync.isSignedIn();
+    profile.style.display = isConnected ? 'block' : 'none';
+
+    if (isConnected) {
+      const name  = localStorage.getItem('gds_user_name')  || 'Joueur';
+      const email = localStorage.getItem('gds_user_email') || '';
+      const pic   = localStorage.getItem('gds_user_pic')   || '';
+
+      const nameEl  = document.getElementById('burger-user-name');
+      const emailEl = document.getElementById('burger-user-email');
+      const picEl   = document.getElementById('burger-user-pic');
+
+      if (nameEl)  nameEl.textContent = name;
+      if (emailEl) emailEl.textContent = email;
+      if (picEl && pic) {
+        picEl.src = pic;
+        picEl.style.display = 'block';
+      } else if (picEl) {
+        picEl.style.display = 'none';
+      }
+    }
   }
 }

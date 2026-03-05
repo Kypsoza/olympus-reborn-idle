@@ -13,6 +13,12 @@ const GoogleDriveSync = (() => {
 
   const IS_LOCAL = location.protocol === 'file:';
 
+  // Clés localStorage pour la persistance de session
+  const KEY_SIGNED_IN = 'gds_signed_in';
+  const KEY_NAME      = 'gds_user_name';
+  const KEY_EMAIL     = 'gds_user_email';
+  const KEY_PIC       = 'gds_user_pic';
+
   let _idToken     = null;   // JWT de One Tap → infos user
   let _accessToken = null;   // OAuth2 token → Drive API
   let _userInfo    = null;   // { name, email, picture }
@@ -95,10 +101,25 @@ const GoogleDriveSync = (() => {
     google.accounts.id.initialize({
       client_id:  CLIENT_ID,
       callback:   _onOneTapCredential,
-      auto_select: false,
+      auto_select: localStorage.getItem(KEY_SIGNED_IN) === '1', // reconnexion auto si session précédente
       cancel_on_tap_outside: false,
-      use_fedcm_for_prompt: true,  // FedCM natif, pas de popup
+      use_fedcm_for_prompt: true,
     });
+
+    // Si session précédente → tenter reconnexion silencieuse immédiatement
+    if (localStorage.getItem(KEY_SIGNED_IN) === '1') {
+      _userInfo = {
+        name:    localStorage.getItem(KEY_NAME)  || 'Joueur',
+        email:   localStorage.getItem(KEY_EMAIL) || '',
+        picture: localStorage.getItem(KEY_PIC)   || '',
+      };
+      // Demander le token Drive silencieusement (sans popup)
+      setTimeout(() => {
+        if (_tokenClient) {
+          _tokenClient.requestAccessToken({ prompt: '' });
+        }
+      }, 500);
+    }
   }
 
   function _parseJWT(token) {
@@ -118,12 +139,14 @@ const GoogleDriveSync = (() => {
         email:   payload.email   || '',
         picture: payload.picture || '',
       };
-      localStorage.setItem('gds_user_name',  _userInfo.name);
-      localStorage.setItem('gds_user_email', _userInfo.email);
-      localStorage.setItem('gds_user_pic',   _userInfo.picture);
+      // Persister la session
+      localStorage.setItem(KEY_SIGNED_IN, '1');
+      localStorage.setItem(KEY_NAME,  _userInfo.name);
+      localStorage.setItem(KEY_EMAIL, _userInfo.email);
+      localStorage.setItem(KEY_PIC,   _userInfo.picture);
       console.log('[GDriveSync] Identité reçue via One Tap:', _userInfo.email);
     }
-    // Demander ensuite le token Drive (peut ouvrir une mini popup discrète)
+    // Demander ensuite le token Drive
     _tokenClient.requestAccessToken({ prompt: '' });
   }
 
@@ -199,7 +222,8 @@ const GoogleDriveSync = (() => {
     google.accounts.id.disableAutoSelect();
     _accessToken = _idToken = _userInfo = null;
     if (gapi.client) gapi.client.setToken(null);
-    ['gds_user_name','gds_user_email','gds_user_pic'].forEach(k => localStorage.removeItem(k));
+    // Effacer la session persistée
+    [KEY_SIGNED_IN, KEY_NAME, KEY_EMAIL, KEY_PIC].forEach(k => localStorage.removeItem(k));
     console.log('[GDriveSync] Déconnecté.');
   }
 

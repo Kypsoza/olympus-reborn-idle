@@ -74,16 +74,16 @@
 .hp-section { margin-bottom: 22px; }
 .hp-section:last-child { margin-bottom: 0; }
 .hp-h2 {
-  font-family: Cinzel, serif; font-size: 18px; color: #c8951a;
+  font-family: Cinzel, serif; font-size: 21px; color: #c8951a;
   letter-spacing: .06em; margin: 0 0 10px;
   padding-bottom: 5px; border-bottom: 1px solid rgba(200,149,26,.2);
 }
 .hp-h3 {
-  font-family: Cinzel, serif; font-size: 18px; color: #a07830;
+  font-family: Cinzel, serif; font-size: 21px; color: #a07830;
   letter-spacing: .04em; margin: 14px 0 6px; text-transform: uppercase;
 }
 .hp-p {
-  font-size: 19px; color: rgba(255,255,255,.62); line-height: 1.65; margin: 0 0 8px;
+  font-size: 21px; color: rgba(255,255,255,.62); line-height: 1.65; margin: 0 0 8px;
 }
 .hp-p:last-child { margin-bottom: 0; }
 
@@ -93,14 +93,14 @@
   background: rgba(255,255,255,.04); border: 1px solid rgba(200,149,26,.2);
   border-radius: 8px; padding: 10px 12px;
 }
-.hp-card-title { font-family: Cinzel, serif; font-size: 18px; color: #e8d090; margin-bottom: 4px; }
-.hp-card-body  { font-size: 18px; color: rgba(255,255,255,.52); line-height: 1.55; }
-.hp-glyph { font-size: 23px; margin-bottom: 4px; }
+.hp-card-title { font-family: Cinzel, serif; font-size: 22px; color: #e8d090; margin-bottom: 4px; }
+.hp-card-body  { font-size: 20px; color: rgba(255,255,255,.52); line-height: 1.55; }
+.hp-glyph { font-size: 28px; margin-bottom: 4px; }
 
 /* Tableau */
-.hp-table { width: 100%; border-collapse: collapse; font-size: 18px; margin-bottom: 15px; }
+.hp-table { width: 100%; border-collapse: collapse; font-size: 20px; margin-bottom: 15px; }
 .hp-table th {
-  font-family: Cinzel, serif; font-size: 19px; color: #a07830;
+  font-family: Cinzel, serif; font-size: 21px; color: #a07830;
   text-align: left; padding: 5px 8px;
   border-bottom: 1px solid rgba(200,149,26,.2);
 }
@@ -149,34 +149,34 @@
   display: flex; align-items: center; gap: 10px;
 }
 .hp-bcard-glyph {
-  font-size: 26px; line-height: 1; min-width: 32px; text-align: center;
+  font-size: 32px; line-height: 1; min-width: 38px; text-align: center;
 }
 .hp-bcard-info {
   display: flex; flex-direction: column; gap: 1px;
 }
 .hp-bcard-name {
-  font-family: Cinzel, serif; font-size: 13px; color: #e8d090;
+  font-family: Cinzel, serif; font-size: 16px; color: #e8d090;
 }
 .hp-bcard-era {
-  font-size: 11px; font-family: Cinzel, serif;
+  font-size: 14px; font-family: Cinzel, serif;
 }
 .hp-bcard-desc {
-  font-size: 12px; color: rgba(255,255,255,.55); line-height: 1.5;
+  font-size: 15px; color: rgba(255,255,255,.55); line-height: 1.5;
 }
 .hp-bcard-row {
   display: flex; gap: 8px; align-items: flex-start;
-  font-size: 12px; color: rgba(255,255,255,.5);
+  font-size: 15px; color: rgba(255,255,255,.5);
 }
 .hp-label {
-  color: rgba(200,149,26,.7); font-size: 11px;
+  color: rgba(200,149,26,.7); font-size: 14px;
   font-family: Cinzel, serif; min-width: 72px; padding-top: 1px;
 }
 .hp-bcard-extra {
-  font-size: 11px; color: #80c8ff;
+  font-size: 14px; color: #80c8ff;
   border-top: 1px solid rgba(255,255,255,.06);
   padding-top: 5px; margin-top: 2px;
 }
 .hp-h3 {
-  font-family: Cinzel, serif; font-size: 13px; color: #c090ff;
+  font-family: Cinzel, serif; font-size: 16px; color: #c090ff;
   margin: 8px 0 4px;
 }

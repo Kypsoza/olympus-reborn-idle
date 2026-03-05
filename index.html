@@ -8,14 +8,14 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="css/main.css?v=52" />
-  <link rel="stylesheet" href="css/hud.css?v=52" />
-  <link rel="stylesheet" href="css/map.css?v=52" />
-  <link rel="stylesheet" href="css/ui.css?v=52" />
-  <link rel="stylesheet" href="css/animations.css?v=52" />
-  <link rel="stylesheet" href="css/bottom-panel.css?v=52" />
-  <link rel="stylesheet" href="css/buildings.css?v=52" />
-  <link rel="stylesheet" href="css/help-panel.css?v=52" />
+  <link rel="stylesheet" href="css/main.css?v=54" />
+  <link rel="stylesheet" href="css/hud.css?v=54" />
+  <link rel="stylesheet" href="css/map.css?v=54" />
+  <link rel="stylesheet" href="css/ui.css?v=54" />
+  <link rel="stylesheet" href="css/animations.css?v=54" />
+  <link rel="stylesheet" href="css/bottom-panel.css?v=54" />
+  <link rel="stylesheet" href="css/buildings.css?v=54" />
+  <link rel="stylesheet" href="css/help-panel.css?v=54" />
 </head>
 <body>
   <div id="era-screen-flash"></div>
@@ -215,6 +215,27 @@
             <span class="resource-rate" id="rate-amrita"></span>
           </div>
         </div>
+        <!-- Population (déplacée du footer) -->
+        <div class="resource-item hud-pop-item" id="res-pop" data-tooltip="Population — Travailleurs / Capacité">
+          <div class="resource-icon">👥</div>
+          <div class="resource-info">
+            <span class="resource-name">Population</span>
+            <div class="hud-pop-row">
+              <span id="pop-workers">0</span><span class="hud-pop-sep"> / </span><span id="pop-total">0</span>
+            </div>
+            <div id="pop-bar-wrap"><div id="pop-bar"></div></div>
+          </div>
+          <span id="pop-alert" style="display:none" title="Logements pleins">⚠️</span>
+        </div>
+        <!-- Énergie HUD (ère 2+) -->
+        <div class="resource-item hud-nrj-item resource-era2" id="res-nrj-hud" style="display:none" data-tooltip="Énergie — Foudre des pylônes">
+          <div class="resource-icon">⚡</div>
+          <div class="resource-info">
+            <span class="resource-name">Énergie</span>
+            <span class="resource-value" id="val-nrj-hud">0</span>
+            <span class="resource-rate" id="rate-nrj-hud">+0/s</span>
+          </div>
+        </div>
       </div>
 
       <div id="era-badge" style="display:none;font-family:Cinzel,serif;font-size:11px;color:#c8a840;padding:4px 10px;border:1px solid rgba(200,168,64,0.4);border-radius:8px;margin-right:8px;align-self:center;letter-spacing:1px;">⛩ Antiquité</div>
@@ -231,6 +252,18 @@
 
     <!-- BURGER MENU MOBILE -->
     <div id="burger-menu">
+      <!-- Profil Google (visible si connecté) -->
+      <div id="burger-google-profile" style="display:none">
+        <div class="burger-profile-card">
+          <img id="burger-user-pic" src="" width="28" height="28" class="burger-user-pic" alt="">
+          <div class="burger-user-text">
+            <div class="burger-user-name" id="burger-user-name">…</div>
+            <div class="burger-user-email" id="burger-user-email">…</div>
+          </div>
+        </div>
+        <button class="burger-item burger-item-google" id="burger-signout-google">🔓 Se déconnecter de Google</button>
+        <div class="burger-divider"></div>
+      </div>
       <button class="burger-item" id="burger-save">💾 Sauvegarder</button>
       <button class="burger-item" id="burger-help">📖 Encyclopédie</button>
       <button class="burger-item burger-item-danger" id="burger-reset">🗑️ Réinitialiser</button>
@@ -264,15 +297,7 @@
       <div id="info-panel">
         <span id="info-text">Cliquez sur une case pour explorer le monde...</span>
       </div>
-      <div id="survivors-panel">
-        <span id="pop-icon">👥</span>
-        <span id="pop-workers">0</span>
-        <span id="pop-sep"> / </span>
-        <span id="pop-total">0</span>
-        <span id="pop-label"> hab.</span>
-        <div id="pop-bar-wrap"><div id="pop-bar"></div></div>
-        <span id="pop-alert" style="display:none">⚠️ Logements pleins !</span>
-      </div>
+      <!-- population déplacée dans HUD top -->
     </footer>
 
   </div><!-- fin #game-container -->
@@ -280,26 +305,26 @@
   <!-- ═══════════════════════════════════════════════════════
        SCRIPTS (ordre de chargement important)
   ════════════════════════════════════════════════════════ -->
-  <script src="src/utils/MathUtils.js?v=52"></script>
-  <script src="src/utils/HexUtils.js?v=52"></script>
-  <script src="src/utils/Compression.js?v=52"></script>
-  <script src="src/engine/EventBus.js?v=52"></script>
-  <script src="src/engine/SaveManager.js?v=52"></script>
-  <script src="src/map/HexCell.js?v=52"></script>
-  <script src="src/map/HexGrid.js?v=52"></script>
-  <script src="src/map/Camera.js?v=52"></script>
-  <script src="src/map/MapRenderer.js?v=52"></script>
-  <script src="src/systems/ResourceManager.js?v=52"></script>
-  <script src="src/systems/TalentManager.js?v=52"></script>
-  <script src="src/systems/ScoutManager.js?v=52"></script>
-  <script src="src/systems/PrestigeManager.js?v=52"></script>
-  <script src="src/systems/BuildingManager.js?v=52"></script>
-  <script src="src/ui/HUD.js?v=52"></script>
-  <script src="src/ui/BuildingPanel.js?v=52"></script>
-  <script src="src/ui/HelpPanel.js?v=52"></script>
-  <script src="src/ui/OfflineModal.js?v=52"></script>
-  <script src="src/engine/GoogleDriveSync.js?v=52"></script>
-  <script src="src/engine/GameLoop.js?v=52"></script>
+  <script src="src/utils/MathUtils.js?v=54"></script>
+  <script src="src/utils/HexUtils.js?v=54"></script>
+  <script src="src/utils/Compression.js?v=54"></script>
+  <script src="src/engine/EventBus.js?v=54"></script>
+  <script src="src/engine/SaveManager.js?v=54"></script>
+  <script src="src/map/HexCell.js?v=54"></script>
+  <script src="src/map/HexGrid.js?v=54"></script>
+  <script src="src/map/Camera.js?v=54"></script>
+  <script src="src/map/MapRenderer.js?v=54"></script>
+  <script src="src/systems/ResourceManager.js?v=54"></script>
+  <script src="src/systems/TalentManager.js?v=54"></script>
+  <script src="src/systems/ScoutManager.js?v=54"></script>
+  <script src="src/systems/PrestigeManager.js?v=54"></script>
+  <script src="src/systems/BuildingManager.js?v=54"></script>
+  <script src="src/ui/HUD.js?v=54"></script>
+  <script src="src/ui/BuildingPanel.js?v=54"></script>
+  <script src="src/ui/HelpPanel.js?v=54"></script>
+  <script src="src/ui/OfflineModal.js?v=54"></script>
+  <script src="src/engine/GoogleDriveSync.js?v=54"></script>
+  <script src="src/engine/GameLoop.js?v=54"></script>
 
   <script>
   /* ── Écran Titre + Google Drive Sync ───────────────────── */

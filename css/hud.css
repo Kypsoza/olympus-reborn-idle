@@ -161,6 +161,60 @@
   color: #ff9999;
 }
 
+/* Profil Google dans le burger */
+.burger-profile-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px 8px;
+  border-bottom: 1px solid rgba(200,149,26,0.15);
+  margin-bottom: 4px;
+}
+.burger-user-pic {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  border: 2px solid var(--col-border-gold);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.burger-user-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  overflow: hidden;
+}
+.burger-user-name {
+  font-family: var(--font-title);
+  font-size: 13px;
+  color: var(--col-gold);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.burger-user-email {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  color: rgba(255,255,255,0.45);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.burger-item-google {
+  color: #8ab4f8;
+  border-color: rgba(138,180,248,0.2);
+  font-size: 13px;
+  padding: 7px 14px;
+}
+.burger-item-google:hover {
+  background: rgba(138,180,248,0.1);
+  border-color: rgba(138,180,248,0.5);
+}
+.burger-divider {
+  height: 1px;
+  background: rgba(200,149,26,0.12);
+  margin: 2px 0 4px;
+}
+
 #score-renaissance {
   display: flex;
   flex-direction: column;
@@ -220,7 +274,7 @@
 }
 #pop-workers { color: var(--col-text); font-weight: 700; }
 #pop-total   { color: rgba(255,255,255,0.5); }
-#pop-label   { color: rgba(255,255,255,0.35); font-size: 12px; }
+#pop-label   { color: rgba(255,255,255,0.35); font-size: 14px; }
 
 /* Barre de population */
 #pop-bar-wrap {
@@ -272,7 +326,7 @@
   .resource-item { padding: 4px 7px; gap: 5px; }
   .resource-icon { font-size: 19px; }
   .resource-value { font-size: 16px; }
-  .resource-rate { font-size: 13px; }
+  .resource-rate { font-size: 16px; }
   .resource-name { font-size: 9px; }
   #score-renaissance { padding: 3px 6px; }
   .score-value { font-size: 16px; }
@@ -754,4 +808,55 @@
 }
 #btn-talents:active {
   transform: translateY(0);
+}
+
+/* ── Population + Énergie dans HUD top ─────────────────── */
+.hud-pop-item,
+.hud-nrj-item {
+  border-left: 1px solid rgba(200,149,26,0.15);
+  padding-left: 10px;
+  min-width: 90px;
+}
+.hud-pop-row {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  font-family: var(--font-ui);
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--col-text);
+  line-height: 1.1;
+}
+.hud-pop-sep {
+  font-size: 13px;
+  color: rgba(255,255,255,0.35);
+}
+#pop-bar-wrap {
+  width: 50px;
+  height: 4px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 3px;
+}
+#pop-bar {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.4s, background 0.4s;
+  background: #60c860;
+}
+#pop-alert {
+  font-size: 14px;
+  animation: pop-blink 1.2s ease-in-out infinite;
+  margin-left: 2px;
+  flex-shrink: 0;
+  align-self: center;
+}
+.hud-pop-item.pop-full .hud-pop-row { color: #e05050; }
+
+/* Responsive : masquer le nom "Population"/"Énergie" sur petit écran */
+@media (max-width: 900px) {
+  .hud-pop-item .resource-name,
+  .hud-nrj-item .resource-name { display: none; }
+  .hud-pop-item, .hud-nrj-item { min-width: 70px; }
 }
