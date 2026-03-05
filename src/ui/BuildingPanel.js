@@ -1,4 +1,4 @@
-/* BuildingPanel.js — v0.5.0
+/* BuildingPanel.js — v0.5.3
    Drawer coulissant en bas de l'ecran (remplace le tooltip flottant)
 */
 
@@ -142,35 +142,44 @@ class BuildingPanel {
   _renderDrachmeTree(el) {
     var self = this;
 
-    // ── Canvas virtuel ───────────────────────────────────
-    var VW = 1400, VH = 640;
-
-    // 7 branches en colonnes verticales, espacées de 200px
-    var BRANCH_CX = {
-      agriculture:100, sylviculture:300, metallurgie:500,
-      siderurgie:700,  population:900,   ingenierie:1100, energie:1300
-    };
-    var COL_OFF = 44;   // décalage ±x entre les 2 sous-colonnes
-    var ROW_Y0  = 150;  // y premier nœud
-    var ROW_DY  = 130;  // espacement vertical entre nœuds
-    var R       = 34;   // rayon des nœuds
+    // ── Canvas virtuel (radial) ─────────────────────────
+    var VW = 900, VH = 900;
+    var CX = VW/2, CY = VH/2;  // centre
+    var R  = 30;   // rayon nœud
 
     var branches = self.tm.getBranchData();
+    var NB = branches.length; // 7 branches
+
+    // Angles des branches (distribuées sur 360°, décalées de 90° pour commencer en haut)
+    var BRANCH_ANGLES = {};
+    branches.forEach(function(b, bi) {
+      BRANCH_ANGLES[b.id] = -Math.PI/2 + (2*Math.PI/NB) * bi;
+    });
+
+    // Rayons des anneaux (distance du centre) — 3 nœuds par sous-colonne
+    // col 0 = niv max, col 1 = prod
+    // Anneau 0 = nœud centre (fictif), 1-3 = col0, 4-6 = col1 (offset angulaire)
+    var RING_R = [0, 140, 250, 360, 140, 250, 360]; // indice = rang dans branch
 
     // ── Positions des nœuds ─────────────────────────────
     var NODE_POS = {}; // id → {x,y,branchId,branchColor,branchIcon,branchLabel}
-    var EDGES    = []; // [{from,to}]
+    var EDGES    = []; // [[from,to]]
 
     branches.forEach(function(b) {
-      var cx = BRANCH_CX[b.id];
-      if (cx === undefined) return;
-      var twoCol = b.cols.length === 2;
+      var baseAngle = BRANCH_ANGLES[b.id];
+      var twoCol    = b.cols.length === 2;
+      var colOffAng = twoCol ? 0.18 : 0; // décalage angulaire entre les 2 sous-colonnes
+
       b.cols.forEach(function(col, ci) {
-        var x = twoCol ? (ci===0 ? cx - COL_OFF : cx + COL_OFF) : cx;
+        var ang = baseAngle + (ci===0 ? -colOffAng : colOffAng);
         col.forEach(function(id, ri) {
+          var dist = 130 + ri * 120; // distance croissante du centre
           NODE_POS[id] = {
-            x: x, y: ROW_Y0 + ri * ROW_DY,
-            branchId: b.id, branchColor: b.color, branchIcon: b.icon, branchLabel: b.label
+            x: CX + Math.cos(ang) * dist,
+            y: CY + Math.sin(ang) * dist,
+            branchId: b.id, branchColor: b.color,
+            branchIcon: b.icon, branchLabel: b.label,
+            angle: ang, dist: dist
           };
           var def = self.tm.getTalentDef(id);
           if (def && def.requires) def.requires.forEach(function(req) {
@@ -213,31 +222,38 @@ class BuildingPanel {
       s += '</defs>';
 
       // Fond
-      s += '<rect width="'+VW+'" height="'+VH+'" fill="url(#dt-bg)" rx="12"/>';
+      s += '<rect width="'+VW+'" height="'+VH+'" fill="url(#dt-bg)" rx="16"/>';
       // Grille de points
-      for (var gx=40;gx<VW;gx+=48) for (var gy=40;gy<VH;gy+=48)
-        s += '<circle cx="'+gx+'" cy="'+gy+'" r="1" fill="rgba(255,220,100,0.035)"/>';
+      for (var gx=40;gx<VW;gx+=56) for (var gy=40;gy<VH;gy+=56)
+        s += '<circle cx="'+gx+'" cy="'+gy+'" r="1" fill="rgba(255,220,100,0.03)"/>';
 
-      // ── Colonnes de branche (fond de zone) ──────────────
-      branches.forEach(function(b) {
-        var cx = BRANCH_CX[b.id]; if (cx===undefined) return;
-        // Zone colorée légère
-        s += '<rect x="'+(cx-85)+'" y="30" width="170" height="'+(VH-50)+'"'
-          +' rx="10" fill="'+b.color+'" opacity="0.025"/>';
-        s += '<line x1="'+cx+'" y1="30" x2="'+cx+'" y2="'+(VH-20)+'"'
-          +' stroke="'+b.color+'" stroke-width="0.5" opacity="0.12" stroke-dasharray="4,10"/>';
-        // Label colonne
-        s += '<text x="'+cx+'" y="70" text-anchor="middle"'
-          +' font-size="11" fill="'+b.color+'" font-family="Cinzel,serif" font-weight="700"'
-          +' letter-spacing="0.8" style="pointer-events:none">'+b.icon+' '+b.label.toUpperCase()+'</text>';
-        // Séparateur colonne sous-titres
-        if (b.cols.length===2) {
-          s += '<text x="'+(cx-COL_OFF)+'" y="100" text-anchor="middle" font-size="8"'
-            +' fill="'+b.color+'" opacity="0.5" font-family="Cinzel,serif" style="pointer-events:none">NV MAX</text>';
-          s += '<text x="'+(cx+COL_OFF)+'" y="100" text-anchor="middle" font-size="8"'
-            +' fill="'+b.color+'" opacity="0.5" font-family="Cinzel,serif" style="pointer-events:none">PROD %</text>';
-        }
+      // Cercles guides concentriques
+      [130,250,370].forEach(function(rd) {
+        s += '<circle cx="'+CX+'" cy="'+CY+'" r="'+rd+'" fill="none"'
+          +' stroke="rgba(255,220,100,0.06)" stroke-width="1" stroke-dasharray="4,12"/>';
       });
+
+      // Rayons de branche depuis le centre
+      branches.forEach(function(b) {
+        var ang = BRANCH_ANGLES[b.id];
+        var ex = CX + Math.cos(ang)*400, ey = CY + Math.sin(ang)*400;
+        s += '<line x1="'+CX+'" y1="'+CY+'" x2="'+ex+'" y2="'+ey+'"'
+          +' stroke="'+b.color+'" stroke-width="1" opacity="0.10"/>';
+        // Label branche
+        var lx = CX + Math.cos(ang)*430, ly = CY + Math.sin(ang)*430;
+        var rotDeg = (ang*180/Math.PI) + (ang>Math.PI/2||ang<-Math.PI/2 ? 0 : 0);
+        s += '<g transform="translate('+lx+','+ly+')">';
+        s += '<text text-anchor="middle" dominant-baseline="middle"'
+          +' font-size="10" fill="'+b.color+'" font-family="Cinzel,serif" font-weight="700"'
+          +' letter-spacing="0.6" style="pointer-events:none">'+b.icon+' '+b.label.toUpperCase()+'</text>';
+        s += '</g>';
+      });
+
+      // Nœud central (⚡)
+      s += '<circle cx="'+CX+'" cy="'+CY+'" r="30" fill="rgba(25,15,5,0.97)"'
+        +' stroke="#c8961a" stroke-width="2.5" filter="url(#dt-gd)"/>';
+      s += '<text x="'+CX+'" y="'+(CY+1)+'" text-anchor="middle" dominant-baseline="middle"'
+        +' font-size="20" style="pointer-events:none">⚡</text>';
 
       // ── Lignes de connexion ──────────────────────────────
       EDGES.forEach(function(e) {
@@ -362,7 +378,7 @@ class BuildingPanel {
     var outer = el.querySelector('#dt-outer');
     var inner = el.querySelector('#dt-inner');
     var ttBox = el.querySelector('#dt-ttbox');
-    var scale = 0.72, tx = 0, ty = 10;
+    var scale = 0.78, tx = 0, ty = 0;
     var panning = false, px0 = 0, py0 = 0, tx0 = 0, ty0 = 0;
 
     function applyTransform() {
@@ -454,8 +470,30 @@ class BuildingPanel {
     });
 
     el.addEventListener('click', function(e) {
-      var btn=e.target.closest('[data-learnnode]'); if (!btn) return;
-      if (self.tm.learn(btn.dataset.learnnode)) self._renderTalents();
+      var btn = e.target.closest('[data-learnnode]');
+      if (!btn) return;
+      e.stopPropagation();
+      var id = btn.dataset.learnnode;
+      // Coords pour feedback visuel
+      var sx = e.clientX || window.innerWidth * 0.5;
+      var sy = e.clientY || window.innerHeight * 0.4;
+      var ok = self.tm.learn(id, sx, sy);
+      if (ok) {
+        // Reconstruire uniquement le SVG (plus rapide que _renderTalents complet)
+        var svg = el.querySelector('#dt-svg');
+        if (svg) {
+          var newSVG = document.createElement('div');
+          newSVG.innerHTML = buildSVG();
+          svg.parentNode.replaceChild(newSVG.firstChild, svg);
+        }
+        // Mise à jour du compteur Drachmes
+        var drach = self.rm ? Math.floor(self.rm.get('drachmes')) : 0;
+        var dEl = el.querySelector('.et-ether-count');
+        if (dEl) dEl.textContent = '🪙 ' + (drach>=1000?(drach/1000).toFixed(1)+'k':drach) + ' Drachmes';
+        // Mettre à jour tooltip si un nœud est sélectionné
+        var node = ttBox.dataset.node;
+        if (node) ttBox.innerHTML = buildTT(node);
+      }
     });
 
   }
@@ -1036,8 +1074,8 @@ class BuildingPanel {
           if (!btn || btn.classList.contains('bp-locked')) return;
           var card = btn.closest('[data-id],[data-action],[data-transform]');
           if (!card) return;
-          if (card.dataset.action==='road')        { self.bm.placeRoad(cell,0,0); self.refresh(); }
-          if (card.dataset.action==='road-remove') { self.bm.removeRoad(cell,0,0); self.refresh(); }
+          if (card.dataset.action==='road')        { var mc=document.getElementById('map-container'),mr=mc?mc.getBoundingClientRect():{left:0,top:0,width:innerWidth,height:innerHeight}; self.bm.placeRoad(cell,mr.left+mr.width*.5,mr.top+mr.height*.4); self.refresh(); }
+          if (card.dataset.action==='road-remove') { var mc=document.getElementById('map-container'),mr=mc?mc.getBoundingClientRect():{left:0,top:0,width:innerWidth,height:innerHeight}; self.bm.removeRoad(cell,mr.left+mr.width*.5,mr.top+mr.height*.4); self.refresh(); }
           if (card.dataset.transform) { self.bm.transformTerrain(cell,card.dataset.transform,0,0); self.refresh(); }
         }, {once:true});
       }
@@ -1091,21 +1129,33 @@ class BuildingPanel {
       return;
     }
     // data-action routing
+    // Coordonnées écran du centre de la carte (fallback pour feedbacks)
+    var _mc = document.getElementById('map-container');
+    var _r  = _mc ? _mc.getBoundingClientRect() : { left:0, top:0, width:window.innerWidth, height:window.innerHeight };
+    var _sx = _r.left + _r.width * 0.5;
+    var _sy = _r.top  + _r.height * 0.4;
+
     switch(action) {
-      case 'dig':         if (!btn.classList.contains('bp-locked')) { this.bm.digCell(cell, 0, 0); this.refresh(); } break;
-      case 'upgrade':     this.bm.upgrade(cell, 0, 0); this.refresh(); break;
-      case 'demolish':    this.bm.demolish(cell, 0, 0); this.refresh(); break;
+      case 'dig': {
+        if (!btn.classList.contains('bp-locked')) {
+          this.bm.digCell(cell, _sx, _sy);
+          this.refresh();
+        }
+        break;
+      }
+      case 'upgrade':     this.bm.upgrade(cell, _sx, _sy); this.refresh(); break;
+      case 'demolish':    this.bm.demolish(cell, _sx, _sy); this.refresh(); break;
       case 'base-upgrade': {
         var pm = window.game && window.game.prestigeManager;
         if (pm) { pm.upgradeBase(cell); this.refresh(); }
         break;
       }
-      case 'road':        this.bm.placeRoad(cell, 0, 0); this.refresh(); break;
-      case 'road-remove': this.bm.removeRoad(cell, 0, 0); this.refresh(); break;
+      case 'road':        this.bm.placeRoad(cell, _sx, _sy); this.refresh(); break;
+      case 'road-remove': this.bm.removeRoad(cell, _sx, _sy); this.refresh(); break;
       case 'mud-drain':   this.bm.transformTerrain(cell, CELL_TYPE.PLAIN, 0, 0); this.refresh(); break;
       case 'rubble-clear':this.bm.transformTerrain(cell, CELL_TYPE.PLAIN, 0, 0); this.refresh(); break;
-      case 'tun-road':    this.bm.placeRoad(cell, 0, 0); this.refresh(); break;
-      case 'tun-road-rm': this.bm.removeRoad(cell, 0, 0); this.refresh(); break;
+      case 'tun-road':    this.bm.placeRoad(cell, _sx, _sy); this.refresh(); break;
+      case 'tun-road-rm': this.bm.removeRoad(cell, _sx, _sy); this.refresh(); break;
       case 'tun-collapse':this.bm.transformTerrain(cell, CELL_TYPE.PLAIN, 0, 0); this.refresh(); break;
     }
   }
@@ -1212,38 +1262,61 @@ class BuildingPanel {
   // ── UI Base Cachee (Ruines Antiques) ───────────────────────
   _renderBaseHiddenUI(cell, body) {
     var self = this;
+    var isHiddenBase = !!cell.isHiddenBase; // vraie base améliorable
     var lvl = cell.baseLevel || 1;
     var pm = window.game && window.game.prestigeManager;
     var pct = ((lvl - 1) / 4) * 100;
     var bonus = pm ? pm.getBaseBonus(lvl) : 0;
-    var html = '<div class="bp-bld-header">' +
-      '<span class="bp-bld-glyph">🏛️</span>' +
-      '<div><div class="bp-bld-name">Ruines Antiques</div>' +
-      '<div class="bp-bld-lvl">Niveau ' + lvl + ' / 5' + (bonus > 0 ? ' — +' + bonus + '% prod.' : '') + '</div></div>' +
-      '</div>' +
-      '<div class="bp-lvlbar-track"><div class="bp-lvlbar-fill" style="width:' + pct + '%"></div></div>';
 
-    // Bonus actif
-    if (bonus > 0) {
-      html += '<div class="bp-prod-badges"><span class="bp-prod-badge">✨ +' + bonus + '% production globale</span></div>';
+    if (!isHiddenBase) {
+      // === RUINE DÉCORATIVE : pas d'amélioration ===
+      var html = '<div class="bp-bld-header">' +
+        '<span class="bp-bld-glyph">⛩️</span>' +
+        '<div><div class="bp-bld-name">Ruines Antiques</div>' +
+        '<div class="bp-bld-lvl" style="color:#a08060">Vestiges d\'une civilisation passée</div></div>' +
+        '</div>';
+      if (cell.isHeritage) {
+        html += '<div style="font-size:11px;color:#c090ff;margin-bottom:6px">👻 Spectre d\'héritage — Mémoire des anciens.</div>';
+      }
+      html += '<div style="font-size:11px;color:#888;margin-top:8px;text-align:center;padding:8px;background:rgba(255,255,255,0.04);border-radius:6px">' +
+        '🏚️ Ces ruines ne peuvent pas être améliorées.<br>' +
+        '<span style="color:#c8961a">Cherche les Bases Cachées ✦ pour progresser vers le Prestige.</span>' +
+        '</div>';
+      body.innerHTML = html;
+      return;
     }
 
-    // Héritage
+    // === BASE CACHÉE AMÉLIORABLE ===
+    var html = '<div class="bp-bld-header">' +
+      '<span class="bp-bld-glyph" style="filter:drop-shadow(0 0 6px #b060ff)">🏛️</span>' +
+      '<div><div class="bp-bld-name" style="color:#c090ff">✦ Base Cachée</div>' +
+      '<div class="bp-bld-lvl">Niveau ' + lvl + ' / 5' + (bonus > 0 ? ' — <span style="color:#c8e060">+' + bonus + '% prod.</span>' : '') + '</div></div>' +
+      '</div>' +
+      '<div class="bp-lvlbar-track"><div class="bp-lvlbar-fill" style="width:' + pct + '%;background:linear-gradient(90deg,#7030c0,#b060ff)"></div></div>';
+
+    if (bonus > 0) {
+      html += '<div class="bp-prod-badges"><span class="bp-prod-badge" style="background:rgba(176,96,255,0.15);color:#c090ff">✨ +' + bonus + '% production globale</span></div>';
+    }
+
     if (cell.isHeritage) {
-      html += '<div style="font-size:11px;color:#c090ff;margin-bottom:6px">👻 Spectre d&#39;héritage — Mémoire des anciens.</div>';
+      html += '<div style="font-size:11px;color:#c090ff;margin-bottom:6px">👻 Spectre d\'héritage — Mémoire des anciens.</div>';
     }
 
     if (lvl < 5) {
       var check = pm ? pm.canUpgradeBase(cell) : { ok: false, reason: 'Chargement...' };
       var cost = pm ? pm.getBaseUpgradeCost(lvl) : null;
       html += '<div class="bp-bld-actions">';
-      html += '<button class="bp-upgrade-btn' + self._lock(check.ok) + '" data-action="base-upgrade">' +
-        '🏛️ Améliorer Niv.' + (lvl + 1) +
+      html += '<button class="bp-upgrade-btn' + self._lock(check.ok) + '" data-action="base-upgrade" style="' +
+        (check.ok ? 'background:linear-gradient(135deg,#5020a0,#8040d0);border-color:#b060ff' : '') + '">' +
+        '✦ Améliorer Niv.' + (lvl + 1) +
         (cost ? '<span class="bp-upgrade-cost">' + self._costInline(cost) + '</span>' : '') +
         '</button>';
+      if (!check.ok && check.reason) {
+        html += '<div style="font-size:10px;color:#e08060;margin-top:4px;text-align:center">' + check.reason + '</div>';
+      }
       html += '</div>';
     } else {
-      html += '<div class="bp-max-lvl-tag" style="display:block;text-align:center;margin-top:8px">⭐ Niveau Maximum — Condition Prestige remplie !</div>';
+      html += '<div class="bp-max-lvl-tag" style="display:block;text-align:center;margin-top:8px;color:#b060ff;background:rgba(176,96,255,0.1);border:1px solid #b060ff;border-radius:6px;padding:6px">⭐ Niveau Maximum — Condition Prestige remplie !</div>';
     }
 
     body.innerHTML = html;
@@ -1321,7 +1394,9 @@ class BuildingPanel {
 
       // Case cachee -> fouille silencieuse + ferme le slider
       if (cell.isHidden) {
-        self.bm.digCell(cell, 0, 0);
+        var sx = d.screenX || window.innerWidth / 2;
+        var sy = d.screenY || window.innerHeight / 2;
+        self.bm.digCell(cell, sx, sy);
         self.hide();
         return;
       }

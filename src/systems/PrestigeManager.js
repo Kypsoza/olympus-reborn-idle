@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════
-   PrestigeManager.js — v0.5.0 — Phase 4 : Prestige & Autel
+   PrestigeManager.js — v0.5.3 — Phase 4 : Prestige & Autel
    Conditions : 50 cases revelees + 3 bases niveau 5
    Autel : activation quand conditions remplies, barre 2000 HP
    Prestige : calcul Ether, reset monde, conservation heritage
@@ -61,6 +61,8 @@ class PrestigeManager {
 
   canUpgradeBase(cell) {
     if (!cell.isRevealed || cell.type !== CELL_TYPE.BASE) return { ok: false, reason: 'Pas une base.' };
+    // Seules les vraies Bases Cachées (isHiddenBase) sont améliorables
+    if (!cell.isHiddenBase) return { ok: false, reason: 'Ces ruines ne peuvent pas être améliorées.' };
     var lvl = cell.baseLevel || 1;
     if (lvl >= 5) return { ok: false, reason: 'Niveau maximum atteint.' };
     var cost = this.getBaseUpgradeCost(lvl);

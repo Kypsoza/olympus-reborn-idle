@@ -111,13 +111,17 @@ class HexGrid {
       {q:   6, r:  38}, {q:  -6, r: -38},  // dist=44, secteurs S/N
     ];
 
-    ruins.forEach(({q, r}) => {
+    // 6 premières ruines (anneau 7) = vraies Bases Cachées améliorables
+    // Les autres = ruines décoratives (pas d'amélioration)
+    ruins.forEach(({q, r}, idx) => {
       const cell = this.getCell(q, r);
       if (!cell || cell.state === CELL_STATE.REVEALED) return;
       cell.type          = CELL_TYPE.BASE;
       cell.maxHP         = MathUtils.randomInt(300, 500);
       cell.currentHP     = cell.maxHP;
       cell.glowIntensity = 0.8 + this.rng() * 0.2;
+      // Les 6 premières (anneau 7) sont des vraies bases cachées
+      cell.isHiddenBase  = (idx < 6);
     });
 
     altars.forEach(({q, r}) => {

@@ -127,7 +127,8 @@ class HexCell {
       state: this.state, currentHP: this.currentHP, maxHP: this.maxHP,
       building: this.building, buildingLevel: this.buildingLevel,
       hasRoad: this.hasRoad, glowIntensity: this.glowIntensity,
-      baseLevel: this.baseLevel, isHeritage: this.isHeritage, isConnected: this.isConnected
+      baseLevel: this.baseLevel, isHeritage: this.isHeritage,
+      isConnected: this.isConnected, isHiddenBase: this.isHiddenBase ?? false
     };
   }
 
@@ -143,6 +144,7 @@ class HexCell {
     cell.baseLevel     = data.baseLevel      ?? 1;
     cell.isHeritage    = data.isHeritage     ?? false;
     cell.isConnected   = data.isConnected    ?? false;
+    cell.isHiddenBase  = data.isHiddenBase   ?? false;
     return cell;
   }
 }

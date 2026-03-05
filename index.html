@@ -17,14 +17,14 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="css/main.css?v=0.5.2" />
-  <link rel="stylesheet" href="css/hud.css?v=0.5.2" />
-  <link rel="stylesheet" href="css/map.css?v=0.5.2" />
-  <link rel="stylesheet" href="css/ui.css?v=0.5.2" />
-  <link rel="stylesheet" href="css/animations.css?v=0.5.2" />
-  <link rel="stylesheet" href="css/bottom-panel.css?v=0.5.2" />
-  <link rel="stylesheet" href="css/buildings.css?v=0.5.2" />
-  <link rel="stylesheet" href="css/help-panel.css?v=0.5.2" />
+  <link rel="stylesheet" href="css/main.css?v=0.5.3" />
+  <link rel="stylesheet" href="css/hud.css?v=0.5.3" />
+  <link rel="stylesheet" href="css/map.css?v=0.5.3" />
+  <link rel="stylesheet" href="css/ui.css?v=0.5.3" />
+  <link rel="stylesheet" href="css/animations.css?v=0.5.3" />
+  <link rel="stylesheet" href="css/bottom-panel.css?v=0.5.3" />
+  <link rel="stylesheet" href="css/buildings.css?v=0.5.3" />
+  <link rel="stylesheet" href="css/help-panel.css?v=0.5.3" />
 </head>
 <body>
   <div id="era-screen-flash"></div>
@@ -307,6 +307,9 @@
     </div>
   </div>
 
+  <!-- Compteur conditions Prestige (visible quand >= 30 cases révélées) -->
+  <div id="prestige-conditions-bar" data-all-met="false"></div>
+
   <!-- Zoom controls — séparé pour pouvoir être repositionné en mobile -->
   <div id="zoom-controls">
     <button class="hud-btn zoom-btn" id="btn-zoom-in"    title="Zoom +">＋</button>
@@ -370,26 +373,26 @@
   <!-- ═══════════════════════════════════════════════════════
        SCRIPTS (ordre de chargement important)
   ════════════════════════════════════════════════════════ -->
-  <script src="src/utils/MathUtils.js?v=0.5.2"></script>
-  <script src="src/utils/HexUtils.js?v=0.5.2"></script>
-  <script src="src/utils/Compression.js?v=0.5.2"></script>
-  <script src="src/engine/EventBus.js?v=0.5.2"></script>
-  <script src="src/engine/SaveManager.js?v=0.5.2"></script>
-  <script src="src/map/HexCell.js?v=0.5.2"></script>
-  <script src="src/map/HexGrid.js?v=0.5.2"></script>
-  <script src="src/map/Camera.js?v=0.5.2"></script>
-  <script src="src/map/MapRenderer.js?v=0.5.2"></script>
-  <script src="src/systems/ResourceManager.js?v=0.5.2"></script>
-  <script src="src/systems/TalentManager.js?v=0.5.2"></script>
-  <script src="src/systems/ScoutManager.js?v=0.5.2"></script>
-  <script src="src/systems/PrestigeManager.js?v=0.5.2"></script>
-  <script src="src/systems/BuildingManager.js?v=0.5.2"></script>
-  <script src="src/ui/HUD.js?v=0.5.2"></script>
-  <script src="src/ui/BuildingPanel.js?v=0.5.2"></script>
-  <script src="src/ui/HelpPanel.js?v=0.5.2"></script>
-  <script src="src/ui/OfflineModal.js?v=0.5.2"></script>
-  <script src="src/engine/GoogleDriveSync.js?v=0.5.2"></script>
-  <script src="src/engine/GameLoop.js?v=0.5.2"></script>
+  <script src="src/utils/MathUtils.js?v=0.5.3"></script>
+  <script src="src/utils/HexUtils.js?v=0.5.3"></script>
+  <script src="src/utils/Compression.js?v=0.5.3"></script>
+  <script src="src/engine/EventBus.js?v=0.5.3"></script>
+  <script src="src/engine/SaveManager.js?v=0.5.3"></script>
+  <script src="src/map/HexCell.js?v=0.5.3"></script>
+  <script src="src/map/HexGrid.js?v=0.5.3"></script>
+  <script src="src/map/Camera.js?v=0.5.3"></script>
+  <script src="src/map/MapRenderer.js?v=0.5.3"></script>
+  <script src="src/systems/ResourceManager.js?v=0.5.3"></script>
+  <script src="src/systems/TalentManager.js?v=0.5.3"></script>
+  <script src="src/systems/ScoutManager.js?v=0.5.3"></script>
+  <script src="src/systems/PrestigeManager.js?v=0.5.3"></script>
+  <script src="src/systems/BuildingManager.js?v=0.5.3"></script>
+  <script src="src/ui/HUD.js?v=0.5.3"></script>
+  <script src="src/ui/BuildingPanel.js?v=0.5.3"></script>
+  <script src="src/ui/HelpPanel.js?v=0.5.3"></script>
+  <script src="src/ui/OfflineModal.js?v=0.5.3"></script>
+  <script src="src/engine/GoogleDriveSync.js?v=0.5.3"></script>
+  <script src="src/engine/GameLoop.js?v=0.5.3"></script>
 
   <script>
   /* ── Écran Titre + Google Drive Sync ───────────────────── */

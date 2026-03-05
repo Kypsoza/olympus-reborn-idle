@@ -1,4 +1,4 @@
-/* MapRenderer — v0.5.0.js - Phase 3 */
+/* MapRenderer — v0.5.3.js - Phase 3 */
 
 class MapRenderer {
   constructor(canvas, grid, camera) {
@@ -162,22 +162,31 @@ class MapRenderer {
     ctx.strokeStyle = '#2a2440'; ctx.lineWidth = 0.8; ctx.stroke();
     if (cell.maxHP > 0 && cell.currentHP < cell.maxHP) this._drawDigBar(ctx, x, y, cell);
     if (cell.isSpecial || cell.type === CELL_TYPE.ALTAR) {
-      const pulse = this._computePulse(cell);
-      const isAltar = cell.type === CELL_TYPE.ALTAR;
-      const gR = isAltar ? 160 : 220, gG = isAltar ? 60 : 140, gB = isAltar ? 240 : 20;
-      const haloGrad = ctx.createRadialGradient(x, y, 0, x, y, hexSize * 1.6);
-      haloGrad.addColorStop(0,    'rgba('+gR+','+gG+','+gB+','+(0.65*pulse)+')');
-      haloGrad.addColorStop(0.35, 'rgba('+gR+','+gG+','+gB+','+(0.35*pulse)+')');
-      haloGrad.addColorStop(1,    'rgba('+gR+','+gG+','+gB+',0)');
-      ctx.beginPath(); ctx.arc(x, y, hexSize*1.6, 0, Math.PI*2); ctx.fillStyle = haloGrad; ctx.fill();
-      this._hexPath(ctx, corners);
-      ctx.fillStyle = 'rgba('+gR+','+gG+','+gB+','+(0.40*pulse)+')'; ctx.fill();
-      ctx.strokeStyle = 'rgba('+gR+','+gG+','+gB+','+(0.90*pulse)+')'; ctx.lineWidth = 2.0; ctx.stroke();
-      ctx.font = (hexSize*0.42)+'px serif';
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.globalAlpha = 0.25 + 0.75*pulse;
-      ctx.fillText(isAltar ? '🔮' : '\u2736', x, y);
-      ctx.globalAlpha = 1;
+      // Halo visible seulement si à ≤5 cases d'une case révélée
+      const minDist = this._minDistToRevealed(cell);
+      if (minDist <= 5) {
+        const pulse = this._computePulse(cell);
+        const isAltar      = cell.type === CELL_TYPE.ALTAR;
+        const isHiddenBase = cell.isHiddenBase === true; // vraie base cachée
+        // Couleurs : Autel = violet, Base cachée = violet clair, Ruine = doré terne
+        let gR, gG, gB;
+        if (isAltar)           { gR=160; gG=60;  gB=240; }
+        else if (isHiddenBase) { gR=180; gG=80;  gB=255; }
+        else                   { gR=160; gG=120; gB=40;  } // Ruine : doré terne
+        const haloGrad = ctx.createRadialGradient(x, y, 0, x, y, hexSize * 1.6);
+        haloGrad.addColorStop(0,    'rgba('+gR+','+gG+','+gB+','+(0.65*pulse)+')');
+        haloGrad.addColorStop(0.35, 'rgba('+gR+','+gG+','+gB+','+(0.35*pulse)+')');
+        haloGrad.addColorStop(1,    'rgba('+gR+','+gG+','+gB+',0)');
+        ctx.beginPath(); ctx.arc(x, y, hexSize*1.6, 0, Math.PI*2); ctx.fillStyle = haloGrad; ctx.fill();
+        this._hexPath(ctx, corners);
+        ctx.fillStyle = 'rgba('+gR+','+gG+','+gB+','+(0.40*pulse)+')'; ctx.fill();
+        ctx.strokeStyle = 'rgba('+gR+','+gG+','+gB+','+(0.90*pulse)+')'; ctx.lineWidth = 2.0; ctx.stroke();
+        ctx.font = (hexSize*0.42)+'px serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.globalAlpha = 0.25 + 0.75*pulse;
+        ctx.fillText(isAltar ? '🔮' : (isHiddenBase ? '\u{1F3DB}' : '\u2736'), x, y);
+        ctx.globalAlpha = 1;
+      }
     }
   }
 
@@ -427,6 +436,20 @@ class MapRenderer {
         self._scoutInfluence = ScoutManager.getStats(d.cell.buildingLevel).radius;
       }
     });
+  }
+
+  _minDistToRevealed(cell) {
+    // Retourne la distance min entre cette case et la plus proche case révélée
+    let min = 999;
+    const cells = this.grid.cells;
+    for (let i = 0; i < cells.length; i++) {
+      if (cells[i].isRevealed) {
+        const d = HexUtils.hexDistance(cell.q, cell.r, cells[i].q, cells[i].r);
+        if (d < min) min = d;
+        if (min <= 1) return min; // Court-circuit
+      }
+    }
+    return min;
   }
 
   _computePulse(cell) {

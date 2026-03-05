@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════
-   HUD.js — v0.5.0 — Interface tête haute (Phase 2)
+   HUD.js — v0.5.3 — Interface tête haute (Phase 2)
    Ajouts : tooltip enrichi bâtiments, feedback visuel
 ════════════════════════════════════════════════════════════ */
 
@@ -38,8 +38,66 @@ class HUD {
   // ── Mise à jour HUD ─────────────────────────────────────
   _refreshScore() {
     if (!this.grid) return;
-    const score = this.grid.computeRenaissanceScore();
+    const score  = this.prestige ? this.prestige.getLiveScore() : this.grid.computeRenaissanceScore();
     if (this.els.score) this.els.score.textContent = MathUtils.formatNumber(score);
+    // Mise à jour compteur conditions prestige
+    this._refreshPrestigeConditions();
+  }
+
+  _refreshPrestigeConditions() {
+    if (!this.prestige) return;
+    const cond = this.prestige.getConditions();
+    const el   = document.getElementById('prestige-conditions-bar');
+    if (!el) return;
+    // Montrer la barre dès 25 cases révélées (50% de l'objectif)
+    if (cond.revealed >= 25) el.classList.add('pcond-visible');
+    const wasAllMet = el.dataset.allMet === 'true';
+    const allMet = cond.allMet;
+    el.dataset.allMet = allMet;
+
+    const c1Pct = Math.min(100, Math.round(cond.revealed / 50 * 100));
+    const c2Pct = Math.min(100, Math.round(cond.basesLvl5 / 3 * 100));
+
+    el.innerHTML =
+      '<div class="pcond-row">' +
+        '<span class="pcond-icon">' + (cond.revealedOk ? '✅' : '🔍') + '</span>' +
+        '<div class="pcond-bar-wrap">' +
+          '<div class="pcond-label">Cases révélées : <b>' + cond.revealed + ' / 50</b></div>' +
+          '<div class="pcond-track"><div class="pcond-fill' + (cond.revealedOk ? ' pcond-done' : '') + '" style="width:' + c1Pct + '%"></div></div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="pcond-row">' +
+        '<span class="pcond-icon">' + (cond.basesLvl5Ok ? '✅' : '🏛️') + '</span>' +
+        '<div class="pcond-bar-wrap">' +
+          '<div class="pcond-label">Bases Niv.5 : <b>' + cond.basesLvl5 + ' / 3</b></div>' +
+          '<div class="pcond-track"><div class="pcond-fill' + (cond.basesLvl5Ok ? ' pcond-done' : '') + '" style="width:' + c2Pct + '%"></div></div>' +
+        '</div>' +
+      '</div>';
+
+    // Modale de complétion quand toutes les conditions sont remplies pour la première fois
+    if (allMet && !wasAllMet) {
+      this._showPrestigeReadyModal();
+    }
+  }
+
+  _showPrestigeReadyModal() {
+    // Supprimer une éventuelle modale précédente
+    const prev = document.getElementById('prestige-ready-modal');
+    if (prev) prev.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'prestige-ready-modal';
+    modal.innerHTML =
+      '<div class="prm-content">' +
+        '<div class="prm-fireworks">🎆🎇✨🎆🎇</div>' +
+        '<div class="prm-title">⚡ Prestige Débloqué !</div>' +
+        '<div class="prm-msg">Toutes les conditions sont remplies.<br>L\'<b>Autel de Prométhée</b> est maintenant actif.<br>Fouille-le pour déclencher le Prestige !</div>' +
+        '<button class="prm-close" onclick="document.getElementById(\'prestige-ready-modal\').remove()">Continuer</button>' +
+      '</div>';
+    document.body.appendChild(modal);
+
+    // Auto-remove après 8s
+    setTimeout(() => { if (modal.parentNode) modal.remove(); }, 8000);
   }
 
   update(snap) {
@@ -200,6 +258,8 @@ class HUD {
     EventBus.on('building:built',      () => this._refreshScore());
     EventBus.on('building:demolished', () => this._refreshScore());
     EventBus.on('building:upgraded',   () => this._refreshScore());
+    EventBus.on('cell:revealed',       () => this._refreshScore());
+    EventBus.on('base:upgraded',       () => this._refreshScore());
 
     EventBus.on('population:updated', ({ total, workers, available }) => {
       const wEl  = document.getElementById('pop-workers');
