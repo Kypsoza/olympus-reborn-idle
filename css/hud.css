@@ -90,16 +90,37 @@
 #res-nourr    .resource-value { color: var(--col-nourr); }
 #res-fer      .resource-value { color: var(--col-fer); }
 
-/* Actions HUD — boutons fixes en haut à droite de la carte */
+/* ── Boutons flottants fixes (💾 ? ☰ zoom) ────────────── */
 #hud-actions {
   position: fixed;
   top: calc(var(--hud-top-h) + 8px);
   right: 10px;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
-  gap: 7px;
-  z-index: 300;
+  align-items: center;
+  gap: 6px;
+  z-index: 400;
+}
+
+/* Séparateur visuel entre burger et zoom */
+#zoom-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 4px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(200,149,26,0.25);
+}
+
+/* PC : save et help visibles */
+.pc-only { display: flex; }
+
+/* Mobile ≤ 600px : cacher save/help, garder burger + zoom */
+@media (max-width: 600px) {
+  .pc-only { display: none !important; }
+  #hud-actions { right: 8px; gap: 8px; }
+  #hud-actions .hud-btn { width: 48px; height: 48px; font-size: 22px; }
+  #zoom-controls { margin-top: 8px; gap: 7px; }
 }
 .hud-btn {
   width: 42px; height: 42px;
@@ -372,16 +393,7 @@
     font-size: 22px;
   }
 
-  /* Boutons zoom flottants — en bas à droite */
-  #zoom-controls {
-    position: fixed;
-    bottom: calc(var(--hud-bottom-h) + 12px);
-    right: 8px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    z-index: 300;
-  }
+  /* zoom-controls géré par #hud-actions */
 
   /* ── FOOTER : info texte seulement ──────────────────────── */
   #info-text   { font-size: 15px; }

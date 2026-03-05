@@ -8,14 +8,14 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="css/main.css?v=56" />
-  <link rel="stylesheet" href="css/hud.css?v=56" />
-  <link rel="stylesheet" href="css/map.css?v=56" />
-  <link rel="stylesheet" href="css/ui.css?v=56" />
-  <link rel="stylesheet" href="css/animations.css?v=56" />
-  <link rel="stylesheet" href="css/bottom-panel.css?v=56" />
-  <link rel="stylesheet" href="css/buildings.css?v=56" />
-  <link rel="stylesheet" href="css/help-panel.css?v=56" />
+  <link rel="stylesheet" href="css/main.css?v=57" />
+  <link rel="stylesheet" href="css/hud.css?v=57" />
+  <link rel="stylesheet" href="css/map.css?v=57" />
+  <link rel="stylesheet" href="css/ui.css?v=57" />
+  <link rel="stylesheet" href="css/animations.css?v=57" />
+  <link rel="stylesheet" href="css/bottom-panel.css?v=57" />
+  <link rel="stylesheet" href="css/buildings.css?v=57" />
+  <link rel="stylesheet" href="css/help-panel.css?v=57" />
 </head>
 <body>
   <div id="era-screen-flash"></div>
@@ -241,15 +241,24 @@
       <div id="era-badge" style="display:none;font-family:Cinzel,serif;font-size:11px;color:#c8a840;padding:4px 10px;border:1px solid rgba(200,168,64,0.4);border-radius:8px;margin-right:8px;align-self:center;letter-spacing:1px;">⛩ Antiquité</div>
     </header>
 
-    <!-- BOUTONS FLOTTANTS (fixes sur la carte, toujours visibles) -->
+        <!-- BOUTONS FLOTTANTS fixes sur la carte -->
     <div id="hud-actions">
-      <button class="hud-btn" id="btn-save" title="Sauvegarder">💾</button>
-      <button class="hud-btn" id="btn-help" title="Encyclopédie">?</button>
+      <!-- PC uniquement : save et help visibles -->
+      <button class="hud-btn pc-only" id="btn-save" title="Sauvegarder">💾</button>
+      <button class="hud-btn pc-only" id="btn-help" title="Encyclopédie">?</button>
+      <!-- Toujours visible : burger -->
       <button class="hud-btn" id="burger-btn" title="Menu">☰</button>
+      <!-- Zoom controls intégrés aux boutons flottants -->
+      <div id="zoom-controls">
+        <button class="hud-btn zoom-btn" id="btn-zoom-in"    title="Zoom +">＋</button>
+        <button class="hud-btn zoom-btn" id="btn-zoom-reset" title="Vue par défaut">⊡</button>
+        <button class="hud-btn zoom-btn" id="btn-zoom-out"   title="Zoom −">－</button>
+      </div>
       <div id="score-renaissance">
         <span class="score-label">Score de Renaissance</span>
         <span class="score-value" id="val-score">0</span>
       </div>
+    </div>
     </div>
 
     <!-- BURGER MENU MOBILE -->
@@ -283,12 +292,7 @@
       <!-- Debug: reveal all (visible si ?debug dans l'URL) -->
       <button id="btn-reveal-all" style="display:none;position:absolute;bottom:12px;left:12px;z-index:200;background:rgba(200,80,80,.85);border:1px solid #e05050;color:#fff;font-family:Cinzel,serif;font-size:12px;padding:8px 14px;border-radius:6px;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.5)">🗺 Tout Révéler</button>
 
-      <!-- Contrôles de zoom -->
-      <div id="zoom-controls">
-        <button id="btn-zoom-in" class="zoom-btn">+</button>
-        <button id="btn-zoom-reset" class="zoom-btn">⌂</button>
-        <button id="btn-zoom-out" class="zoom-btn">−</button>
-      </div>
+      <!-- zoom-controls déplacés en overlay fixe -->
 
       <!-- Info tick -->
       <div id="tick-indicator">⚡ <span id="tick-count">0</span></div>
@@ -302,38 +306,31 @@
       <!-- population déplacée dans HUD top -->
     </footer>
 
-  <!-- Boutons zoom flottants (mobile) -->
-  <div id="zoom-controls">
-    <button class="hud-btn" id="btn-zoom-in"    title="Zoom +">＋</button>
-    <button class="hud-btn" id="btn-zoom-reset" title="Vue par défaut">⊡</button>
-    <button class="hud-btn" id="btn-zoom-out"   title="Zoom −">－</button>
-  </div>
-
   </div><!-- fin #game-container -->
 
   <!-- ═══════════════════════════════════════════════════════
        SCRIPTS (ordre de chargement important)
   ════════════════════════════════════════════════════════ -->
-  <script src="src/utils/MathUtils.js?v=56"></script>
-  <script src="src/utils/HexUtils.js?v=56"></script>
-  <script src="src/utils/Compression.js?v=56"></script>
-  <script src="src/engine/EventBus.js?v=56"></script>
-  <script src="src/engine/SaveManager.js?v=56"></script>
-  <script src="src/map/HexCell.js?v=56"></script>
-  <script src="src/map/HexGrid.js?v=56"></script>
-  <script src="src/map/Camera.js?v=56"></script>
-  <script src="src/map/MapRenderer.js?v=56"></script>
-  <script src="src/systems/ResourceManager.js?v=56"></script>
-  <script src="src/systems/TalentManager.js?v=56"></script>
-  <script src="src/systems/ScoutManager.js?v=56"></script>
-  <script src="src/systems/PrestigeManager.js?v=56"></script>
-  <script src="src/systems/BuildingManager.js?v=56"></script>
-  <script src="src/ui/HUD.js?v=56"></script>
-  <script src="src/ui/BuildingPanel.js?v=56"></script>
-  <script src="src/ui/HelpPanel.js?v=56"></script>
-  <script src="src/ui/OfflineModal.js?v=56"></script>
-  <script src="src/engine/GoogleDriveSync.js?v=56"></script>
-  <script src="src/engine/GameLoop.js?v=56"></script>
+  <script src="src/utils/MathUtils.js?v=57"></script>
+  <script src="src/utils/HexUtils.js?v=57"></script>
+  <script src="src/utils/Compression.js?v=57"></script>
+  <script src="src/engine/EventBus.js?v=57"></script>
+  <script src="src/engine/SaveManager.js?v=57"></script>
+  <script src="src/map/HexCell.js?v=57"></script>
+  <script src="src/map/HexGrid.js?v=57"></script>
+  <script src="src/map/Camera.js?v=57"></script>
+  <script src="src/map/MapRenderer.js?v=57"></script>
+  <script src="src/systems/ResourceManager.js?v=57"></script>
+  <script src="src/systems/TalentManager.js?v=57"></script>
+  <script src="src/systems/ScoutManager.js?v=57"></script>
+  <script src="src/systems/PrestigeManager.js?v=57"></script>
+  <script src="src/systems/BuildingManager.js?v=57"></script>
+  <script src="src/ui/HUD.js?v=57"></script>
+  <script src="src/ui/BuildingPanel.js?v=57"></script>
+  <script src="src/ui/HelpPanel.js?v=57"></script>
+  <script src="src/ui/OfflineModal.js?v=57"></script>
+  <script src="src/engine/GoogleDriveSync.js?v=57"></script>
+  <script src="src/engine/GameLoop.js?v=57"></script>
 
   <script>
   /* ── Écran Titre + Google Drive Sync ───────────────────── */
