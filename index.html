@@ -17,14 +17,14 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="css/main.css?v=0.8.0" />
-  <link rel="stylesheet" href="css/hud.css?v=0.8.0" />
-  <link rel="stylesheet" href="css/map.css?v=0.8.0" />
-  <link rel="stylesheet" href="css/ui.css?v=0.8.0" />
-  <link rel="stylesheet" href="css/animations.css?v=0.8.0" />
-  <link rel="stylesheet" href="css/bottom-panel.css?v=0.8.0" />
-  <link rel="stylesheet" href="css/buildings.css?v=0.8.0" />
-  <link rel="stylesheet" href="css/help-panel.css?v=0.8.0" />
+  <link rel="stylesheet" href="css/main.css?v=0.9.0" />
+  <link rel="stylesheet" href="css/hud.css?v=0.9.0" />
+  <link rel="stylesheet" href="css/map.css?v=0.9.0" />
+  <link rel="stylesheet" href="css/ui.css?v=0.9.0" />
+  <link rel="stylesheet" href="css/animations.css?v=0.9.0" />
+  <link rel="stylesheet" href="css/bottom-panel.css?v=0.9.0" />
+  <link rel="stylesheet" href="css/buildings.css?v=0.9.0" />
+  <link rel="stylesheet" href="css/help-panel.css?v=0.9.0" />
 </head>
 <body>
   <div id="era-screen-flash"></div>
@@ -79,6 +79,80 @@
         </div>
 
       </div>
+    </div>
+  </div>
+
+
+  <!-- ═══ PHASE 9 — ÉCRAN SÉLECTION DE MODE ════════════════ -->
+  <div id="mode-select-screen" style="display:none">
+    <div class="ms-bg"></div>
+    <div class="ms-content">
+      <div class="ms-header">
+        <div class="ms-emblem">🏛️</div>
+        <h2 class="ms-title">Choisissez votre Destinée</h2>
+        <p class="ms-sub">Chaque mode offre une expérience unique</p>
+      </div>
+      <div class="ms-modes">
+
+        <!-- Mode A — Panthéon -->
+        <div class="ms-mode ms-mode-active" data-mode="pantheon" onclick="selectMode('pantheon')">
+          <div class="ms-mode-glyph">⚡</div>
+          <div class="ms-mode-badge">Mode par défaut</div>
+          <div class="ms-mode-name">Panthéon</div>
+          <div class="ms-mode-tagline">City-builder idle classique</div>
+          <div class="ms-mode-desc">
+            Bâtissez une civilisation grecque de l'Âge Archaïque à l'Âge Divin. 
+            3 Ères, 27 bâtiments, Prestige, Codex Olympien, Panthéon des Dieux et 6 Zones divines.
+          </div>
+          <div class="ms-mode-features">
+            <span>🏛️ 27 bâtiments</span>
+            <span>🔮 Prestige</span>
+            <span>📖 Codex</span>
+            <span>🗺️ 6 Zones</span>
+          </div>
+          <div class="ms-mode-select-btn">Sélectionner →</div>
+        </div>
+
+        <!-- Mode B — Théomachie -->
+        <div class="ms-mode ms-mode-locked" data-mode="theomachie" onclick="selectMode('theomachie')">
+          <div class="ms-mode-glyph">⚔️</div>
+          <div class="ms-mode-lock-badge">🔒 Bientôt disponible</div>
+          <div class="ms-mode-name">Théomachie</div>
+          <div class="ms-mode-tagline">La guerre des dieux</div>
+          <div class="ms-mode-desc">
+            Les 6 dieux s'affrontent pour la domination. Gérez les factions, 
+            évitez la Hubris et arbitrez les rivalités divines pour maintenir l'équilibre de l'Olympe.
+          </div>
+          <div class="ms-mode-features">
+            <span>⚔️ Factions</span>
+            <span>🌋 Hubris</span>
+            <span>🕊️ Arbitrage</span>
+            <span>💥 Attaques</span>
+          </div>
+          <div class="ms-mode-coming">En développement</div>
+        </div>
+
+        <!-- Mode C — Genèse Divine -->
+        <div class="ms-mode ms-mode-locked" data-mode="genese" onclick="selectMode('genese')">
+          <div class="ms-mode-glyph">🌅</div>
+          <div class="ms-mode-lock-badge">🔒 Bientôt disponible</div>
+          <div class="ms-mode-name">Genèse Divine</div>
+          <div class="ms-mode-tagline">6 Âges, une épopée</div>
+          <div class="ms-mode-desc">
+            Traversez 6 Âges mythologiques à travers les zones divines. 
+            Chaque prestige est une Nouvelle Ère avec des quêtes narratives uniques et des artefacts légendaires.
+          </div>
+          <div class="ms-mode-features">
+            <span>📜 Quêtes</span>
+            <span>🗝️ Artefacts</span>
+            <span>⏳ 6 Âges</span>
+            <span>📖 Mythologie</span>
+          </div>
+          <div class="ms-mode-coming">En développement</div>
+        </div>
+
+      </div>
+      <button class="ms-back-btn" id="ms-back-btn">← Retour</button>
     </div>
   </div>
 
@@ -379,29 +453,29 @@
   <!-- ═══════════════════════════════════════════════════════
        SCRIPTS (ordre de chargement important)
   ════════════════════════════════════════════════════════ -->
-  <script src="src/utils/MathUtils.js?v=0.8.0"></script>
-  <script src="src/utils/HexUtils.js?v=0.8.0"></script>
-  <script src="src/utils/Compression.js?v=0.8.0"></script>
-  <script src="src/engine/EventBus.js?v=0.8.0"></script>
-  <script src="src/engine/SaveManager.js?v=0.8.0"></script>
-  <script src="src/map/HexCell.js?v=0.8.0"></script>
-  <script src="src/map/HexGrid.js?v=0.8.0"></script>
-  <script src="src/map/Camera.js?v=0.8.0"></script>
-  <script src="src/map/MapRenderer.js?v=0.8.0"></script>
-  <script src="src/systems/ResourceManager.js?v=0.8.0"></script>
-  <script src="src/systems/TalentManager.js?v=0.8.0"></script>
-  <script src="src/systems/ScoutManager.js?v=0.8.0"></script>
-  <script src="src/systems/ZoneManager.js?v=0.8.0"></script>
-  <script src="src/systems/PantheonManager.js?v=0.8.0"></script>
-  <script src="src/systems/CodexManager.js?v=0.8.0"></script>
-  <script src="src/systems/PrestigeManager.js?v=0.8.0"></script>
-  <script src="src/systems/BuildingManager.js?v=0.8.0"></script>
-  <script src="src/ui/HUD.js?v=0.8.0"></script>
-  <script src="src/ui/BuildingPanel.js?v=0.8.0"></script>
-  <script src="src/ui/HelpPanel.js?v=0.8.0"></script>
-  <script src="src/ui/OfflineModal.js?v=0.8.0"></script>
-  <script src="src/engine/GoogleDriveSync.js?v=0.8.0"></script>
-  <script src="src/engine/GameLoop.js?v=0.8.0"></script>
+  <script src="src/utils/MathUtils.js?v=0.9.0"></script>
+  <script src="src/utils/HexUtils.js?v=0.9.0"></script>
+  <script src="src/utils/Compression.js?v=0.9.0"></script>
+  <script src="src/engine/EventBus.js?v=0.9.0"></script>
+  <script src="src/engine/SaveManager.js?v=0.9.0"></script>
+  <script src="src/map/HexCell.js?v=0.9.0"></script>
+  <script src="src/map/HexGrid.js?v=0.9.0"></script>
+  <script src="src/map/Camera.js?v=0.9.0"></script>
+  <script src="src/map/MapRenderer.js?v=0.9.0"></script>
+  <script src="src/systems/ResourceManager.js?v=0.9.0"></script>
+  <script src="src/systems/TalentManager.js?v=0.9.0"></script>
+  <script src="src/systems/ScoutManager.js?v=0.9.0"></script>
+  <script src="src/systems/ZoneManager.js?v=0.9.0"></script>
+  <script src="src/systems/PantheonManager.js?v=0.9.0"></script>
+  <script src="src/systems/CodexManager.js?v=0.9.0"></script>
+  <script src="src/systems/PrestigeManager.js?v=0.9.0"></script>
+  <script src="src/systems/BuildingManager.js?v=0.9.0"></script>
+  <script src="src/ui/HUD.js?v=0.9.0"></script>
+  <script src="src/ui/BuildingPanel.js?v=0.9.0"></script>
+  <script src="src/ui/HelpPanel.js?v=0.9.0"></script>
+  <script src="src/ui/OfflineModal.js?v=0.9.0"></script>
+  <script src="src/engine/GoogleDriveSync.js?v=0.9.0"></script>
+  <script src="src/engine/GameLoop.js?v=0.9.0"></script>
 
   <script>
   /* ── Écran Titre + Google Drive Sync ───────────────────── */
@@ -436,6 +510,33 @@
     }
 
     // ── Démarrer le jeu ─────────────────────────────────────
+    var _selectedMode = 'pantheon';
+
+    function showModeSelect(saveData) {
+      window._pendingLaunchData = saveData || null;
+      document.getElementById('title-screen').style.display = 'none';
+      document.getElementById('mode-select-screen').style.display = 'flex';
+    }
+
+    function selectMode(mode) {
+      if (mode !== 'pantheon') {
+        EventBus && EventBus.emit('ui:feedback', {text: 'Mode bientôt disponible !', x: window.innerWidth/2, y: 200, color: '#f0d060'});
+        return;
+      }
+      window._selectedMode = mode;
+      launchGame(window._pendingLaunchData);
+    }
+
+    window.selectMode = selectMode;
+
+    document.addEventListener('DOMContentLoaded', function() {
+      var backBtn = document.getElementById('ms-back-btn');
+      if (backBtn) backBtn.addEventListener('click', function() {
+        document.getElementById('mode-select-screen').style.display = 'none';
+        document.getElementById('title-screen').style.display = 'flex';
+      });
+    });
+
     function launchGame(saveData) {
       // saveData = encoded string à injecter dans localStorage, ou null
       if (saveData) {

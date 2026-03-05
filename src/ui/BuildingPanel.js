@@ -151,38 +151,37 @@ class BuildingPanel {
   _renderDrachmeTree(el) {
     var self = this;
 
-    // ── Canvas virtuel (radial) ─────────────────────────
-    var VW = 900, VH = 900;
-    var CX = VW/2, CY = VH/2;  // centre
-    var R  = 30;   // rayon nœud
+    /* ──────────────────────────────────────────────────────
+       ARBRE DRACHMES — radial, pan+zoom, nœuds lisibles
+       Canvas virtuel 1200×1200, nœuds R=44px, espacement 160px
+       ────────────────────────────────────────────────────── */
+    var VW = 1200, VH = 1200;
+    var CX = VW/2, CY = VH/2;
+    var R  = 44;    // rayon nœud (plus grand = lisible)
 
     var branches = self.tm.getBranchData();
     var NB = branches.length; // 7 branches
 
-    // Angles des branches (distribuées sur 360°, décalées de 90° pour commencer en haut)
     var BRANCH_ANGLES = {};
     branches.forEach(function(b, bi) {
       BRANCH_ANGLES[b.id] = -Math.PI/2 + (2*Math.PI/NB) * bi;
     });
 
-    // Rayons des anneaux (distance du centre) — 3 nœuds par sous-colonne
-    // col 0 = niv max, col 1 = prod
-    // Anneau 0 = nœud centre (fictif), 1-3 = col0, 4-6 = col1 (offset angulaire)
-    var RING_R = [0, 140, 250, 360, 140, 250, 360]; // indice = rang dans branch
-
-    // ── Positions des nœuds ─────────────────────────────
-    var NODE_POS = {}; // id → {x,y,branchId,branchColor,branchIcon,branchLabel}
-    var EDGES    = []; // [[from,to]]
+    /* Positions : 2 colonnes par branche, offset angulaire élargi
+       pour éviter toute superposition même à courte distance */
+    var NODE_POS = {};
+    var EDGES    = [];
 
     branches.forEach(function(b) {
       var baseAngle = BRANCH_ANGLES[b.id];
       var twoCol    = b.cols.length === 2;
-      var colOffAng = twoCol ? 0.18 : 0; // décalage angulaire entre les 2 sous-colonnes
+      // Offset entre les 2 sous-colonnes — plus large pour éviter chevauchements
+      var colOffAng = twoCol ? 0.28 : 0;
 
       b.cols.forEach(function(col, ci) {
         var ang = baseAngle + (ci===0 ? -colOffAng : colOffAng);
         col.forEach(function(id, ri) {
-          var dist = 130 + ri * 120; // distance croissante du centre
+          var dist = 160 + ri * 160; // espacement plus grand entre anneaux
           NODE_POS[id] = {
             x: CX + Math.cos(ang) * dist,
             y: CY + Math.sin(ang) * dist,
@@ -198,7 +197,6 @@ class BuildingPanel {
       });
     });
 
-    // ── État d'un nœud ───────────────────────────────────
     function getState(id) {
       if (self.tm.learned[id]) return 'learned';
       return self.tm.canLearn(id).ok ? 'available' : 'locked';
@@ -209,134 +207,121 @@ class BuildingPanel {
       return Object.entries(cost).map(function(e){return fmtV(e[1])+(icons[e[0]]||e[0]);}).join('  ');
     }
 
-    // ── Construction SVG ─────────────────────────────────
     function buildSVG() {
       var s = '<svg id="dt-svg" xmlns="http://www.w3.org/2000/svg"'
         +' width="'+VW+'" height="'+VH+'"'
         +' style="display:block;overflow:visible">';
 
       s += '<defs>';
-      // Filtres glow
       s += '<filter id="dt-gd" x="-80%" y="-80%" width="260%" height="260%">'
-         + '<feGaussianBlur stdDeviation="6" result="b"/>'
+         + '<feGaussianBlur stdDeviation="7" result="b"/>'
          + '<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>';
       s += '<filter id="dt-ga" x="-60%" y="-60%" width="220%" height="220%">'
-         + '<feGaussianBlur stdDeviation="3.5" result="b"/>'
+         + '<feGaussianBlur stdDeviation="4" result="b"/>'
          + '<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>';
-      // Dégradé fond
       s += '<linearGradient id="dt-bg" x1="0" y1="0" x2="0" y2="1">'
-         + '<stop offset="0%" stop-color="#0a0800"/>'
-         + '<stop offset="100%" stop-color="#060500"/>'
+         + '<stop offset="0%" stop-color="#0c0a00"/>'
+         + '<stop offset="100%" stop-color="#080600"/>'
          + '</linearGradient>';
       s += '</defs>';
 
       // Fond
       s += '<rect width="'+VW+'" height="'+VH+'" fill="url(#dt-bg)" rx="16"/>';
-      // Grille de points
-      for (var gx=40;gx<VW;gx+=56) for (var gy=40;gy<VH;gy+=56)
-        s += '<circle cx="'+gx+'" cy="'+gy+'" r="1" fill="rgba(255,220,100,0.03)"/>';
+      // Grille points (espacement suffisant pour ne pas charger)
+      for (var gx=60;gx<VW;gx+=70) for (var gy=60;gy<VH;gy+=70)
+        s += '<circle cx="'+gx+'" cy="'+gy+'" r="1.5" fill="rgba(255,220,100,0.025)"/>';
 
-      // Cercles guides concentriques
-      [130,250,370].forEach(function(rd) {
+      // Cercles guides concentriques (1 seul par anneau)
+      [160,320,480].forEach(function(rd) {
         s += '<circle cx="'+CX+'" cy="'+CY+'" r="'+rd+'" fill="none"'
-          +' stroke="rgba(255,220,100,0.06)" stroke-width="1" stroke-dasharray="4,12"/>';
+          +' stroke="rgba(255,220,100,0.05)" stroke-width="1" stroke-dasharray="4,16"/>';
       });
 
-      // Rayons de branche depuis le centre
+      // Rayons de branche + label au bout
       branches.forEach(function(b) {
         var ang = BRANCH_ANGLES[b.id];
-        var ex = CX + Math.cos(ang)*400, ey = CY + Math.sin(ang)*400;
+        var ex = CX + Math.cos(ang)*560, ey = CY + Math.sin(ang)*560;
         s += '<line x1="'+CX+'" y1="'+CY+'" x2="'+ex+'" y2="'+ey+'"'
-          +' stroke="'+b.color+'" stroke-width="1" opacity="0.10"/>';
-        // Label branche
-        var lx = CX + Math.cos(ang)*430, ly = CY + Math.sin(ang)*430;
-        var rotDeg = (ang*180/Math.PI) + (ang>Math.PI/2||ang<-Math.PI/2 ? 0 : 0);
-        s += '<g transform="translate('+lx+','+ly+')">';
+          +' stroke="'+b.color+'" stroke-width="1" opacity="0.08"/>';
+        var lx = CX + Math.cos(ang)*590, ly = CY + Math.sin(ang)*590;
         s += '<text text-anchor="middle" dominant-baseline="middle"'
-          +' font-size="10" fill="'+b.color+'" font-family="Cinzel,serif" font-weight="700"'
-          +' letter-spacing="0.6" style="pointer-events:none">'+b.icon+' '+b.label.toUpperCase()+'</text>';
-        s += '</g>';
+          +' font-size="15" fill="'+b.color+'" font-family="Cinzel,serif" font-weight="700"'
+          +' transform="translate('+lx+','+ly+')" letter-spacing="0.4"'
+          +' style="pointer-events:none">'+b.icon+' '+b.label.toUpperCase()+'</text>';
       });
 
-      // Nœud central (⚡)
-      s += '<circle cx="'+CX+'" cy="'+CY+'" r="30" fill="rgba(25,15,5,0.97)"'
-        +' stroke="#c8961a" stroke-width="2.5" filter="url(#dt-gd)"/>';
+      // Nœud central
+      s += '<circle cx="'+CX+'" cy="'+CY+'" r="38" fill="rgba(25,15,5,0.97)"'
+        +' stroke="#c8961a" stroke-width="3" filter="url(#dt-gd)"/>';
       s += '<text x="'+CX+'" y="'+(CY+1)+'" text-anchor="middle" dominant-baseline="middle"'
-        +' font-size="20" style="pointer-events:none">⚡</text>';
+        +' font-size="26" style="pointer-events:none">⚡</text>';
 
-      // ── Lignes de connexion ──────────────────────────────
+      // Lignes de connexion
       EDGES.forEach(function(e) {
         var a=NODE_POS[e[0]], b=NODE_POS[e[1]]; if (!a||!b) return;
         var sa=getState(e[0]), sb=getState(e[1]);
         var active=sa==='learned'&&sb==='learned';
         var half=sa==='learned'&&sb!=='learned';
-        var col = active ? 'rgba(240,192,60,0.85)' : half ? 'rgba(160,220,60,0.4)' : 'rgba(80,70,30,0.35)';
-        var w = active ? 3 : 1.5;
-        // Ligne courbe (bezier) entre nœuds
+        var col = active ? 'rgba(240,192,60,0.9)' : half ? 'rgba(160,220,60,0.45)' : 'rgba(80,70,30,0.35)';
+        var w = active ? 3.5 : 2;
         var mx=(a.x+b.x)/2, my=(a.y+b.y)/2;
         var path;
-        if (a.x===b.x) {
-          // Même colonne: ligne droite
+        if (Math.abs(a.x-b.x) < 5) {
           path='M'+a.x+','+a.y+' L'+b.x+','+b.y;
         } else {
-          // Colonnes différentes: S-curve
           path='M'+a.x+','+(a.y+R)+' C'+a.x+','+(my)+' '+b.x+','+(my)+' '+b.x+','+(b.y-R);
         }
         s += '<path d="'+path+'" stroke="'+col+'" stroke-width="'+w+'" fill="none"'
-          +(active?'':' stroke-dasharray="6,4"')+'/>';
-        // Point milieu si actif
+          +(active?'':' stroke-dasharray="7,4"')+'/>';
         if (active)
-          s += '<circle cx="'+mx+'" cy="'+(a.y+R+(b.y-R-a.y-R)/2)+'" r="3" fill="rgba(240,200,60,0.9)"/>';
+          s += '<circle cx="'+mx+'" cy="'+my+'" r="4" fill="rgba(240,200,60,0.9)"/>';
       });
 
-      // ── Nœuds ────────────────────────────────────────────
+      // Nœuds
       Object.entries(NODE_POS).forEach(function(entry) {
         var id=entry[0], pos=entry[1];
         var def=self.tm.getTalentDef(id); if (!def) return;
         var st=getState(id);
         var bc=pos.branchColor;
-        var stroke = st==='learned'?bc : st==='available'?bc : 'rgba(70,65,40,0.6)';
-        var fill   = st==='learned'?'rgba(28,20,0,0.97)' : st==='available'?'rgba(6,12,2,0.97)' : 'rgba(5,4,2,0.9)';
-        var filt   = st==='learned'?' filter="url(#dt-gd)"' : st==='available'?' filter="url(#dt-ga)"':'';
-        var sw     = st==='learned'?2.5:1.5;
-        var alpha  = st==='locked'?'0.38':'1';
-        var cur    = st!=='locked'?'pointer':'default';
-        var textcol= st==='learned'?'#fff0a0':st==='available'?'#c0e890':'#4a4830';
+        var stroke = st==='learned' ? bc : st==='available' ? bc : 'rgba(70,65,40,0.5)';
+        var fill   = st==='learned' ? 'rgba(28,20,0,0.97)' : st==='available' ? 'rgba(6,12,2,0.97)' : 'rgba(5,4,2,0.88)';
+        var filt   = st==='learned' ? ' filter="url(#dt-gd)"' : st==='available' ? ' filter="url(#dt-ga)"' : '';
+        var sw     = st==='learned' ? 3 : st==='available' ? 2 : 1.5;
+        var alpha  = st==='locked' ? '0.35' : '1';
+        var cur    = st!=='locked' ? 'pointer' : 'default';
+        var textcol= st==='learned' ? '#fff0a0' : st==='available' ? '#c0e890' : '#4a4830';
 
-        // Outer decorative ring
+        // Un seul anneau décoratif (uniquement si learned)
         if (st==='learned') {
-          s += '<circle cx="'+pos.x+'" cy="'+pos.y+'" r="'+(R+12)+'" fill="none"'
-            +' stroke="'+bc+'" stroke-width="0.6" opacity="0.2" stroke-dasharray="2,9"/>';
+          s += '<circle cx="'+pos.x+'" cy="'+pos.y+'" r="'+(R+10)+'" fill="none"'
+            +' stroke="'+bc+'" stroke-width="1" opacity="0.2" stroke-dasharray="3,10"/>';
         }
-        // Inner ring hint
-        s += '<circle cx="'+pos.x+'" cy="'+pos.y+'" r="'+(R+5)+'" fill="none"'
-          +' stroke="'+stroke+'" stroke-width="1" opacity="'+(st==='locked'?0.1:0.3)+'"/>';
-        // Main circle
+        // Cercle principal UNIQUEMENT (suppression du inner ring intermédiaire)
         s += '<circle cx="'+pos.x+'" cy="'+pos.y+'" r="'+R+'"'
           +' fill="'+fill+'" stroke="'+stroke+'" stroke-width="'+sw+'"'
           +filt+' data-dnode="'+id+'" style="cursor:'+cur+';opacity:'+alpha+'"/>';
 
-        // Icon
-        var icon = st==='locked'?'🔒':def.icon;
-        s += '<text x="'+pos.x+'" y="'+(pos.y-6)+'" text-anchor="middle" dominant-baseline="middle"'
-          +' font-size="17" style="pointer-events:none;user-select:none">'+icon+'</text>';
+        // Icône (centré, plus grand)
+        var icon = st==='locked' ? '🔒' : def.icon;
+        s += '<text x="'+pos.x+'" y="'+(pos.y-5)+'" text-anchor="middle" dominant-baseline="middle"'
+          +' font-size="26" style="pointer-events:none;user-select:none">'+icon+'</text>';
 
-        // Coût / check
+        // Coût / check (sous l'icône, lisible)
         if (st!=='learned') {
           var fv=Object.values(def.cost)[0];
           var afford=Object.entries(def.cost).every(function(e){return self.rm.get(e[0])>=e[1];});
-          s += '<text x="'+pos.x+'" y="'+(pos.y+R*0.5)+'" text-anchor="middle"'
-            +' font-size="8.5" fill="'+(afford?'#a0e060':'#e06050')+'" font-family="Cinzel,serif"'
+          s += '<text x="'+pos.x+'" y="'+(pos.y+R*0.55)+'" text-anchor="middle"'
+            +' font-size="14" fill="'+(afford?'#a0e060':'#e06050')+'" font-family="Cinzel,serif" font-weight="700"'
             +' style="pointer-events:none">'+fmtV(fv)+'</text>';
         } else {
-          s += '<text x="'+pos.x+'" y="'+(pos.y+R*0.5)+'" text-anchor="middle"'
-            +' font-size="11" fill="#90e050" style="pointer-events:none">✓</text>';
+          s += '<text x="'+pos.x+'" y="'+(pos.y+R*0.55)+'" text-anchor="middle"'
+            +' font-size="17" fill="#90e050" style="pointer-events:none">✓</text>';
         }
 
-        // Nom sous le nœud
-        var nm=def.name.length>14?def.name.substring(0,13)+'…':def.name;
-        s += '<text x="'+pos.x+'" y="'+(pos.y+R+15)+'" text-anchor="middle"'
-          +' font-size="9.5" fill="'+textcol+'" font-family="Cinzel,serif" font-weight="600"'
+        // Nom (plus grand, sous le cercle)
+        var nm = def.name.length>15 ? def.name.substring(0,14)+'…' : def.name;
+        s += '<text x="'+pos.x+'" y="'+(pos.y+R+20)+'" text-anchor="middle"'
+          +' font-size="14" fill="'+textcol+'" font-family="Cinzel,serif" font-weight="600"'
           +' style="pointer-events:none">'+nm+'</text>';
       });
 
@@ -348,199 +333,216 @@ class BuildingPanel {
     function buildTT(id) {
       var def=self.tm.getTalentDef(id); if (!def) return '';
       var st=getState(id), pos=NODE_POS[id];
-      var afford=st!=='learned'&&Object.entries(def.cost).every(function(e){return self.rm.get(e[0])>=e[1];});
-      var reqNm=(def.requires||[]).map(function(r){var d=self.tm.getTalentDef(r);return d?d.name:r;}).join(', ');
+      if (!pos) return '';
+      var bc=pos.branchColor;
+      var reqNames=(def.requires||[]).map(function(r){var d=self.tm.getTalentDef(r);return d?d.name:r;}).join(', ');
+      var afford=Object.entries(def.cost).every(function(e){return self.rm.get(e[0])>=e[1];});
       var btn='';
-      if (st==='learned') btn='<div class="tt2-acquired">✓ Acquis</div>';
-      else if (st==='available') btn='<button class="tt2-buy tt2-buy-d" data-learnnode="'+id+'">'+(afford?'💰 Apprendre':'🔒 Ressources insuffisantes')+'</button>';
-      else { var ch=self.tm.canLearn(id); btn='<div class="tt2-locked">🔒 '+ch.reason+'</div>'; }
+      if (st==='learned') {
+        btn='<div class="tt2-acquired">✓ Talent acquis</div>';
+      } else if (st==='available') {
+        btn='<button class="tt2-buy tt2-buy-d" data-learn="'+id+'">'
+          +(afford?'💰 Acheter — '+fmtCost(def.cost):'🔒 Ressources insuffisantes')+'</button>';
+      } else {
+        var check=self.tm.canLearn(id);
+        btn='<div class="tt2-locked">🔒 '+check.reason+'</div>';
+      }
       return '<div class="tt2-head"><span class="tt2-icon">'+def.icon+'</span>'
         +'<div><div class="tt2-name">'+def.name+'</div>'
-        +'<div class="tt2-branch" style="color:'+pos.branchColor+'">'+pos.branchIcon+' '+pos.branchLabel+'</div></div></div>'
+        +'<div class="tt2-branch" style="color:'+bc+'">'+pos.branchLabel.toUpperCase()+'</div></div></div>'
         +'<div class="tt2-desc">'+def.desc+'</div>'
-        +(reqNm?'<div class="tt2-req">🔗 Prérequis : '+reqNm+'</div>':'')
+        +(reqNames?'<div class="tt2-req">🔗 Prérequis : '+reqNames+'</div>':'')
         +'<div class="tt2-cost">'+fmtCost(def.cost)+'</div>'
         +btn;
     }
 
-    // ── Assemblage HTML ──────────────────────────────────
-    var drach=self.rm?Math.floor(self.rm.get('drachmes')):0;
+    // ── Compteur Drachmes ────────────────────────────────
+    var drach = self.rm ? Math.floor(self.rm.get('drachmes')) : 0;
+    var drachStr = drach>=1000 ? (drach/1000).toFixed(1)+'k' : ''+drach;
+
     el.innerHTML =
       '<div class="et-header">'
-      +'<span class="et-ether-count" style="color:#f0d060">🪙 '+(drach>=1000?(drach/1000).toFixed(1)+'k':''+drach)+' Drachmes</span>'
+      +'<span class="et-ether-count" style="color:#e8c040">🪙 '+drachStr+' Drachmes</span>'
+      +'<span class="et-hint">Cliquez sur un nœud pour voir les détails</span>'
       +'<div class="at-zoom-controls">'
-        +'<button class="at-zoom-btn" id="dt-zoom-out">−</button>'
-        +'<span class="at-zoom-label" id="dt-zoom-lbl">100%</span>'
-        +'<button class="at-zoom-btn" id="dt-zoom-in">+</button>'
-        +'<button class="at-zoom-btn" id="dt-zoom-fit" title="Ajuster">⊡</button>'
+        +'<button class="at-zoom-btn" id="dt-zm">−</button>'
+        +'<span class="at-zoom-label" id="dt-zl">100%</span>'
+        +'<button class="at-zoom-btn" id="dt-zp">+</button>'
+        +'<button class="at-zoom-btn" id="dt-zr" title="Recentrer">⌂</button>'
       +'</div>'
-      +'<span class="et-hint">Clic = détails · Molette = zoom</span>'
       +'</div>'
       +'<div class="at-wrap">'
         +'<div class="at-canvas-outer" id="dt-outer">'
           +'<div class="at-canvas-inner" id="dt-inner">'+buildSVG()+'</div>'
         +'</div>'
-        +'<div class="at-tooltip-panel" id="dt-ttbox"><div class="at-tt-placeholder">Cliquez sur<br>un nœud</div></div>'
+        +'<div class="at-tooltip-panel" id="dt-ttbox"><div class="at-tt-placeholder">Cliquez un nœud<br>pour les détails</div></div>'
       +'</div>';
 
-    // ── Pan & Zoom ───────────────────────────────────────
-    var outer = el.querySelector('#dt-outer');
-    var inner = el.querySelector('#dt-inner');
-    var ttBox = el.querySelector('#dt-ttbox');
-    var scale = 0.78, tx = 0, ty = 0;
-    var panning = false, px0 = 0, py0 = 0, tx0 = 0, ty0 = 0;
+    var outer   = el.querySelector('#dt-outer');
+    var inner   = el.querySelector('#dt-inner');
+    var ttBox   = el.querySelector('#dt-ttbox');
+    var zoomLbl = el.querySelector('#dt-zl');
+    var camX=-(VW-outer.clientWidth)/2, camY=-(VH-outer.clientHeight)/2, camZ=1;
 
-    function applyTransform() {
-      inner.style.transform = 'translate('+tx+'px,'+ty+'px) scale('+scale+')';
-      el.querySelector('#dt-zoom-lbl').textContent = Math.round(scale*100)+'%';
+    function applyCamera() {
+      inner.style.transform='translate('+camX+'px,'+camY+'px) scale('+camZ+')';
+      zoomLbl.textContent=Math.round(camZ*100)+'%';
     }
-    applyTransform();
+    // Centrage initial après render
+    requestAnimationFrame(function() {
+      camX=-(VW*camZ-outer.clientWidth)/2;
+      camY=-(VH*camZ-outer.clientHeight)/2;
+      applyCamera();
+    });
 
-    function clampTransform() {
-      var ow=outer.clientWidth||600, oh=outer.clientHeight||400;
-      var cw=VW*scale, ch=VH*scale;
-      tx = Math.min(40, Math.max(tx, ow - cw - 40));
-      ty = Math.min(40, Math.max(ty, oh - ch - 40));
-    }
-
-    // Molette
-    outer.addEventListener('wheel', function(e) {
-      e.preventDefault();
-      var rect=outer.getBoundingClientRect();
-      var mx=e.clientX-rect.left, my=e.clientY-rect.top;
-      var delta = e.deltaY > 0 ? 0.88 : 1.14;
-      var newScale = Math.min(2.0, Math.max(0.3, scale*delta));
-      // Zoom centré sur curseur
-      tx = mx - (mx - tx) * (newScale/scale);
-      ty = my - (my - ty) * (newScale/scale);
-      scale = newScale;
-      clampTransform();
-      applyTransform();
-    }, {passive:false});
-
-    // Pan souris
+    // Pan
+    var drag=false, dx=0, dy=0, ox=0, oy=0;
     outer.addEventListener('mousedown', function(e) {
-      if (e.target.closest('[data-dnode]')) return;
-      panning=true; px0=e.clientX; py0=e.clientY; tx0=tx; ty0=ty;
+      if (e.button!==0) return;
+      drag=true; ox=e.clientX-camX; oy=e.clientY-camY;
       outer.style.cursor='grabbing';
     });
     window.addEventListener('mousemove', function(e) {
-      if (!panning) return;
-      tx=tx0+(e.clientX-px0); ty=ty0+(e.clientY-py0);
-      clampTransform(); applyTransform();
+      if (!drag) return;
+      camX=e.clientX-ox; camY=e.clientY-oy; applyCamera();
     });
-    window.addEventListener('mouseup', function() {
-      if (panning) { panning=false; outer.style.cursor='grab'; }
-    });
+    window.addEventListener('mouseup', function() { drag=false; outer.style.cursor='grab'; });
 
-    // Pan tactile
-    var touch0=null;
+    // Pinch/touch
+    var touches={}, lastDist=0;
     outer.addEventListener('touchstart', function(e) {
-      if (e.touches.length===1) { touch0={x:e.touches[0].clientX,y:e.touches[0].clientY,tx:tx,ty:ty}; }
-    },{passive:true});
+      Array.from(e.changedTouches).forEach(function(t){touches[t.identifier]={x:t.clientX,y:t.clientY};});
+    }, {passive:true});
     outer.addEventListener('touchmove', function(e) {
-      if (touch0&&e.touches.length===1) {
-        tx=touch0.tx+(e.touches[0].clientX-touch0.x);
-        ty=touch0.ty+(e.touches[0].clientY-touch0.y);
-        clampTransform(); applyTransform();
+      e.preventDefault();
+      var ts=Array.from(e.touches);
+      if (ts.length===1) {
+        var t=ts[0], prev=touches[t.identifier];
+        if (prev) { camX+=t.clientX-prev.x; camY+=t.clientY-prev.y; applyCamera(); }
+        touches[t.identifier]={x:t.clientX,y:t.clientY};
+      } else if (ts.length===2) {
+        var d=Math.hypot(ts[0].clientX-ts[1].clientX, ts[0].clientY-ts[1].clientY);
+        if (lastDist) {
+          var f=d/lastDist, nz=Math.max(0.3,Math.min(2.5,camZ*f));
+          var mx=(ts[0].clientX+ts[1].clientX)/2, my=(ts[0].clientY+ts[1].clientY)/2;
+          var r=outer.getBoundingClientRect();
+          var lx=mx-r.left, ly=my-r.top;
+          camX=lx-(lx-camX)*(nz/camZ); camY=ly-(ly-camY)*(nz/camZ); camZ=nz;
+          applyCamera();
+        }
+        lastDist=d;
+        ts.forEach(function(t){touches[t.identifier]={x:t.clientX,y:t.clientY};});
       }
-    },{passive:true});
-    outer.addEventListener('touchend', function(){touch0=null;},{passive:true});
+    }, {passive:false});
+    outer.addEventListener('touchend', function(e) {
+      Array.from(e.changedTouches).forEach(function(t){delete touches[t.identifier];});
+      if (Object.keys(touches).length<2) lastDist=0;
+    }, {passive:true});
+
+    // Zoom molette
+    outer.addEventListener('wheel', function(e) {
+      e.preventDefault();
+      var f=e.deltaY<0?1.12:1/1.12, nz=Math.max(0.25,Math.min(2.5,camZ*f));
+      var r=outer.getBoundingClientRect();
+      var lx=e.clientX-r.left, ly=e.clientY-r.top;
+      camX=lx-(lx-camX)*(nz/camZ); camY=ly-(ly-camY)*(nz/camZ); camZ=nz;
+      applyCamera();
+    }, {passive:false});
 
     // Boutons zoom
-    el.querySelector('#dt-zoom-in').addEventListener('click',function(){
-      scale=Math.min(2.0,scale*1.2); clampTransform(); applyTransform();
+    el.querySelector('#dt-zp').addEventListener('click', function() {
+      var nz=Math.min(2.5,camZ*1.2);
+      camX-=(VW/2)*(nz-camZ); camY-=(VH/2)*(nz-camZ); camZ=nz; applyCamera();
     });
-    el.querySelector('#dt-zoom-out').addEventListener('click',function(){
-      scale=Math.max(0.3,scale/1.2); clampTransform(); applyTransform();
+    el.querySelector('#dt-zm').addEventListener('click', function() {
+      var nz=Math.max(0.25,camZ/1.2);
+      camX-=(VW/2)*(nz-camZ); camY-=(VH/2)*(nz-camZ); camZ=nz; applyCamera();
     });
-    el.querySelector('#dt-zoom-fit').addEventListener('click',function(){
-      var ow=outer.clientWidth||600, oh=outer.clientHeight||400;
-      scale=Math.min(ow/VW, oh/VH)*0.9;
-      tx=(ow-VW*scale)/2; ty=(oh-VH*scale)/2;
-      applyTransform();
+    el.querySelector('#dt-zr').addEventListener('click', function() {
+      camZ=0.75;
+      requestAnimationFrame(function() {
+        camX=-(VW*camZ-outer.clientWidth)/2;
+        camY=-(VH*camZ-outer.clientHeight)/2;
+        applyCamera();
+      });
     });
 
-    // ── Interactions nœuds ──────────────────────────────
-    var svgEl=el.querySelector('#dt-svg');
-
-    svgEl.addEventListener('click', function(e) {
+    // Clic sur nœud → tooltip
+    var svg = el.querySelector('#dt-svg');
+    var curNode = null;
+    svg.addEventListener('click', function(e) {
       var c=e.target.closest('[data-dnode]'); if (!c) return;
       var id=c.dataset.dnode;
+      curNode=id;
       ttBox.innerHTML=buildTT(id);
-      ttBox.dataset.node=id;
-    });
-    svgEl.addEventListener('mousemove', function(e) {
-      var c=e.target.closest('[data-dnode]');
-      if (c && ttBox.dataset.node!==c.dataset.dnode) {
-        ttBox.innerHTML=buildTT(c.dataset.dnode);
-        ttBox.dataset.node=c.dataset.dnode;
-      }
     });
 
-    el.addEventListener('click', function(e) {
-      var btn = e.target.closest('[data-learnnode]');
-      if (!btn) return;
-      e.stopPropagation();
-      var id = btn.dataset.learnnode;
-      // Coords pour feedback visuel
-      var sx = e.clientX || window.innerWidth * 0.5;
-      var sy = e.clientY || window.innerHeight * 0.4;
-      var ok = self.tm.learn(id, sx, sy);
+    // Délégation bouton acheter
+    ttBox.addEventListener('click', function(e) {
+      var btn=e.target.closest('[data-learn]'); if (!btn) return;
+      var id=btn.dataset.learn;
+      var ok=self.tm.learn(id);
       if (ok) {
-        // Reconstruire uniquement le SVG (plus rapide que _renderTalents complet)
-        var svg = el.querySelector('#dt-svg');
-        if (svg) {
-          var newSVG = document.createElement('div');
-          newSVG.innerHTML = buildSVG();
-          svg.parentNode.replaceChild(newSVG.firstChild, svg);
-        }
-        // Mise à jour du compteur Drachmes
-        var drach = self.rm ? Math.floor(self.rm.get('drachmes')) : 0;
-        var dEl = el.querySelector('.et-ether-count');
-        if (dEl) dEl.textContent = '🪙 ' + (drach>=1000?(drach/1000).toFixed(1)+'k':drach) + ' Drachmes';
-        // Mettre à jour tooltip si un nœud est sélectionné
-        var node = ttBox.dataset.node;
-        if (node) ttBox.innerHTML = buildTT(node);
+        var newSVG=document.createElement('div');
+        newSVG.innerHTML=buildSVG();
+        svg.parentNode.replaceChild(newSVG.firstChild,svg);
+        // rebind svg reference
+        var svgNew=el.querySelector('#dt-svg');
+        svgNew.addEventListener('click', function(e) {
+          var c=e.target.closest('[data-dnode]'); if (!c) return;
+          curNode=c.dataset.dnode;
+          ttBox.innerHTML=buildTT(curNode);
+        });
+        if (curNode) ttBox.innerHTML=buildTT(curNode);
+        var dNew=self.rm?Math.floor(self.rm.get('drachmes')):0;
+        var hdr=el.querySelector('.et-ether-count');
+        if (hdr) hdr.textContent='🪙 '+(dNew>=1000?(dNew/1000).toFixed(1)+'k':dNew)+' Drachmes';
       }
     });
-
   }
 
 
-    _renderEtherTree(el) {
+  _renderEtherTree(el) {
     var self = this;
     var etherOwned = self.rm ? Math.floor(self.rm.get('ether')) : 0;
 
-    var VW=760, VH=480;
+    /* ──────────────────────────────────────────────────────
+       ARBRE ÉTHER — layout en 3 colonnes, nœuds R=38/50
+       ViewBox fixe 820×520, nœuds bien espacés (pas de superposition)
+       ────────────────────────────────────────────────────── */
+    var VW=900, VH=560;
 
+    // Positions recalculées pour espacement maximal
     var NODES = {
-      ere2:            { x:380, y:75  },
-      ere3:            { x:380, y:175 },
-      relique_amphore: { x:100, y:210 },
-      relique_enclume: { x:100, y:305 },
-      relique_carte:   { x:100, y:400 },
-      relique_graine:  { x:215, y:210 },
-      relique_eclair:  { x:215, y:305 },
-      relique_omphalos:{ x:215, y:400 },
-      const_prod:      { x:535, y:210 },
-      const_dig:       { x:535, y:305 },
-      const_pop:       { x:650, y:210 },
-      const_ether:     { x:650, y:305 },
-      const_prod2:     { x:592, y:400 },
+      /* ── ÈRES (colonne centrale) ── */
+      ere2:             { x:450, y: 90  },
+      ere3:             { x:450, y:210  },
+      /* ── RELIQUES (2 colonnes gauche) ── */
+      relique_amphore:  { x:120, y:160  },
+      relique_enclume:  { x:120, y:285  },
+      relique_carte:    { x:120, y:410  },
+      relique_graine:   { x:260, y:160  },
+      relique_eclair:   { x:260, y:285  },
+      relique_omphalos: { x:260, y:410  },
+      /* ── CONSTELLATIONS (2 colonnes droite) ── */
+      const_prod:       { x:615, y:160  },
+      const_dig:        { x:615, y:285  },
+      const_pop:        { x:760, y:160  },
+      const_ether:      { x:760, y:285  },
+      const_prod2:      { x:690, y:410  },
     };
 
     var EDGES = [
       ['ere2','ere3'],
       ['ere2','relique_amphore'],['ere2','relique_graine'],
-      ['ere2','const_prod'],['ere2','const_dig'],
-      ['relique_amphore','relique_enclume'],['relique_graine','relique_eclair'],
-      ['relique_enclume','relique_carte'],['relique_eclair','relique_omphalos'],
-      ['const_prod','const_pop'],['const_dig','const_ether'],
+      ['ere2','const_prod'],    ['ere2','const_dig'],
+      ['relique_amphore','relique_enclume'], ['relique_graine','relique_eclair'],
+      ['relique_enclume','relique_carte'],   ['relique_eclair','relique_omphalos'],
+      ['const_prod','const_pop'], ['const_dig','const_ether'],
       ['const_pop','const_prod2'],['const_ether','const_prod2'],
     ];
 
-    var R=30, R_ERA=40;
+    var R=38, R_ERA=52;
     var BCOL = { eres:'#c8a840', reliques:'#a060e0', constellations:'#40b8f0' };
 
     function getState(id) {
@@ -563,34 +565,39 @@ class BuildingPanel {
         +'<stop offset="0%" stop-color="#0e0820"/>'
         +'<stop offset="100%" stop-color="#040308"/>'
         +'</radialGradient>';
-      s+='<filter id="etgp"><feGaussianBlur stdDeviation="5" result="b"/>'
+      s+='<filter id="etgp"><feGaussianBlur stdDeviation="6" result="b"/>'
         +'<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>';
-      s+='<filter id="etgb"><feGaussianBlur stdDeviation="3" result="b"/>'
+      s+='<filter id="etgb"><feGaussianBlur stdDeviation="3.5" result="b"/>'
         +'<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>';
-      s+='<filter id="etgg"><feGaussianBlur stdDeviation="6" result="b"/>'
+      s+='<filter id="etgg"><feGaussianBlur stdDeviation="8" result="b"/>'
         +'<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>';
       s+='</defs>';
 
       s+='<rect width="'+VW+'" height="'+VH+'" fill="url(#etbg)"/>';
-      for (var gx=30;gx<VW;gx+=40) for (var gy=30;gy<VH;gy+=40)
-        s+='<circle cx="'+gx+'" cy="'+gy+'" r="1" fill="rgba(180,100,255,0.04)"/>';
+      // Grille légère
+      for (var gx=40;gx<VW;gx+=50) for (var gy=40;gy<VH;gy+=50)
+        s+='<circle cx="'+gx+'" cy="'+gy+'" r="1.5" fill="rgba(180,100,255,0.03)"/>';
+
+      // Labels de section (en haut, bien lisibles)
+      s+='<text x="190" y="42" text-anchor="middle" font-size="16" fill="#a060e0" font-family="Cinzel,serif" font-weight="700" style="pointer-events:none">🫙 RELIQUES</text>';
+      s+='<text x="450" y="42" text-anchor="middle" font-size="16" fill="#c8a840" font-family="Cinzel,serif" font-weight="700" style="pointer-events:none">🏛️ ÈRES</text>';
+      s+='<text x="690" y="42" text-anchor="middle" font-size="16" fill="#40b8f0" font-family="Cinzel,serif" font-weight="700" style="pointer-events:none">⭐ CONSTELLATIONS</text>';
+
+      // Séparateurs verticaux
+      s+='<line x1="360" y1="55" x2="360" y2="'+(VH-20)+'" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>';
+      s+='<line x1="545" y1="55" x2="545" y2="'+(VH-20)+'" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>';
 
       // Edges
       EDGES.forEach(function(e) {
         var a=NODES[e[0]], b=NODES[e[1]]; if (!a||!b) return;
         var sa=getState(e[0]), sb=getState(e[1]);
         var active=sa==='learned'&&sb==='learned', half=sa==='learned';
-        var col=active?'rgba(180,100,255,0.8)':half?'rgba(100,180,255,0.35)':'rgba(50,40,70,0.5)';
+        var col=active?'rgba(180,100,255,0.85)':half?'rgba(100,180,255,0.4)':'rgba(50,40,70,0.45)';
         s+='<line x1="'+a.x+'" y1="'+a.y+'" x2="'+b.x+'" y2="'+b.y+'"'
-          +' stroke="'+col+'" stroke-width="'+(active?2.5:1.5)+'"'
-          +(active?'':' stroke-dasharray="5,4"')+'/>';
-        if (active) s+='<circle cx="'+((a.x+b.x)/2)+'" cy="'+((a.y+b.y)/2)+'" r="2.5" fill="rgba(200,120,255,0.9)"/>';
+          +' stroke="'+col+'" stroke-width="'+(active?3:2)+'"'
+          +(active?'':' stroke-dasharray="6,4"')+'/>';
+        if (active) s+='<circle cx="'+((a.x+b.x)/2)+'" cy="'+((a.y+b.y)/2)+'" r="3.5" fill="rgba(200,120,255,0.9)"/>';
       });
-
-      // Branch zone labels
-      s+='<text x="157" y="40" text-anchor="middle" font-size="10" fill="#a060e0" font-family="Cinzel,serif" font-weight="700" style="pointer-events:none">🫙 RELIQUES</text>';
-      s+='<text x="380" y="40" text-anchor="middle" font-size="10" fill="#c8a840" font-family="Cinzel,serif" font-weight="700" style="pointer-events:none">🏛️ ÈRES</text>';
-      s+='<text x="592" y="40" text-anchor="middle" font-size="10" fill="#40b8f0" font-family="Cinzel,serif" font-weight="700" style="pointer-events:none">⭐ CONSTELLATIONS</text>';
 
       // Nodes
       Object.keys(NODES).forEach(function(id) {
@@ -600,32 +607,37 @@ class BuildingPanel {
         var isEra=def.effect&&def.effect.type==='unlockEra';
         var r=isEra?R_ERA:R;
         var bc=getBranchColor(id);
-        var stroke=st==='learned'?bc:st==='available'?bc:'rgba(80,70,100,0.5)';
-        var fill=st==='learned'?'rgba(20,8,40,0.95)':st==='available'?'rgba(4,8,20,0.95)':'rgba(4,3,8,0.9)';
+        var stroke=st==='learned'?bc:st==='available'?bc:'rgba(80,70,100,0.4)';
+        var fill=st==='learned'?'rgba(20,8,40,0.95)':st==='available'?'rgba(4,8,20,0.95)':'rgba(4,3,8,0.88)';
         var filt=st==='learned'?(isEra?'url(#etgg)':'url(#etgp)'):st==='available'?'url(#etgb)':'';
-        var sw=st==='learned'?2.5:1.5;
-        var opacity=st==='locked'?'0.4':'1';
+        var sw=st==='learned'?3:st==='available'?2:1.5;
+        var opacity=st==='locked'?'0.38':'1';
         var cursor=st!=='locked'?'pointer':'default';
         var textcol=st==='learned'?'#e8d8ff':st==='available'?'#a0d8f0':'#484060';
 
+        // Anneau déco uniquement si learned
         if (st==='learned')
-          s+='<circle cx="'+pos.x+'" cy="'+pos.y+'" r="'+(r+10)+'" fill="none" stroke="'+bc+'" stroke-width="0.5" opacity="0.25" stroke-dasharray="2,8"/>';
-        s+='<circle cx="'+pos.x+'" cy="'+pos.y+'" r="'+(r+4)+'" fill="none" stroke="'+bc+'" stroke-width="1" opacity="'+(st==='locked'?0.1:0.35)+'"/>';
+          s+='<circle cx="'+pos.x+'" cy="'+pos.y+'" r="'+(r+11)+'" fill="none" stroke="'+bc+'" stroke-width="1" opacity="0.22" stroke-dasharray="3,10"/>';
+
+        // Cercle principal (1 seul)
         s+='<circle cx="'+pos.x+'" cy="'+pos.y+'" r="'+r+'" fill="'+fill+'" stroke="'+stroke+'" stroke-width="'+sw+'"'
           +(filt?' filter="'+filt+'"':'')+' data-enode="'+id+'" style="cursor:'+cursor+';opacity:'+opacity+'"/>';
 
+        // Icône centré, taille lisible
         var icon=st==='locked'?'🔒':def.icon;
-        s+='<text x="'+pos.x+'" y="'+(pos.y-(isEra?5:4))+'" text-anchor="middle" dominant-baseline="middle" font-size="'+(isEra?22:17)+'" style="pointer-events:none;user-select:none">'+icon+'</text>';
+        s+='<text x="'+pos.x+'" y="'+(pos.y-(isEra?6:5))+'" text-anchor="middle" dominant-baseline="middle" font-size="'+(isEra?30:24)+'" style="pointer-events:none;user-select:none">'+icon+'</text>';
 
+        // Coût/check (font plus grand)
         if (st!=='learned') {
           var ec=def.cost.ether||0, ca=etherOwned>=ec;
-          s+='<text x="'+pos.x+'" y="'+(pos.y+r*0.5)+'" text-anchor="middle" font-size="8" fill="'+(ca?'#90e060':'#e06050')+'" font-family="Cinzel,serif" style="pointer-events:none">'+ethFmt(ec)+'✨</text>';
+          s+='<text x="'+pos.x+'" y="'+(pos.y+r*0.55)+'" text-anchor="middle" font-size="'+(isEra?16:14)+'" fill="'+(ca?'#90e060':'#e06050')+'" font-family="Cinzel,serif" font-weight="700" style="pointer-events:none">'+ethFmt(ec)+'✨</text>';
         } else {
-          s+='<text x="'+pos.x+'" y="'+(pos.y+r*0.5)+'" text-anchor="middle" font-size="10" fill="#a060ff" style="pointer-events:none">✓</text>';
+          s+='<text x="'+pos.x+'" y="'+(pos.y+r*0.55)+'" text-anchor="middle" font-size="17" fill="#a060ff" style="pointer-events:none">✓</text>';
         }
 
-        var nm=def.name.length>13?def.name.substring(0,12)+'…':def.name;
-        s+='<text x="'+pos.x+'" y="'+(pos.y+r+13)+'" text-anchor="middle" font-size="9" fill="'+textcol+'" font-family="Cinzel,serif" font-weight="600" style="pointer-events:none">'+nm+'</text>';
+        // Nom (plus grand, sous le nœud)
+        var nm=def.name.length>14?def.name.substring(0,13)+'…':def.name;
+        s+='<text x="'+pos.x+'" y="'+(pos.y+r+20)+'" text-anchor="middle" font-size="14" fill="'+textcol+'" font-family="Cinzel,serif" font-weight="600" style="pointer-events:none">'+nm+'</text>';
       });
 
       s+='</svg>';
@@ -641,7 +653,8 @@ class BuildingPanel {
       var bc=getBranchColor(id);
       var btn='';
       if (st==='learned') btn='<div class="tt2-acquired">✓ Acquis — Permanent</div>';
-      else if (st==='available') btn='<button class="tt2-buy tt2-buy-e" data-learnether="'+id+'">'+(ca?'🔮 Acquérir — '+ethFmt(ec)+' ✨':'🔒 Éther insuffisant ('+etherOwned+' / '+ethFmt(ec)+')')+'</button>';
+      else if (st==='available') btn='<button class="tt2-buy tt2-buy-e" data-learnether="'+id+'">'
+        +(ca?'🔮 Acquérir — '+ethFmt(ec)+' ✨':'🔒 Éther insuffisant ('+etherOwned+' / '+ethFmt(ec)+')')+'</button>';
       else { var ch=self.tm.canLearnEther(id); btn='<div class="tt2-locked">🔒 '+ch.reason+'</div>'; }
       return '<div class="tt2-head"><span class="tt2-icon">'+def.icon+'</span>'
         +'<div><div class="tt2-name">'+def.name+'</div>'
@@ -674,20 +687,28 @@ class BuildingPanel {
     svgEl.addEventListener('click', function(e) {
       var c=e.target.closest('[data-enode]'); if (!c) return;
       var id=c.dataset.enode, st=getState(id);
-      if (st==='available') {
-        showTooltip(id); // show first, user clicks button
-      } else {
-        showTooltip(id);
-      }
-    });
-    svgEl.addEventListener('mousemove', function(e) {
-      var c=e.target.closest('[data-enode]');
-      if (c && ttBox.dataset.node!==c.dataset.enode) showTooltip(c.dataset.enode);
+      showTooltip(id);
     });
 
-    el.addEventListener('click', function(e) {
+    ttBox.addEventListener('click', function(e) {
       var btn=e.target.closest('[data-learnether]'); if (!btn) return;
-      if (self.tm.learnEther(btn.dataset.learnether)) self._renderTalents();
+      var id=btn.dataset.learnether;
+      if (self.tm.learnEther(id)) {
+        etherOwned = self.rm ? Math.floor(self.rm.get('ether')) : 0;
+        var newSVG=document.createElement('div');
+        newSVG.innerHTML=buildSVG();
+        svgEl.parentNode.replaceChild(newSVG.firstChild,svgEl);
+        var svgNew=el.querySelector('#et-svg');
+        svgNew.addEventListener('click', function(e) {
+          var c=e.target.closest('[data-enode]'); if (!c) return;
+          showTooltip(c.dataset.enode);
+          svgEl=svgNew;
+        });
+        if (ttBox.dataset.node) showTooltip(ttBox.dataset.node);
+        var hdr=el.querySelector('.et-ether-count');
+        var eNew=self.rm?Math.floor(self.rm.get('ether')):0;
+        if (hdr) hdr.textContent='✨ '+(eNew>=1000?(eNew/1000).toFixed(1)+'k':eNew)+' Éther';
+      }
     });
 
   }
