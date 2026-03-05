@@ -15,7 +15,7 @@
   /* PC : panneau latéral droit */
   top: var(--hud-top-h, 64px);
   right: 0;
-  bottom: var(--hud-bottom-h, 40px);
+  bottom: var(--hud-bottom-h, 56px);
   width: 300px;
   max-height: none;
   border-top: none;
@@ -257,7 +257,7 @@
 @media (max-width: 520px) {
   #bp-drawer {
     /* Retour en bas pour mobile */
-    top: auto; right: 0; left: 0; bottom: var(--hud-bottom-h, 36px);
+    top: auto; right: 0; left: 0; bottom: var(--hud-bottom-h, 56px);
     width: 100%; max-height: 30vh;
     border-left: none; border-top: 1px solid rgba(200,149,26,.35);
     border-radius: 14px 14px 0 0;
@@ -314,7 +314,7 @@
     width: calc(100vw - 24px);
     left: 12px !important;
     right: 12px;
-    bottom: calc(30vh + var(--hud-bottom-h, 36px) + 8px);
+    bottom: calc(30vh + var(--hud-bottom-h, 56px) + 8px);
     top: auto !important;
   }
   .btt-close {
