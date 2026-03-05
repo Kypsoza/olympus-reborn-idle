@@ -2,20 +2,29 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
+  <!-- Détection touch : classe "is-touch" sur <html> pour tous appareils tactiles -->
+  <script>
+    (function() {
+      // maxTouchPoints > 1 = vrai appareil tactile (S24+ = 10, Pixel Fold = 10, PC = 0)
+      if (navigator.maxTouchPoints > 1 || 'ontouchstart' in window) {
+        document.documentElement.classList.add('is-touch');
+      }
+    })();
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Olympus Reborn Idle</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="css/main.css?v=63" />
-  <link rel="stylesheet" href="css/hud.css?v=63" />
-  <link rel="stylesheet" href="css/map.css?v=63" />
-  <link rel="stylesheet" href="css/ui.css?v=63" />
-  <link rel="stylesheet" href="css/animations.css?v=63" />
-  <link rel="stylesheet" href="css/bottom-panel.css?v=63" />
-  <link rel="stylesheet" href="css/buildings.css?v=63" />
-  <link rel="stylesheet" href="css/help-panel.css?v=63" />
+  <link rel="stylesheet" href="css/main.css?v=64" />
+  <link rel="stylesheet" href="css/hud.css?v=64" />
+  <link rel="stylesheet" href="css/map.css?v=64" />
+  <link rel="stylesheet" href="css/ui.css?v=64" />
+  <link rel="stylesheet" href="css/animations.css?v=64" />
+  <link rel="stylesheet" href="css/bottom-panel.css?v=64" />
+  <link rel="stylesheet" href="css/buildings.css?v=64" />
+  <link rel="stylesheet" href="css/help-panel.css?v=64" />
 </head>
 <body>
   <div id="era-screen-flash"></div>
@@ -345,26 +354,26 @@
   <!-- ═══════════════════════════════════════════════════════
        SCRIPTS (ordre de chargement important)
   ════════════════════════════════════════════════════════ -->
-  <script src="src/utils/MathUtils.js?v=63"></script>
-  <script src="src/utils/HexUtils.js?v=63"></script>
-  <script src="src/utils/Compression.js?v=63"></script>
-  <script src="src/engine/EventBus.js?v=63"></script>
-  <script src="src/engine/SaveManager.js?v=63"></script>
-  <script src="src/map/HexCell.js?v=63"></script>
-  <script src="src/map/HexGrid.js?v=63"></script>
-  <script src="src/map/Camera.js?v=63"></script>
-  <script src="src/map/MapRenderer.js?v=63"></script>
-  <script src="src/systems/ResourceManager.js?v=63"></script>
-  <script src="src/systems/TalentManager.js?v=63"></script>
-  <script src="src/systems/ScoutManager.js?v=63"></script>
-  <script src="src/systems/PrestigeManager.js?v=63"></script>
-  <script src="src/systems/BuildingManager.js?v=63"></script>
-  <script src="src/ui/HUD.js?v=63"></script>
-  <script src="src/ui/BuildingPanel.js?v=63"></script>
-  <script src="src/ui/HelpPanel.js?v=63"></script>
-  <script src="src/ui/OfflineModal.js?v=63"></script>
-  <script src="src/engine/GoogleDriveSync.js?v=63"></script>
-  <script src="src/engine/GameLoop.js?v=63"></script>
+  <script src="src/utils/MathUtils.js?v=64"></script>
+  <script src="src/utils/HexUtils.js?v=64"></script>
+  <script src="src/utils/Compression.js?v=64"></script>
+  <script src="src/engine/EventBus.js?v=64"></script>
+  <script src="src/engine/SaveManager.js?v=64"></script>
+  <script src="src/map/HexCell.js?v=64"></script>
+  <script src="src/map/HexGrid.js?v=64"></script>
+  <script src="src/map/Camera.js?v=64"></script>
+  <script src="src/map/MapRenderer.js?v=64"></script>
+  <script src="src/systems/ResourceManager.js?v=64"></script>
+  <script src="src/systems/TalentManager.js?v=64"></script>
+  <script src="src/systems/ScoutManager.js?v=64"></script>
+  <script src="src/systems/PrestigeManager.js?v=64"></script>
+  <script src="src/systems/BuildingManager.js?v=64"></script>
+  <script src="src/ui/HUD.js?v=64"></script>
+  <script src="src/ui/BuildingPanel.js?v=64"></script>
+  <script src="src/ui/HelpPanel.js?v=64"></script>
+  <script src="src/ui/OfflineModal.js?v=64"></script>
+  <script src="src/engine/GoogleDriveSync.js?v=64"></script>
+  <script src="src/engine/GameLoop.js?v=64"></script>
 
   <script>
   /* ── Écran Titre + Google Drive Sync ───────────────────── */

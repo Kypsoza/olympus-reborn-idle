@@ -115,8 +115,12 @@
   border-top: 1px solid rgba(200,149,26,0.25);
 }
 
-/* PC : save et help visibles */
+/* PC : save et help visibles (cachés sur touch) */
 .pc-only { display: flex; }
+.is-touch .pc-only { display: none !important; }
+
+/* Sur touch, hud-actions (zoom) reste visible mais sans les boutons PC */
+.is-touch #score-renaissance { display: none !important; }
 
 /* Mobile ≤ 600px : burger haut-droite, zoom milieu-droite */
 @media (max-width: 600px) {
@@ -296,7 +300,6 @@
 #hud-bottom {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   padding: 0 12px;
   gap: 8px;
   background: linear-gradient(0deg, #0e0b1e 0%, rgba(10,8,18,0.95) 100%);
@@ -305,6 +308,7 @@
   overflow: visible;
   min-height: var(--hud-bottom-h);
   box-sizing: border-box;
+  position: relative; /* pour positionner les boutons en absolu */
 }
 #info-text {
   font-family: var(--font-body);
@@ -316,6 +320,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   flex: 1;
+  padding-right: 120px; /* réserve l'espace pour les 2 boutons fixes */
 }
 #survivors-panel {
   font-family: var(--font-ui);
@@ -375,10 +380,29 @@
 /* ── Footer mobile — boutons toujours présents ─────────── */
 /* Styles globaux (hors media query) pour fonctionner sur tout appareil */
 #mob-footer-btns {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
   display: flex;
   gap: 8px;
-  flex-shrink: 0;
   align-items: center;
+  z-index: 10;
+}
+
+/* Boutons footer : cachés par défaut sur PC, visibles sur tout appareil tactile */
+#btn-talents-mob,
+#burger-btn-mob {
+  display: none; /* caché sur PC */
+}
+
+/* Sur tout appareil tactile (S24, Pixel Fold, tablette...) */
+.is-touch #btn-talents-mob,
+.is-touch #burger-btn-mob {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 #btn-talents-mob {
@@ -387,13 +411,11 @@
   border: 1px solid rgba(160,100,255,0.5);
   border-radius: 12px;
   font-size: 22px;
-  display: flex; align-items: center; justify-content: center;
   cursor: pointer;
   backdrop-filter: blur(6px);
   box-shadow: 0 4px 14px rgba(0,0,0,0.5);
   transition: transform 0.15s, background 0.15s;
   color: white;
-  flex-shrink: 0;
 }
 #btn-talents-mob:active { transform: scale(0.93); background: rgba(120,80,220,0.45); }
 
@@ -403,13 +425,11 @@
   border: 1px solid rgba(200,149,26,0.5);
   border-radius: 12px;
   font-size: 24px;
-  display: flex; align-items: center; justify-content: center;
   cursor: pointer;
   backdrop-filter: blur(6px);
   box-shadow: 0 4px 14px rgba(0,0,0,0.5);
   transition: transform 0.15s;
   color: var(--col-gold-light);
-  flex-shrink: 0;
 }
 #burger-btn-mob:active { transform: scale(0.93); }
 
