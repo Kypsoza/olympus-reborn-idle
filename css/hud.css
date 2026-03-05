@@ -370,11 +370,308 @@
 }
 
 /* ══════════════════════════════════════════════════════════
-   RESPONSIVE MOBILE — Layout refait
+   RESPONSIVE MOBILE — Refonte complète v60
+   Inspiré Clash of Clans / Anno / Northgard mobile
 ════════════════════════════════════════════════════════════ */
 
+/* ─────────────────────────────────────────────────────────
+   MOBILE ≤ 600px
+───────────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+
+  /* ── Variables ─────────────────────────────────────────── */
+  :root {
+    --hud-top-h:    72px;   /* plus haut : icône + valeur + income */
+    --hud-bottom-h: 56px;   /* footer plus grand : info + boutons  */
+    --mob-btn:      52px;   /* taille boutons tactiles             */
+    --mob-r:        14px;   /* border-radius boutons               */
+  }
+
+  /* ── BARRE RESSOURCES ────────────────────────────────────
+     Pleine largeur, scroll horizontal, icône+valeur+income  */
+  #hud-top {
+    padding: 0 8px;
+    gap: 4px;
+    height: var(--hud-top-h);
+    background: linear-gradient(180deg, rgba(8,6,18,0.98) 0%, rgba(12,9,22,0.96) 100%);
+  }
+
+  /* Titre caché */
+  #hud-title { display: none; }
+  #era-badge { display: none !important; }
+
+  /* Barre ressources scrollable */
+  #resources-bar {
+    flex: 1;
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    align-items: center;
+    padding: 6px 0;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity;
+  }
+  #resources-bar::-webkit-scrollbar { display: none; }
+
+  /* Chaque ressource : icône à gauche, valeur + income à droite */
+  .resource-item {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(200,149,26,0.2);
+    border-radius: 10px;
+    flex-shrink: 0;
+    scroll-snap-align: start;
+    min-width: 0;
+  }
+  .resource-item:active {
+    background: rgba(200,149,26,0.1);
+  }
+
+  .resource-icon {
+    font-size: 22px;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+
+  .resource-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    line-height: 1;
+  }
+
+  .resource-name { display: none; } /* Pas de nom, que valeur+income */
+
+  .resource-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--col-gold-light);
+  }
+
+  .resource-rate {
+    font-size: 13px;
+    color: rgba(100,220,120,0.85);
+    font-family: var(--font-ui);
+  }
+
+  /* Population dans la barre */
+  .hud-pop-item { border-color: rgba(100,200,100,0.25); }
+  .hud-pop-row {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--col-text);
+  }
+  .hud-pop-sep { font-size: 12px; color: rgba(255,255,255,0.3); }
+  #pop-bar-wrap {
+    width: 40px; height: 4px;
+    margin-top: 2px;
+  }
+  #pop-alert { font-size: 16px; }
+
+  /* ── CARTE PLEIN ÉCRAN ───────────────────────────────────
+     Occupe tout l'espace entre hud-top et hud-bottom        */
+  #map-container {
+    /* le grid gère déjà cela via 1fr */
+  }
+
+  /* ── PC-ONLY : cacher les boutons PC ─────────────────────  */
+  .pc-only { display: none !important; }
+  #score-renaissance { display: none !important; }
+
+  /* ── BOUTONS FLOTTANTS ───────────────────────────────────
+     hud-actions : vide sur mobile (burger dans footer)      */
+  #hud-actions {
+    display: none !important;
+  }
+
+  /* ── ZOOM — milieu droite, superposé carte ───────────────── */
+  #zoom-controls {
+    position: fixed;
+    top: 50%;
+    right: 10px;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 300;
+    padding-top: 0;
+    border-top: none;
+  }
+  #zoom-controls .hud-btn,
+  #zoom-controls .zoom-btn {
+    width: var(--mob-btn);
+    height: var(--mob-btn);
+    font-size: 22px;
+    border-radius: var(--mob-r);
+  }
+
+  /* ── FOOTER — info + Talents + Menu ──────────────────────
+     Barre du bas : texte info à gauche, boutons à droite    */
+  #hud-bottom {
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    gap: 8px;
+    height: var(--hud-bottom-h);
+    background: linear-gradient(0deg, rgba(8,6,18,0.98) 0%, rgba(12,9,22,0.95) 100%);
+    border-top: 1px solid rgba(200,149,26,0.3);
+    position: relative;
+    z-index: 200;
+  }
+
+  #info-text {
+    flex: 1;
+    font-size: 14px;
+    color: rgba(255,255,255,0.5);
+    font-style: italic;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+
+  /* Groupe boutons footer droite */
+  #mob-footer-btns {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  /* Bouton Talents dans le footer */
+  #btn-talents-mob {
+    width: var(--mob-btn);
+    height: var(--mob-btn);
+    background: rgba(120,80,220,0.25);
+    border: 1px solid rgba(160,100,255,0.5);
+    border-radius: var(--mob-r);
+    font-size: 22px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    backdrop-filter: blur(6px);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.5);
+    transition: all 0.18s;
+    color: white;
+    flex-shrink: 0;
+  }
+  #btn-talents-mob:active { transform: scale(0.93); background: rgba(120,80,220,0.45); }
+
+  /* Bouton Menu (☰) dans le footer */
+  #burger-btn-mob {
+    width: var(--mob-btn);
+    height: var(--mob-btn);
+    background: rgba(200,149,26,0.15);
+    border: 1px solid rgba(200,149,26,0.5);
+    border-radius: var(--mob-r);
+    font-size: 24px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    backdrop-filter: blur(6px);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.5);
+    transition: all 0.18s;
+    color: var(--col-gold-light);
+    flex-shrink: 0;
+  }
+  #burger-btn-mob:active { transform: scale(0.93); }
+
+  /* ── BOTTOM SHEET MENU ───────────────────────────────────
+     Glisse depuis le bas, overlay semi-transparent          */
+  #mob-menu-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0);
+    z-index: 800;
+    pointer-events: none;
+    transition: background 0.25s;
+  }
+  #mob-menu-overlay.open {
+    background: rgba(0,0,0,0.55);
+    pointer-events: all;
+  }
+
+  #mob-menu-sheet {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: linear-gradient(180deg, #1a1530 0%, #0f0c20 100%);
+    border-top: 1px solid rgba(200,149,26,0.4);
+    border-radius: 20px 20px 0 0;
+    padding: 0 0 calc(env(safe-area-inset-bottom) + 12px);
+    z-index: 900;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+    box-shadow: 0 -8px 40px rgba(0,0,0,0.7);
+  }
+  #mob-menu-sheet.open {
+    transform: translateY(0);
+  }
+
+  /* Poignée drag */
+  .mob-sheet-handle {
+    width: 40px; height: 5px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 3px;
+    margin: 12px auto 8px;
+  }
+
+  /* Profil Google dans le sheet */
+  .mob-sheet-profile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 20px 14px;
+    border-bottom: 1px solid rgba(200,149,26,0.15);
+    margin-bottom: 8px;
+  }
+  .mob-sheet-pic {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    border: 2px solid rgba(200,149,26,0.5);
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+  .mob-sheet-name  { font-family: var(--font-title); font-size: 16px; color: var(--col-gold); }
+  .mob-sheet-email { font-size: 12px; color: rgba(255,255,255,0.4); margin-top: 1px; }
+
+  /* Items du sheet */
+  .mob-sheet-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 24px;
+    font-family: var(--font-ui);
+    font-size: 18px;
+    color: var(--col-text);
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s;
+    letter-spacing: 0.02em;
+  }
+  .mob-sheet-item:active { background: rgba(200,149,26,0.1); }
+  .mob-sheet-item-icon { font-size: 22px; width: 32px; text-align: center; }
+  .mob-sheet-item-danger { color: #e08080; }
+  .mob-sheet-item-danger:active { background: rgba(200,60,60,0.1); }
+
+  .mob-sheet-divider {
+    height: 1px;
+    background: rgba(255,255,255,0.06);
+    margin: 4px 20px;
+  }
+
+  /* ── Burger menu PC : caché sur mobile ─────────────────── */
+  #burger-menu { display: none !important; }
+  #burger-btn  { display: none !important; }
+
+} /* fin @media 600px */
+
 /* ── TABLETTE (≤ 900px) ─────────────────────────────────── */
-@media (max-width: 900px) {
+@media (max-width: 900px) and (min-width: 601px) {
   :root { --hud-top-h: 58px; --hud-bottom-h: 36px; }
   .hud-game-name   { font-size: 14px; }
   .resource-item   { padding: 4px 8px; gap: 5px; }
@@ -386,65 +683,61 @@
   .score-value     { font-size: 16px; }
 }
 
-/* ── MOBILE (≤ 600px) ───────────────────────────────────── */
-@media (max-width: 600px) {
-  :root { --hud-top-h: 54px; --hud-bottom-h: 38px; }
-
-  /* ── HUD TOP : ressources seulement, icône+valeur ─────── */
-  #hud-title        { display: none; }
-  #btn-save         { display: none; }
-  #btn-help         { display: none; }
-  #score-renaissance{ display: none; }
-
-  /* Ressources compactes : icône + valeur, pas de nom ni rate */
-  .resource-name    { display: none; }
-  .resource-rate    { display: none; }
-  .resource-item    { padding: 4px 7px; gap: 3px; }
-  .resource-icon    { font-size: 19px; }
-  .resource-value   { font-size: 17px; font-weight: 700; }
-
-  /* Pop dans HUD : compact */
-  .hud-pop-item .resource-name { display: none; }
-  #pop-bar-wrap     { width: 36px; }
-
-  /* Boutons flottants : ajustement mobile */
-  #hud-actions {
-    gap: 8px;
-    right: 8px;
-  }
-  .hud-btn {
-    width: 46px; height: 46px;
-    font-size: 22px;
-  }
-
-  /* zoom-controls géré par #hud-actions */
-
-  /* ── FOOTER : info texte seulement ──────────────────────── */
-  #info-text   { font-size: 15px; }
-  #hud-bottom  { padding: 0 10px; }
-
-  /* ── Burger menu élargi ─────────────────────────────────── */
-  #burger-menu {
-    top: calc(var(--hud-top-h) + 68px);
-    right: 8px;
-    min-width: 220px;
-  }
-  .burger-item { font-size: 18px; padding: 14px 16px; }
-  .burger-profile-card { padding: 12px 16px 10px; }
-  .burger-user-name  { font-size: 16px; }
-  .burger-user-email { font-size: 13px; }
-  .burger-item-google { font-size: 16px; }
-
-  /* Score renaissance caché sur mobile */
-  #score-renaissance { display: none !important; }
-}
-
 /* ── TRÈS PETIT (≤ 380px) ───────────────────────────────── */
 @media (max-width: 380px) {
-  .resource-icon  { font-size: 17px; }
-  .resource-value { font-size: 15px; }
-  .resource-item  { padding: 3px 5px; }
-  .hud-btn { width: 42px; height: 42px; font-size: 19px; }
+  :root { --hud-top-h: 68px; }
+  .resource-value { font-size: 16px; }
+  .resource-icon  { font-size: 20px; }
+}
+
+/* ── Population + Énergie dans HUD top ─────────────────── */
+.hud-pop-item,
+.hud-nrj-item {
+  border-left: 1px solid rgba(200,149,26,0.15);
+  padding-left: 10px;
+  min-width: 90px;
+}
+.hud-pop-row {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  font-family: var(--font-ui);
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--col-text);
+  line-height: 1.1;
+}
+.hud-pop-sep {
+  font-size: 13px;
+  color: rgba(255,255,255,0.35);
+}
+#pop-bar-wrap {
+  width: 50px;
+  height: 4px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 3px;
+}
+#pop-bar {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.4s, background 0.4s;
+  background: #60c860;
+}
+#pop-alert {
+  font-size: 14px;
+  animation: pop-blink 1.2s ease-in-out infinite;
+  margin-left: 2px;
+  flex-shrink: 0;
+  align-self: center;
+}
+.hud-pop-item.pop-full .hud-pop-row { color: #e05050; }
+
+@media (max-width: 900px) {
+  .hud-pop-item .resource-name,
+  .hud-nrj-item .resource-name { display: none; }
+  .hud-pop-item, .hud-nrj-item { min-width: 70px; }
 }
 
 /* ═══════════════════════════════════════════════════════

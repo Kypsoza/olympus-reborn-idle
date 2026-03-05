@@ -8,14 +8,14 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="css/main.css?v=59" />
-  <link rel="stylesheet" href="css/hud.css?v=59" />
-  <link rel="stylesheet" href="css/map.css?v=59" />
-  <link rel="stylesheet" href="css/ui.css?v=59" />
-  <link rel="stylesheet" href="css/animations.css?v=59" />
-  <link rel="stylesheet" href="css/bottom-panel.css?v=59" />
-  <link rel="stylesheet" href="css/buildings.css?v=59" />
-  <link rel="stylesheet" href="css/help-panel.css?v=59" />
+  <link rel="stylesheet" href="css/main.css?v=60" />
+  <link rel="stylesheet" href="css/hud.css?v=60" />
+  <link rel="stylesheet" href="css/map.css?v=60" />
+  <link rel="stylesheet" href="css/ui.css?v=60" />
+  <link rel="stylesheet" href="css/animations.css?v=60" />
+  <link rel="stylesheet" href="css/bottom-panel.css?v=60" />
+  <link rel="stylesheet" href="css/buildings.css?v=60" />
+  <link rel="stylesheet" href="css/help-panel.css?v=60" />
 </head>
 <body>
   <div id="era-screen-flash"></div>
@@ -259,12 +259,16 @@
       <div id="tick-indicator">⚡ <span id="tick-count">0</span></div>
     </main>
 
-    <!-- BARRE INFÉRIEURE (infos contextuelles) -->
+    <!-- BARRE INFÉRIEURE -->
     <footer id="hud-bottom">
       <div id="info-panel">
-        <span id="info-text">Cliquez sur une case pour explorer le monde...</span>
+        <span id="info-text">Tap une case pour explorer...</span>
       </div>
-      <!-- population déplacée dans HUD top -->
+      <!-- Boutons footer mobile (Talents + Menu) -->
+      <div id="mob-footer-btns">
+        <button id="btn-talents-mob" title="Talents">🧠</button>
+        <button id="burger-btn-mob" title="Menu">☰</button>
+      </div>
     </footer>
 
   <!-- BOUTONS FLOTTANTS fixes (position:fixed, hors du grid) -->
@@ -303,31 +307,64 @@
     <button class="burger-item burger-item-danger" id="burger-reset">🗑️ Réinitialiser</button>
   </div>
 
+  <!-- BOTTOM SHEET MOBILE (burger menu) -->
+  <div id="mob-menu-overlay">
+    <div id="mob-menu-sheet">
+      <div class="mob-sheet-handle"></div>
+
+      <!-- Profil Google (si connecté) -->
+      <div id="mob-sheet-profile-wrap" style="display:none">
+        <div class="mob-sheet-profile">
+          <img id="mob-sheet-pic" src="" class="mob-sheet-pic" alt="">
+          <div>
+            <div class="mob-sheet-name"  id="mob-sheet-name">…</div>
+            <div class="mob-sheet-email" id="mob-sheet-email">…</div>
+          </div>
+        </div>
+      </div>
+
+      <button class="mob-sheet-item" id="mob-sheet-save">
+        <span class="mob-sheet-item-icon">💾</span> Sauvegarder
+      </button>
+      <button class="mob-sheet-item" id="mob-sheet-help">
+        <span class="mob-sheet-item-icon">📖</span> Encyclopédie
+      </button>
+      <div class="mob-sheet-divider"></div>
+      <button class="mob-sheet-item" id="mob-sheet-signout" style="display:none">
+        <span class="mob-sheet-item-icon">🔓</span> Se déconnecter de Google
+      </button>
+      <div class="mob-sheet-divider" id="mob-sheet-div-signout" style="display:none"></div>
+      <button class="mob-sheet-item mob-sheet-item-danger" id="mob-sheet-reset">
+        <span class="mob-sheet-item-icon">🗑️</span> Réinitialiser
+      </button>
+    </div>
+  </div>
+
   </div><!-- fin #game-container -->
 
   <!-- ═══════════════════════════════════════════════════════
        SCRIPTS (ordre de chargement important)
   ════════════════════════════════════════════════════════ -->
-  <script src="src/utils/MathUtils.js?v=59"></script>
-  <script src="src/utils/HexUtils.js?v=59"></script>
-  <script src="src/utils/Compression.js?v=59"></script>
-  <script src="src/engine/EventBus.js?v=59"></script>
-  <script src="src/engine/SaveManager.js?v=59"></script>
-  <script src="src/map/HexCell.js?v=59"></script>
-  <script src="src/map/HexGrid.js?v=59"></script>
-  <script src="src/map/Camera.js?v=59"></script>
-  <script src="src/map/MapRenderer.js?v=59"></script>
-  <script src="src/systems/ResourceManager.js?v=59"></script>
-  <script src="src/systems/TalentManager.js?v=59"></script>
-  <script src="src/systems/ScoutManager.js?v=59"></script>
-  <script src="src/systems/PrestigeManager.js?v=59"></script>
-  <script src="src/systems/BuildingManager.js?v=59"></script>
-  <script src="src/ui/HUD.js?v=59"></script>
-  <script src="src/ui/BuildingPanel.js?v=59"></script>
-  <script src="src/ui/HelpPanel.js?v=59"></script>
-  <script src="src/ui/OfflineModal.js?v=59"></script>
-  <script src="src/engine/GoogleDriveSync.js?v=59"></script>
-  <script src="src/engine/GameLoop.js?v=59"></script>
+  <script src="src/utils/MathUtils.js?v=60"></script>
+  <script src="src/utils/HexUtils.js?v=60"></script>
+  <script src="src/utils/Compression.js?v=60"></script>
+  <script src="src/engine/EventBus.js?v=60"></script>
+  <script src="src/engine/SaveManager.js?v=60"></script>
+  <script src="src/map/HexCell.js?v=60"></script>
+  <script src="src/map/HexGrid.js?v=60"></script>
+  <script src="src/map/Camera.js?v=60"></script>
+  <script src="src/map/MapRenderer.js?v=60"></script>
+  <script src="src/systems/ResourceManager.js?v=60"></script>
+  <script src="src/systems/TalentManager.js?v=60"></script>
+  <script src="src/systems/ScoutManager.js?v=60"></script>
+  <script src="src/systems/PrestigeManager.js?v=60"></script>
+  <script src="src/systems/BuildingManager.js?v=60"></script>
+  <script src="src/ui/HUD.js?v=60"></script>
+  <script src="src/ui/BuildingPanel.js?v=60"></script>
+  <script src="src/ui/HelpPanel.js?v=60"></script>
+  <script src="src/ui/OfflineModal.js?v=60"></script>
+  <script src="src/engine/GoogleDriveSync.js?v=60"></script>
+  <script src="src/engine/GameLoop.js?v=60"></script>
 
   <script>
   /* ── Écran Titre + Google Drive Sync ───────────────────── */

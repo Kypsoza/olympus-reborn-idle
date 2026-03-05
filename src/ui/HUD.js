@@ -246,7 +246,7 @@ class HUD {
   }
 
   _bindButtons() {
-    // Burger menu mobile
+    // ── Burger menu PC (dropdown) ────────────────────────
     var burgerBtn  = document.getElementById('burger-btn');
     var burgerMenu = document.getElementById('burger-menu');
     if (burgerBtn && burgerMenu) {
@@ -269,30 +269,87 @@ class HUD {
         burgerMenu.classList.remove('open');
         EventBus.emit('save:reset');
       });
-
-      // Profil Google dans le burger
       this._updateBurgerProfile();
-
       document.getElementById('burger-signout-google')?.addEventListener('click', () => {
         burgerMenu.classList.remove('open');
         if (typeof GoogleDriveSync !== 'undefined' && GoogleDriveSync.isSignedIn()) {
           GoogleDriveSync.signOut();
           this._updateBurgerProfile();
-          this.setInfo('🔓 Déconnecté de Google — sauvegarde locale uniquement.');
+          this.setInfo('🔓 Déconnecté de Google.');
         }
       });
     }
 
+    // ── Bottom Sheet Mobile ──────────────────────────────
+    const overlay   = document.getElementById('mob-menu-overlay');
+    const sheet     = document.getElementById('mob-menu-sheet');
+    const openSheet  = () => { overlay?.classList.add('open'); sheet?.classList.add('open'); };
+    const closeSheet = () => { overlay?.classList.remove('open'); sheet?.classList.remove('open'); };
+
+    document.getElementById('burger-btn-mob')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this._updateMobSheet();
+      openSheet();
+    });
+    overlay?.addEventListener('click', (e) => {
+      if (e.target === overlay) closeSheet();
+    });
+    document.getElementById('mob-sheet-save')?.addEventListener('click', () => {
+      EventBus.emit('save:request'); closeSheet(); this.setInfo('💾 Partie sauvegardée !');
+    });
+    document.getElementById('mob-sheet-help')?.addEventListener('click', () => {
+      EventBus.emit('help:open'); closeSheet();
+    });
+    document.getElementById('mob-sheet-reset')?.addEventListener('click', () => {
+      closeSheet(); EventBus.emit('save:reset');
+    });
+    document.getElementById('mob-sheet-signout')?.addEventListener('click', () => {
+      closeSheet();
+      if (typeof GoogleDriveSync !== 'undefined' && GoogleDriveSync.isSignedIn()) {
+        GoogleDriveSync.signOut(); this.setInfo('🔓 Déconnecté de Google.');
+      }
+    });
+
+    // Bouton Talents footer mobile
+    document.getElementById('btn-talents-mob')?.addEventListener('click', () => {
+      EventBus.emit('talents:open');
+    });
+
+    // ── Boutons PC ───────────────────────────────────────
     document.getElementById('btn-save')?.addEventListener('click', () => {
-      EventBus.emit('save:request');
-      this.setInfo('💾 Partie sauvegardée !');
+      EventBus.emit('save:request'); this.setInfo('💾 Partie sauvegardée !');
     });
     document.getElementById('btn-help')?.addEventListener('click', () => {
-      this.setInfo('📖 Encyclopédie — disponible en Phase 7.');
+      EventBus.emit('help:open');
     });
     document.getElementById('btn-zoom-in')?.addEventListener('click', () => EventBus.emit('zoom:in'));
     document.getElementById('btn-zoom-out')?.addEventListener('click', () => EventBus.emit('zoom:out'));
     document.getElementById('btn-zoom-reset')?.addEventListener('click', () => EventBus.emit('zoom:reset'));
+  }
+
+  _updateMobSheet() {
+    const isConnected = typeof GoogleDriveSync !== 'undefined' && GoogleDriveSync.isSignedIn();
+    const profileWrap = document.getElementById('mob-sheet-profile-wrap');
+    const signoutBtn  = document.getElementById('mob-sheet-signout');
+    const signoutDiv  = document.getElementById('mob-sheet-div-signout');
+    if (isConnected) {
+      const name  = localStorage.getItem('gds_user_name')  || '';
+      const email = localStorage.getItem('gds_user_email') || '';
+      const pic   = localStorage.getItem('gds_user_pic')   || '';
+      const n = document.getElementById('mob-sheet-name');
+      const em = document.getElementById('mob-sheet-email');
+      const p = document.getElementById('mob-sheet-pic');
+      if (n) n.textContent = name;
+      if (em) em.textContent = email;
+      if (p && pic) p.src = pic;
+      if (profileWrap) profileWrap.style.display = '';
+      if (signoutBtn)  signoutBtn.style.display  = '';
+      if (signoutDiv)  signoutDiv.style.display  = '';
+    } else {
+      if (profileWrap) profileWrap.style.display = 'none';
+      if (signoutBtn)  signoutBtn.style.display  = 'none';
+      if (signoutDiv)  signoutDiv.style.display  = 'none';
+    }
   }
 
   _updateBurgerProfile() {
