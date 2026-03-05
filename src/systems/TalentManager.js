@@ -1,4 +1,4 @@
-/* TalentManager.js — v33
+/* TalentManager.js — v0.5.0
    DEUX arbres :
    - DRACHMES (in-run, reset au prestige)
    - ETHER (permanent inter-prestige, déblocage des Ères)

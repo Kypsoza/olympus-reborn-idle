@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════
-   PrestigeManager.js — Phase 4 : Prestige & Autel
+   PrestigeManager.js — v0.5.0 — Phase 4 : Prestige & Autel
    Conditions : 50 cases revelees + 3 bases niveau 5
    Autel : activation quand conditions remplies, barre 2000 HP
    Prestige : calcul Ether, reset monde, conservation heritage

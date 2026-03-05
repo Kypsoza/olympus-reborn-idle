@@ -1,4 +1,4 @@
-/* MapRenderer.js - Phase 3 */
+/* MapRenderer — v0.5.0.js - Phase 3 */
 
 class MapRenderer {
   constructor(canvas, grid, camera) {

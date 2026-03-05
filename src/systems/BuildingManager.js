@@ -1,4 +1,4 @@
-/* BuildingManager.js — Phase 3 v30 (réécriture complète)
+/* BuildingManager.js — v0.5.0 (réécriture complète)
    Corrections :
    - placeRoad / removeRoad / canPlaceRoad / canRemoveRoad implementes
    - _isConnected : BFS depuis BASE_MAIN via routes

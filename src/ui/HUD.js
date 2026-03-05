@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════
-   HUD.js — Interface tête haute (Phase 2)
+   HUD.js — v0.5.0 — Interface tête haute (Phase 2)
    Ajouts : tooltip enrichi bâtiments, feedback visuel
 ════════════════════════════════════════════════════════════ */
 

@@ -1,4 +1,4 @@
-/* BuildingPanel.js - Phase 3 v4
+/* BuildingPanel.js — v0.5.0
    Drawer coulissant en bas de l'ecran (remplace le tooltip flottant)
 */
 

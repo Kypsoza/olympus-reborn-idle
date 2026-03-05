@@ -1,4 +1,4 @@
-/* ResourceManager.js — v33
+/* ResourceManager.js — v0.5.0
    Ressources Ère 1 : drachmes, bois, nourr, fer, habitants
    Ressources Ère 2 : nectar, bronze, acier, farine, foudre
    Ressources Ère 3 : orichalque, metal_divin, amrita

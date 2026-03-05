@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════
-   GameLoop.js — Boucle principale (Phase 2)
+   GameLoop — v0.5.0.js — Boucle principale (Phase 2)
    Ajouts : BuildingManager, BuildingPanel, survivants
 ════════════════════════════════════════════════════════════ */
 
