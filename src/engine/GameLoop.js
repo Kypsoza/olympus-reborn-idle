@@ -203,6 +203,63 @@ class GameLoop {
           EventBus.emit('resources:updated', this.resources.getSnapshot());
         });
       }
+
+      // ── Panel de test ──────────────────────────────────
+      var dbgPanel = document.getElementById('debug-panel');
+      if (dbgPanel) {
+        dbgPanel.style.display = 'block';
+
+        // +100k toutes ressources Ère 1
+        document.getElementById('dbg-add-res')?.addEventListener('click', () => {
+          var rm = this.resources;
+          ['drachmes','bois','nourr','fer','habitants'].forEach(r => rm.add(r, 100000));
+          rm.add('ambroisie', 5000); rm.add('farine', 5000);
+          EventBus.emit('resources:updated', rm.getSnapshot());
+          this.hud.setInfo('💰 +100k ressources Ère 1 ajoutées');
+        });
+
+        // +10k Éther
+        document.getElementById('dbg-add-ether')?.addEventListener('click', () => {
+          this.resources.add('ether', 10000);
+          EventBus.emit('resources:updated', this.resources.getSnapshot());
+          this.hud.setInfo('✨ +10k Éther ajouté');
+        });
+
+        // +Ressources Ère 2
+        document.getElementById('dbg-add-era2')?.addEventListener('click', () => {
+          var rm = this.resources;
+          ['nectar','bronze','acier'].forEach(r => rm.add(r, 50000));
+          EventBus.emit('resources:updated', rm.getSnapshot());
+          this.hud.setInfo('🏛️ +50k ressources Ère 2 ajoutées');
+        });
+
+        // +Ressources Ère 3
+        document.getElementById('dbg-add-era3')?.addEventListener('click', () => {
+          var rm = this.resources;
+          ['foudre','orichalque','metaldivin','amrita'].forEach(r => rm.add(r, 10000));
+          EventBus.emit('resources:updated', rm.getSnapshot());
+          this.hud.setInfo('⚡ +10k ressources Ère 3 ajoutées');
+        });
+
+        // Vitesse de clic (multiplicateur de fouille/bonus)
+        window._debugClickMultiplier = 1;
+        document.querySelectorAll('.dbg-speed-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            var speed = parseInt(btn.dataset.speed);
+            window._debugClickMultiplier = speed;
+            // Mise à jour style boutons
+            document.querySelectorAll('.dbg-speed-btn').forEach(b => {
+              var active = b === btn;
+              b.style.background  = active ? 'rgba(200,160,60,0.25)' : 'rgba(200,160,60,0.08)';
+              b.style.borderColor = active ? 'rgba(200,160,60,0.6)'  : 'rgba(200,160,60,0.25)';
+              b.style.color       = active ? '#e8c040' : 'rgba(200,160,60,0.5)';
+            });
+            var lbl = document.getElementById('dbg-speed-label');
+            if (lbl) lbl.textContent = speed === 1 ? '1 clic = 1 action' : '1 clic = ' + speed + ' actions';
+            this.hud.setInfo('⚡ Vitesse de clic : ×' + speed);
+          });
+        });
+      }
     }
     EventBus.on('talent:applied', () => {
       if (this.buildingManager) this.buildingManager._recalculateAllRates();

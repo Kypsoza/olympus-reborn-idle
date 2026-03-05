@@ -1233,7 +1233,10 @@ class BuildingPanel {
     switch(action) {
       case 'dig': {
         if (!btn.classList.contains('bp-locked')) {
-          this.bm.digCell(cell, _sx, _sy);
+          var digMult = window._debugClickMultiplier || 1;
+          for (var _di = 0; _di < digMult; _di++) {
+            if (!this.bm.digCell(cell, _sx, _sy)) break;
+          }
           this.refresh();
         }
         break;
