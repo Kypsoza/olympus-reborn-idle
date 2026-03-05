@@ -8,14 +8,14 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="css/main.css?v=58" />
-  <link rel="stylesheet" href="css/hud.css?v=58" />
-  <link rel="stylesheet" href="css/map.css?v=58" />
-  <link rel="stylesheet" href="css/ui.css?v=58" />
-  <link rel="stylesheet" href="css/animations.css?v=58" />
-  <link rel="stylesheet" href="css/bottom-panel.css?v=58" />
-  <link rel="stylesheet" href="css/buildings.css?v=58" />
-  <link rel="stylesheet" href="css/help-panel.css?v=58" />
+  <link rel="stylesheet" href="css/main.css?v=59" />
+  <link rel="stylesheet" href="css/hud.css?v=59" />
+  <link rel="stylesheet" href="css/map.css?v=59" />
+  <link rel="stylesheet" href="css/ui.css?v=59" />
+  <link rel="stylesheet" href="css/animations.css?v=59" />
+  <link rel="stylesheet" href="css/bottom-panel.css?v=59" />
+  <link rel="stylesheet" href="css/buildings.css?v=59" />
+  <link rel="stylesheet" href="css/help-panel.css?v=59" />
 </head>
 <body>
   <div id="era-screen-flash"></div>
@@ -272,15 +272,17 @@
     <button class="hud-btn pc-only" id="btn-save" title="Sauvegarder">💾</button>
     <button class="hud-btn pc-only" id="btn-help" title="Encyclopédie">?</button>
     <button class="hud-btn" id="burger-btn" title="Menu">☰</button>
-    <div id="zoom-controls">
-      <button class="hud-btn zoom-btn" id="btn-zoom-in"    title="Zoom +">＋</button>
-      <button class="hud-btn zoom-btn" id="btn-zoom-reset" title="Vue par défaut">⊡</button>
-      <button class="hud-btn zoom-btn" id="btn-zoom-out"   title="Zoom −">－</button>
-    </div>
     <div id="score-renaissance">
       <span class="score-label">Score de Renaissance</span>
       <span class="score-value" id="val-score">0</span>
     </div>
+  </div>
+
+  <!-- Zoom controls — séparé pour pouvoir être repositionné en mobile -->
+  <div id="zoom-controls">
+    <button class="hud-btn zoom-btn" id="btn-zoom-in"    title="Zoom +">＋</button>
+    <button class="hud-btn zoom-btn" id="btn-zoom-reset" title="Vue par défaut">⊡</button>
+    <button class="hud-btn zoom-btn" id="btn-zoom-out"   title="Zoom −">－</button>
   </div>
 
   <!-- BURGER MENU -->
@@ -306,26 +308,26 @@
   <!-- ═══════════════════════════════════════════════════════
        SCRIPTS (ordre de chargement important)
   ════════════════════════════════════════════════════════ -->
-  <script src="src/utils/MathUtils.js?v=58"></script>
-  <script src="src/utils/HexUtils.js?v=58"></script>
-  <script src="src/utils/Compression.js?v=58"></script>
-  <script src="src/engine/EventBus.js?v=58"></script>
-  <script src="src/engine/SaveManager.js?v=58"></script>
-  <script src="src/map/HexCell.js?v=58"></script>
-  <script src="src/map/HexGrid.js?v=58"></script>
-  <script src="src/map/Camera.js?v=58"></script>
-  <script src="src/map/MapRenderer.js?v=58"></script>
-  <script src="src/systems/ResourceManager.js?v=58"></script>
-  <script src="src/systems/TalentManager.js?v=58"></script>
-  <script src="src/systems/ScoutManager.js?v=58"></script>
-  <script src="src/systems/PrestigeManager.js?v=58"></script>
-  <script src="src/systems/BuildingManager.js?v=58"></script>
-  <script src="src/ui/HUD.js?v=58"></script>
-  <script src="src/ui/BuildingPanel.js?v=58"></script>
-  <script src="src/ui/HelpPanel.js?v=58"></script>
-  <script src="src/ui/OfflineModal.js?v=58"></script>
-  <script src="src/engine/GoogleDriveSync.js?v=58"></script>
-  <script src="src/engine/GameLoop.js?v=58"></script>
+  <script src="src/utils/MathUtils.js?v=59"></script>
+  <script src="src/utils/HexUtils.js?v=59"></script>
+  <script src="src/utils/Compression.js?v=59"></script>
+  <script src="src/engine/EventBus.js?v=59"></script>
+  <script src="src/engine/SaveManager.js?v=59"></script>
+  <script src="src/map/HexCell.js?v=59"></script>
+  <script src="src/map/HexGrid.js?v=59"></script>
+  <script src="src/map/Camera.js?v=59"></script>
+  <script src="src/map/MapRenderer.js?v=59"></script>
+  <script src="src/systems/ResourceManager.js?v=59"></script>
+  <script src="src/systems/TalentManager.js?v=59"></script>
+  <script src="src/systems/ScoutManager.js?v=59"></script>
+  <script src="src/systems/PrestigeManager.js?v=59"></script>
+  <script src="src/systems/BuildingManager.js?v=59"></script>
+  <script src="src/ui/HUD.js?v=59"></script>
+  <script src="src/ui/BuildingPanel.js?v=59"></script>
+  <script src="src/ui/HelpPanel.js?v=59"></script>
+  <script src="src/ui/OfflineModal.js?v=59"></script>
+  <script src="src/engine/GoogleDriveSync.js?v=59"></script>
+  <script src="src/engine/GameLoop.js?v=59"></script>
 
   <script>
   /* ── Écran Titre + Google Drive Sync ───────────────────── */
