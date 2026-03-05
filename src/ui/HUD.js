@@ -1,0 +1,324 @@
+/* ═══════════════════════════════════════════════════════════
+   HUD.js — Interface tête haute (Phase 2)
+   Ajouts : tooltip enrichi bâtiments, feedback visuel
+════════════════════════════════════════════════════════════ */
+
+class HUD {
+  constructor(resourceManager, grid) {
+    this.rm   = resourceManager;
+    this.grid = grid;
+
+    this.els = {
+      drachmes: document.getElementById('val-drachmes'),
+      bois:     document.getElementById('val-bois'),
+      nourr:    document.getElementById('val-nourr'),
+      fer:      document.getElementById('val-fer'),
+      ether:    document.getElementById('val-ether'),
+      rateDr:   document.getElementById('rate-drachmes'),
+      rateBo:   document.getElementById('rate-bois'),
+      rateNo:   document.getElementById('rate-nourr'),
+      rateFe:   document.getElementById('rate-fer'),
+      score:    document.getElementById('val-score'),
+      survivors:document.getElementById('val-survivants'),
+      maxSurv:  document.getElementById('max-survivants'),
+      info:     document.getElementById('info-text'),
+      tickCount:document.getElementById('tick-count'),
+    };
+
+    // tooltip supprime - remplace par drawer bas
+
+    this._prevValues = {};
+    this._tickCount  = 0;
+
+    this._bindEvents();
+    this._bindButtons();
+  }
+
+  // ── Mise à jour HUD ─────────────────────────────────────
+  _refreshScore() {
+    if (!this.grid) return;
+    const score = this.grid.computeRenaissanceScore();
+    if (this.els.score) this.els.score.textContent = MathUtils.formatNumber(score);
+  }
+
+  update(snap) {
+    const fmt  = MathUtils.formatNumber;
+    const fmtR = MathUtils.formatRate;
+
+    this._setVal('drachmes', snap.drachmes.value, fmt);
+    this._setVal('bois',     snap.bois.value,     fmt);
+    this._setVal('nourr',    snap.nourr.value,     fmt);
+    this._setVal('fer',      snap.fer.value,       fmt);
+    // Éther : notation scientifique si > 9999
+    var etherFmt = function(v) {
+      if (v >= 1e6)  return (v/1e6).toFixed(1)  + 'M';
+      if (v >= 1e4)  return (v/1e3).toFixed(1)  + 'k';
+      return Math.floor(v).toString();
+    };
+    this._setVal('ether', snap.ether.value, etherFmt);
+    var etherEl = document.getElementById('res-ether');
+    if (etherEl) etherEl.classList.toggle('has-ether', snap.ether.value > 0);
+    // Afficher rate Éther si > 0 (Palais des Titans etc.)
+    var etherRate = document.getElementById('rate-ether');
+    if (etherRate) {
+      var er = snap.ether && snap.ether.rate ? snap.ether.rate : 0;
+      etherRate.textContent = er > 0 ? '+' + fmtR(er) + '/s' : '';
+    }
+
+    if (this.els.rateDr) this.els.rateDr.textContent = fmtR(snap.drachmes.rate);
+    if (this.els.rateBo) this.els.rateBo.textContent = fmtR(snap.bois.rate);
+    if (this.els.rateNo) this.els.rateNo.textContent = fmtR(snap.nourr.rate);
+    if (this.els.rateFe) this.els.rateFe.textContent = fmtR(snap.fer.rate);
+
+    if (this.els.survivors) this.els.survivors.textContent = snap.survivants;
+    if (this.els.maxSurv)   this.els.maxSurv.textContent   = snap.maxSurvivants;
+
+    const score = this.grid.computeRenaissanceScore();
+    if (this.els.score) this.els.score.textContent = MathUtils.formatNumber(score);
+
+    // Nouvelles ressources Era 2/3 — afficher seulement si > 0 ou rate > 0
+    const newRes = ['nectar','bronze','acier','farine','foudre','orichalque','metal_divin','amrita'];
+    newRes.forEach(function(k) {
+      const r = snap[k];
+      if (!r) return;
+      const row = document.getElementById('res-' + k);
+      if (row) {
+        const visible = r.value > 0 || r.rate !== 0;
+        row.style.display = visible ? '' : 'none';
+        const valEl = document.getElementById('val-' + k);
+        if (valEl) valEl.textContent = MathUtils.formatNumber(r.value);
+        const rateEl = document.getElementById('rate-' + k);
+        if (rateEl) rateEl.textContent = r.rate !== 0 ? MathUtils.formatRate(r.rate) : '';
+      }
+    });
+  }
+
+  updateEraBadge(era) {
+    const badge = document.getElementById('era-badge');
+    if (!badge) return;
+    // Animation flash quand on débloque une nouvelle ère (pas au chargement initial)
+    if (this._eraInitialized) {
+      badge.classList.remove('era-unlock-flash');
+      void badge.offsetWidth; // reflow
+      badge.classList.add('era-unlock-flash');
+      // Flash plein écran
+      var sf = document.getElementById('era-screen-flash');
+      if (sf) {
+        sf.className = 'flash-' + era;
+        void sf.offsetWidth;
+        sf.classList.add('active');
+        sf.addEventListener('animationend', function(){ sf.classList.remove('active'); }, {once:true});
+      }
+    }
+    this._eraInitialized = true;
+    const labels = ['', '🏛️ Antiquité', '🏺 Âge Classique', '🌟 Âge Divin'];
+    const colors = ['', '#c8a840', '#7bc8ff', '#d4a0ff'];
+    badge.textContent = labels[era] || '🏛️ Antiquité';
+    badge.style.color = colors[era] || '#c8a840';
+    badge.style.borderColor = (colors[era] || '#c8a840').replace(')', ',0.4)').replace('rgb','rgba');
+    badge.style.display = '';
+  }
+
+  _setVal(key, val, fmt) {
+    const el = this.els[key];
+    if (!el) return;
+    const prev      = this._prevValues[key] ?? 0;
+    const formatted = fmt(val);
+    if (formatted !== el.textContent) {
+      el.textContent = formatted;
+      if (val > prev) {
+        el.classList.remove('resource-bump');
+        void el.offsetWidth;
+        el.classList.add('resource-bump');
+      }
+    }
+    this._prevValues[key] = val;
+  }
+
+  tickIncrement() {
+    this._tickCount++;
+    if (this.els.tickCount) this.els.tickCount.textContent = this._tickCount;
+  }
+
+  setInfo(text) {
+    if (this.els.info) this.els.info.textContent = text;
+  }
+
+  // ── Tooltip case ─────────────────────────────────────────
+  showCellTooltip(cell, screenX, screenY) {
+    // Tooltip supprime - le drawer bas gere l'affichage au clic
+    // On met juste a jour la barre d'info en bas
+    if (!cell) return;
+    var name = cell.isHidden
+      ? (cell.isSpecial ? '✦ Ruines detectees' : (cell.type === CELL_TYPE.MUD ? '🟫 Vase marecageuse' : '??? Brouillard'))
+      : cell.displayName;
+    var extra = cell.building && typeof BUILDINGS !== 'undefined' && BUILDINGS[cell.building]
+      ? ' — ' + BUILDINGS[cell.building].name + ' Niv.' + cell.buildingLevel
+      : '';
+    this.setInfo(name + extra + ' (' + cell.q + ',' + cell.r + ')');
+  }
+
+  hideCellTooltip() { /* tooltip supprime */ }
+
+  // ── Texte flottant ───────────────────────────────────────
+  spawnFloatingText(text, x, y, color = '#f0c040') {
+    const el = document.createElement('div');
+    el.className   = 'floating-text';
+    el.textContent = text;
+    el.style.left  = x + 'px';
+    el.style.top   = y + 'px';
+    el.style.color = color;
+    document.getElementById('map-container').appendChild(el);
+    el.addEventListener('animationend', () => el.remove());
+  }
+
+  // ── Événements ──────────────────────────────────────────
+  _bindEvents() {
+    EventBus.on('resources:updated', snap => this.update(snap));
+    EventBus.on('road:placed',   () => this._refreshScore());
+    EventBus.on('road:removed',  () => this._refreshScore());
+    EventBus.on('building:built',      () => this._refreshScore());
+    EventBus.on('building:demolished', () => this._refreshScore());
+    EventBus.on('building:upgraded',   () => this._refreshScore());
+
+    EventBus.on('population:updated', ({ total, workers, available }) => {
+      const wEl  = document.getElementById('pop-workers');
+      const tEl  = document.getElementById('pop-total');
+      const bar  = document.getElementById('pop-bar');
+      const alert= document.getElementById('pop-alert');
+      if (wEl) wEl.textContent = workers;
+      if (tEl) tEl.textContent = total;
+      if (bar && total > 0) {
+        const pct = Math.min(100, Math.round(workers / total * 100));
+        bar.style.width = pct + '%';
+        bar.style.background = pct >= 100 ? '#e05050' : pct >= 80 ? '#f0c040' : '#60c860';
+      }
+      if (alert) {
+        const full = total > 0 && available === 0;
+        alert.style.display = full ? '' : 'none';
+      }
+      // Mettre à jour classe pop-full sur le nouvel item HUD
+      const popItem = document.getElementById('res-pop');
+      if (popItem) popItem.classList.toggle('pop-full', total > 0 && available === 0);
+    });
+
+    EventBus.on('cell:hover', ({ cell, screenX, screenY }) => {
+      if (cell) this.showCellTooltip(cell, screenX, screenY);
+      else      this.hideCellTooltip();
+    });
+
+    // Cacher la tooltip dès qu'on clique
+    EventBus.on('cell:click', ({ cell }) => {
+      this.hideCellTooltip();
+      if (!cell) return;
+      if (cell.isHidden) {
+        this.setInfo(`⛏️ Fouille — ${cell.isSpecial ? '✦ Ruines Antiques' : 'Zone inconnue'} (${cell.q},${cell.r})`);
+      } else if (cell.building) {
+        const def = BUILDINGS[cell.building];
+        this.setInfo(`${def?.glyph || '🏗'} ${def?.name || cell.building} — Niveau ${cell.buildingLevel}`);
+      } else {
+        this.setInfo(`Case sélectionnée : ${cell.displayName} (${cell.q}, ${cell.r})`);
+      }
+    });
+
+    // Feedback visuel (textes flottants)
+    EventBus.on('ui:feedback', ({ text, x, y, color }) => {
+      this.spawnFloatingText(text, x, y - 40, color);
+    });
+
+    EventBus.on('cell:revealed', ({ cell }) => {
+      this.setInfo(`✦ Case révélée : ${cell.displayName} !`);
+    });
+
+    EventBus.on('building:built', ({ cell }) => {
+      const def = BUILDINGS[cell.building];
+      this.setInfo(`🏗️ ${def?.name} construit en (${cell.q},${cell.r})`);
+    });
+
+    EventBus.on('building:upgraded', ({ cell }) => {
+      const def = BUILDINGS[cell.building];
+      this.setInfo(`⬆ ${def?.name} amélioré — Niveau ${cell.buildingLevel}`);
+    });
+
+    EventBus.on('building:demolished', ({ cell }) => {
+      this.setInfo(`🔨 Bâtiment démoli en (${cell.q},${cell.r})`);
+    });
+  }
+
+  _bindButtons() {
+    // Burger menu mobile
+    var burgerBtn  = document.getElementById('burger-btn');
+    var burgerMenu = document.getElementById('burger-menu');
+    if (burgerBtn && burgerMenu) {
+      burgerBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        burgerMenu.classList.toggle('open');
+      });
+      document.addEventListener('click', function() {
+        burgerMenu.classList.remove('open');
+      });
+      document.getElementById('burger-save')?.addEventListener('click', function() {
+        EventBus.emit('save:request');
+        burgerMenu.classList.remove('open');
+      });
+      document.getElementById('burger-help')?.addEventListener('click', function() {
+        EventBus.emit('help:open');
+        burgerMenu.classList.remove('open');
+      });
+      document.getElementById('burger-reset')?.addEventListener('click', function() {
+        burgerMenu.classList.remove('open');
+        EventBus.emit('save:reset');
+      });
+
+      // Profil Google dans le burger
+      this._updateBurgerProfile();
+
+      document.getElementById('burger-signout-google')?.addEventListener('click', () => {
+        burgerMenu.classList.remove('open');
+        if (typeof GoogleDriveSync !== 'undefined' && GoogleDriveSync.isSignedIn()) {
+          GoogleDriveSync.signOut();
+          this._updateBurgerProfile();
+          this.setInfo('🔓 Déconnecté de Google — sauvegarde locale uniquement.');
+        }
+      });
+    }
+
+    document.getElementById('btn-save')?.addEventListener('click', () => {
+      EventBus.emit('save:request');
+      this.setInfo('💾 Partie sauvegardée !');
+    });
+    document.getElementById('btn-help')?.addEventListener('click', () => {
+      this.setInfo('📖 Encyclopédie — disponible en Phase 7.');
+    });
+    document.getElementById('btn-zoom-in')?.addEventListener('click', () => EventBus.emit('zoom:in'));
+    document.getElementById('btn-zoom-out')?.addEventListener('click', () => EventBus.emit('zoom:out'));
+    document.getElementById('btn-zoom-reset')?.addEventListener('click', () => EventBus.emit('zoom:reset'));
+  }
+
+  _updateBurgerProfile() {
+    const profile = document.getElementById('burger-google-profile');
+    if (!profile) return;
+
+    const isConnected = typeof GoogleDriveSync !== 'undefined' && GoogleDriveSync.isSignedIn();
+    profile.style.display = isConnected ? 'block' : 'none';
+
+    if (isConnected) {
+      const name  = localStorage.getItem('gds_user_name')  || 'Joueur';
+      const email = localStorage.getItem('gds_user_email') || '';
+      const pic   = localStorage.getItem('gds_user_pic')   || '';
+
+      const nameEl  = document.getElementById('burger-user-name');
+      const emailEl = document.getElementById('burger-user-email');
+      const picEl   = document.getElementById('burger-user-pic');
+
+      if (nameEl)  nameEl.textContent = name;
+      if (emailEl) emailEl.textContent = email;
+      if (picEl && pic) {
+        picEl.src = pic;
+        picEl.style.display = 'block';
+      } else if (picEl) {
+        picEl.style.display = 'none';
+      }
+    }
+  }
+}
