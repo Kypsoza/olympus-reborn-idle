@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════
-   GameLoop — v0.5.0.js — Boucle principale (Phase 2)
+   GameLoop — v0.6.0.js — Boucle principale (Phase 2)
    Ajouts : BuildingManager, BuildingPanel, survivants
 ════════════════════════════════════════════════════════════ */
 
@@ -59,9 +59,13 @@ class GameLoop {
     if (this.renderer) this.renderer._talentManager = this.talentManager;
     this.buildingManager._recalculateAllRates();
     this.scoutManager    = new ScoutManager(this.grid, this.buildingManager);
+    this.codexManager    = new CodexManager(this.grid, this.resources, this.buildingManager);
     this.prestigeManager = new PrestigeManager(this.grid, this.resources, this.buildingManager);
     this.prestigeManager.talentManager = this.talentManager;
+    this.prestigeManager.codexManager  = this.codexManager;
+    this.codexManager.talentManager    = this.talentManager;
     if (savedData && savedData.prestige) this.prestigeManager.deserialize(savedData.prestige);
+    if (savedData && savedData.codex)    this.codexManager.deserialize(savedData.codex);
     // Restaurer hiddenAt pour offline progress
     if (savedData && savedData.hiddenAt) {
       this._hiddenAt = savedData.hiddenAt;
@@ -74,6 +78,7 @@ class GameLoop {
     // 5. HUD + panneau
     this.hud           = new HUD(this.resources, this.grid);
     this.hud.prestige  = this.prestigeManager;
+    this.hud.codex     = this.codexManager;
     this.buildingPanel = new BuildingPanel(this.buildingManager, this.resources, this.talentManager);
     this.helpPanel     = new HelpPanel();
     this.offlineModal  = new OfflineModal();
@@ -238,6 +243,7 @@ class GameLoop {
       resources: this.resources.serialize(),
       talents:   this.talentManager.serialize(),
       prestige:  this.prestigeManager.serialize(),
+      codex:     this.codexManager    ? this.codexManager.serialize() : null,
       hiddenAt:  this._hiddenAt || null,
     });
     // Sync Drive si connecté (sans bloquer)

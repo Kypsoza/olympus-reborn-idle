@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════
-   PrestigeManager.js — v0.5.3 — Phase 4 : Prestige & Autel
+   PrestigeManager.js — v0.6.0 — Phase 4 : Prestige & Autel
    Conditions : 50 cases revelees + 3 bases niveau 5
    Autel : activation quand conditions remplies, barre 2000 HP
    Prestige : calcul Ether, reset monde, conservation heritage
@@ -11,6 +11,7 @@ class PrestigeManager {
     this.rm   = resources;
     this.bm   = buildingManager;
     this.talentManager = null; // set by GameLoop after init
+    this.codexManager  = null; // set by GameLoop after init
 
     // Conditions requises
     this.REQUIRED_REVEALED = 50;
@@ -121,7 +122,9 @@ class PrestigeManager {
     // Bonus prestige : +5% par prestige precedent
     var prestigeMult = 1 + this.prestigeCount * 0.05;
     var etherMult = this.talentManager ? this.talentManager.getEtherGainMult() : 1;
-    return Math.max(10, Math.floor(base * prestigeMult * etherMult));
+    // Multiplicateur Codex (Phase 6)
+    var codexMult = this.codexManager ? this.codexManager.getEtherMultiplier() : 1;
+    return Math.max(10, Math.floor(base * prestigeMult * etherMult * codexMult));
   }
 
   // Score Renaissance en temps réel (affiché dans le HUD)
@@ -139,7 +142,21 @@ class PrestigeManager {
     EventBus.emit('save:request');
 
     // 2. Calcul Ether
+    var score = self.getLiveScore();
     var etherGained = self.computeEther();
+
+    // 2b. Calcul Pages Codex (Phase 6)
+    var codexPagesGained = 0;
+    if (self.codexManager) {
+      var buildingTypes = self.codexManager.countBuildingTypes();
+      var era3Reached   = self.codexManager.isEra3Reached();
+      codexPagesGained  = self.codexManager.computePagesGained({
+        score: score,
+        buildingTypes: buildingTypes,
+        era3Reached: era3Reached,
+        zonesOwned: 0  // Phase 8
+      });
+    }
 
     // 3. Conservation heritage : toutes les bases revelees niv >= 2
     self.heritage = [];
@@ -151,6 +168,9 @@ class PrestigeManager {
 
     // 4. Sequence visuelle : fondu lumineux
     EventBus.emit('prestige:sequence_start', { etherGained: etherGained });
+
+    // Sauvegarder les pages pendantes pour les utiliser dans _doReset
+    self._pendingCodexPages = codexPagesGained;
 
     // 5. Reset (apres animation)
     setTimeout(function() {
@@ -208,12 +228,20 @@ class PrestigeManager {
       }
     }
 
+    // 8. Ajouter les pages Codex (Phase 6)
+    if (self.codexManager && self._pendingCodexPages > 0) {
+      self.codexManager.addPages(self._pendingCodexPages);
+      self._pendingCodexPages = 0;
+    }
+
     // Notify
     EventBus.emit('prestige:complete', {
       etherGained: etherGained,
       totalEther:  self.rm.get('ether'),
       prestigeCount: self.prestigeCount,
       heritage: self.heritage,
+      codexLevel: self.codexManager ? self.codexManager.codexLevel : 1,
+      codexPages: self.codexManager ? self.codexManager.pages : 0,
     });
     EventBus.emit('resources:updated', self.rm.getSnapshot());
 
@@ -243,6 +271,7 @@ class PrestigeManager {
   serialize() {
     return {
       prestigeCount: this.prestigeCount,
+      codex: this.codexManager ? this.codexManager.serialize() : null,
       heritage:      this.heritage,
       baseBonusPct:  this.baseBonusPct || 0,
     };
@@ -251,6 +280,7 @@ class PrestigeManager {
   deserialize(data) {
     if (!data) return;
     this.prestigeCount = data.prestigeCount || 0;
+    if (this.codexManager && data.codex) this.codexManager.deserialize(data.codex);
     this.heritage      = data.heritage      || [];
     this.baseBonusPct  = data.baseBonusPct  || 0;
   }

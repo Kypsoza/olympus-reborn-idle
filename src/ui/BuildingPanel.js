@@ -1,4 +1,4 @@
-/* BuildingPanel.js — v0.5.3
+/* BuildingPanel.js — v0.6.0
    Drawer coulissant en bas de l'ecran (remplace le tooltip flottant)
 */
 
@@ -41,6 +41,7 @@ class BuildingPanel {
           '<div class="tp-tab-bar">' +
             '<button class="tp-tab-btn tp-tab-active" data-tp="drachmes">🪙 Drachmes</button>' +
             '<button class="tp-tab-btn" data-tp="ether">✨ Éther</button>' +
+            '<button class="tp-tab-btn" data-tp="codex">📖 Codex</button>' +
           '</div>' +
           '<button class="tp-close" id="tp-close">✕</button>' +
         '</div>' +
@@ -134,8 +135,10 @@ class BuildingPanel {
 
     if (tab === 'drachmes') {
       this._renderDrachmeTree(el);
-    } else {
+    } else if (tab === 'ether') {
       this._renderEtherTree(el);
+    } else if (tab === 'codex') {
+      this._renderCodexTab(el);
     }
   }
 
@@ -1323,47 +1326,230 @@ class BuildingPanel {
   }
 
   // ── UI Autel de Prométhée ────────────────────────────────
+
+  // ── Codex Olympien (Phase 6) ────────────────────────────
+  _renderCodexTab(el) {
+    var self = this;
+    var cm = window.game && window.game.codexManager;
+    var pm = window.game && window.game.prestigeManager;
+    var rm = this.rm;
+
+    if (!cm) {
+      el.innerHTML = '<div style="padding:24px;text-align:center;color:#888">Codex non initialisé.</div>';
+      return;
+    }
+
+    var pages      = cm.pages;
+    var level      = cm.codexLevel;
+    var mult       = cm.getEtherMultiplier();
+    var nextThresh = cm.getPagesForNextLevel();
+    var progress   = cm.getProgressToNextLevel();
+    var pctBar     = Math.round(Math.min(1, progress) * 100);
+
+    // Preview pages prochain prestige
+    var score        = pm ? pm.getLiveScore() : 0;
+    var bTypes       = cm.countBuildingTypes();
+    var era3         = cm.isEra3Reached();
+    var previewPages = cm.previewNextPages(score, bTypes, era3);
+
+    // Ether actuel
+    var etherAmt = rm ? Math.floor(rm.get('ether')) : 0;
+    var fmtE = function(v) { return v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e4?(v/1e3).toFixed(1)+'k':v.toString(); };
+
+    // ── HTML principal ──────────────────────────────────────
+    var html =
+      '<div class="cx-wrap">' +
+        // En-tête Codex
+        '<div class="cx-header">' +
+          '<div class="cx-book-icon">📖</div>' +
+          '<div class="cx-title-block">' +
+            '<div class="cx-title">Codex Olympien</div>' +
+            '<div class="cx-subtitle">Niveau ' + level + (nextThresh === Infinity ? ' — Maximum' : ' / ' + (cm.LEVEL_THRESHOLDS.length + 1)) + '</div>' +
+          '</div>' +
+          '<div class="cx-mult-badge">×' + mult.toFixed(1) + ' Éther</div>' +
+        '</div>' +
+
+        // Barre de progression vers prochain niveau
+        (nextThresh !== Infinity ?
+          '<div class="cx-prog-section">' +
+            '<div class="cx-prog-label">' +
+              '<span>📄 Pages : <b>' + pages + '</b></span>' +
+              '<span>Prochain niveau : <b>' + nextThresh + ' pages</b></span>' +
+            '</div>' +
+            '<div class="cx-prog-track"><div class="cx-prog-fill" style="width:' + pctBar + '%"></div></div>' +
+          '</div>'
+        :
+          '<div class="cx-prog-section" style="text-align:center;color:#c8961a">⭐ Niveau Maximum atteint</div>'
+        ) +
+
+        // Preview prochain prestige
+        '<div class="cx-preview">' +
+          '<div class="cx-preview-title">📊 Prochain Prestige</div>' +
+          '<div class="cx-preview-row"><span>Score Renaissance actuel</span><span>' + score.toLocaleString() + '</span></div>' +
+          '<div class="cx-preview-row"><span>Pages gagnées</span><span class="cx-pages-gain">+' + previewPages + ' pages</span></div>' +
+          '<div class="cx-preview-row"><span>Types de bâtiments</span><span>' + bTypes + (cm.buildingSourceUnlocked ? ' (+' + bTypes*5 + ' pages)' : '') + '</span></div>' +
+          (era3 ? '<div class="cx-preview-row"><span>Ère 3 atteinte</span><span class="cx-bonus">+' + (cm.eraSourceUpgraded ? 40 : 20) + ' pages</span></div>' : '') +
+          (cm.bonusPageSlots > 0 ? '<div class="cx-preview-row"><span>Slots bonus (' + cm.bonusPageSlots + ')</span><span class="cx-bonus">+' + cm.bonusPageSlots*15 + ' pages</span></div>' : '') +
+          (cm.goldenPagesLevel > 0 ? '<div class="cx-preview-row"><span>Pages Dorées Niv.' + cm.goldenPagesLevel + '</span><span class="cx-bonus">×' + [1,1.5,2.25,3.0][cm.goldenPagesLevel].toFixed(2) + '</span></div>' : '') +
+        '</div>' +
+
+        // Nœud Central — Investissements Éther
+        '<div class="cx-invest-title">🔮 Nœud Central — Investissements Éther</div>' +
+        '<div class="cx-ether-avail">Éther disponible : <b>' + fmtE(etherAmt) + '</b></div>' +
+        '<div class="cx-invest-grid">' +
+          self._cxInvestCard(cm, 'slot',    '📚 Slots Pages',    'slot', etherAmt) +
+          self._cxInvestCard(cm, 'golden',  '✨ Pages Dorées',   'golden', etherAmt) +
+          self._cxInvestCard(cm, 'building','🏛️ Source Bâtiments','building_source', etherAmt) +
+          self._cxInvestCard(cm, 'era',     '🌟 Source Ère',     'era_source', etherAmt) +
+        '</div>' +
+
+        // Table des niveaux Codex
+        '<div class="cx-level-title">📈 Table des Niveaux</div>' +
+        '<div class="cx-level-table">' + self._cxLevelTable(cm) + '</div>' +
+
+      '</div>';
+
+    el.innerHTML = html;
+
+    // Bind boutons investissement
+    el.querySelectorAll('[data-cx-buy]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var type = btn.dataset.cxBuy;
+        var ok = false;
+        if (type === 'slot')    ok = cm.buySlot();
+        if (type === 'golden')  ok = cm.buyGoldenPages();
+        if (type === 'building') ok = cm.buyBuildingSource();
+        if (type === 'era')     ok = cm.buyEraSource();
+        if (ok) self._renderCodexTab(el);
+      });
+    });
+  }
+
+  _cxInvestCard(cm, type, label, checkType, etherAmt) {
+    var check, level, maxLevel, costNext;
+
+    if (type === 'slot') {
+      check = cm.canBuySlot();
+      level = cm.bonusPageSlots;
+      maxLevel = 5;
+      costNext = cm.SLOT_COST[level] || null;
+    } else if (type === 'golden') {
+      check = cm.canBuyGoldenPages();
+      level = cm.goldenPagesLevel;
+      maxLevel = 3;
+      costNext = cm.GOLDEN_COST[level] || null;
+    } else if (type === 'building') {
+      check = cm.canBuyBuildingSource();
+      level = cm.buildingSourceUnlocked ? 1 : 0;
+      maxLevel = 1;
+      costNext = cm.BUILDING_COST;
+    } else {
+      check = cm.canBuyEraSource();
+      level = cm.eraSourceUpgraded ? 1 : 0;
+      maxLevel = 1;
+      costNext = cm.ERA_COST;
+    }
+
+    var maxed = (level >= maxLevel);
+    var canAfford = check.ok;
+    var desc = '';
+    if (type === 'slot')     desc = 'Ajoute +15 pages/prestige par slot';
+    if (type === 'golden')   desc = 'Multiplie les pages ×' + [1,1.5,2.25,3.0][Math.min(level+1,3)].toFixed(2);
+    if (type === 'building') desc = '+5 pages par type de bâtiment construit';
+    if (type === 'era')      desc = 'Bonus Ère 3 : 40 pages au lieu de 20';
+
+    return '<div class="cx-invest-card' + (maxed ? ' cx-maxed' : '') + '">' +
+      '<div class="cx-ic-label">' + label + '</div>' +
+      '<div class="cx-ic-level">' + (maxed ? '✅ Max' : 'Niv. ' + level + ' / ' + maxLevel) + '</div>' +
+      '<div class="cx-ic-desc">' + desc + '</div>' +
+      (!maxed ?
+        '<button class="cx-ic-btn' + (canAfford ? '' : ' cx-ic-locked') + '" data-cx-buy="' + type + '">' +
+          (canAfford ? '✨ ' + costNext + ' Éther' : '🔒 ' + check.reason) +
+        '</button>'
+      : '') +
+    '</div>';
+  }
+
+  _cxLevelTable(cm) {
+    var mults = cm.LEVEL_ETHER_MULT;
+    var thres = cm.LEVEL_THRESHOLDS;
+    var rows = '';
+    for (var i = 0; i < mults.length; i++) {
+      var active = (i + 1 === cm.codexLevel);
+      var req = i === 0 ? 'Départ' : thres[i-1] + ' pages';
+      rows +=
+        '<div class="cx-lv-row' + (active ? ' cx-lv-active' : '') + '">' +
+          '<span class="cx-lv-num">' + (active ? '▶ ' : '') + 'Niv.' + (i+1) + '</span>' +
+          '<span class="cx-lv-req">' + req + '</span>' +
+          '<span class="cx-lv-mult">×' + mults[i].toFixed(1) + '</span>' +
+        '</div>';
+    }
+    return rows;
+  }
+
+
   _renderAltarUI(cell, body) {
     var self = this;
     var pm = window.game && window.game.prestigeManager;
+    var cm = window.game && window.game.codexManager;
     var cond = pm ? pm.getConditions() : { revealed: 0, revealedOk: false, basesLvl5: 0, basesLvl5Ok: false, allMet: false };
-    var altarHP = cell.currentHP;
+    var altarHP  = cell.currentHP;
     var altarMax = cell.maxHP || 2000;
-    var pct = Math.max(0, (altarHP / altarMax) * 100);
+    var pct      = Math.max(0, (altarHP / altarMax) * 100);
     var unlocked = cond.allMet;
 
+    // Données Codex
+    var codexLevel   = cm ? cm.codexLevel : 1;
+    var codexMult    = cm ? cm.getEtherMultiplier() : 1;
+    var codexPages   = cm ? cm.pages : 0;
+    var previewPages = 0;
+    if (cm && pm) {
+      previewPages = cm.previewNextPages(pm.getLiveScore(), cm.countBuildingTypes(), cm.isEra3Reached());
+    }
+
     var html = '<div class="bp-bld-header">' +
-      '<span class="bp-bld-glyph">🔮</span>' +
+      '<span class="bp-bld-glyph" style="filter:drop-shadow(0 0 8px #c080ff)">🔮</span>' +
       '<div><div class="bp-bld-name">Autel de Prométhée</div>' +
       '<div class="bp-bld-lvl">' + (unlocked ? '⚡ Actif — Sacrifice requis' : '🔒 Conditions non remplies') + '</div></div>' +
       '</div>';
 
-    // Barre de vie de l autel
+    // Barre de vie de l autel (si actif)
     if (unlocked) {
       html += '<div style="margin-bottom:8px">' +
-        '<div style="font-size:10px;color:rgba(255,255,255,.5);margin-bottom:3px">Résistance : ' + Math.ceil(altarHP) + ' / ' + altarMax + '</div>' +
-        '<div class="bp-lvlbar-track" style="height:10px">' +
+        '<div style="font-size:10px;color:rgba(255,255,255,.5);margin-bottom:3px">Resistance : ' + Math.ceil(altarHP) + ' / ' + altarMax + '</div>' +
+        '<div class="bp-lvlbar-track" style="height:8px">' +
           '<div class="bp-lvlbar-fill" style="width:' + (100-pct) + '%;background:linear-gradient(90deg,#8a40c0,#c080ff)"></div>' +
         '</div>' +
       '</div>';
     }
 
     // Conditions
-    html += '<div style="margin-bottom:10px">';
-    html += '<div style="font-size:11px;color:rgba(255,255,255,.6);margin-bottom:6px">Conditions de Prestige :</div>';
-    html += '<div style="font-size:12px;margin-bottom:4px;color:' + (cond.revealedOk ? '#80e080' : '#e08080') + '">' +
-      (cond.revealedOk ? '✅' : '⬜') + ' ' + cond.revealed + ' / 50 cases révélées</div>';
-    html += '<div style="font-size:12px;color:' + (cond.basesLvl5Ok ? '#80e080' : '#e08080') + '">' +
-      (cond.basesLvl5Ok ? '✅' : '⬜') + ' ' + cond.basesLvl5 + ' / 3 Ruines Niv.5</div>';
-    html += '</div>';
+    html += '<div style="margin-bottom:10px">' +
+      '<div style="font-size:11px;color:rgba(255,255,255,.55);margin-bottom:5px">Conditions :</div>' +
+      '<div style="font-size:12px;margin-bottom:3px;color:' + (cond.revealedOk ? '#80e080' : '#e08080') + '">' +
+        (cond.revealedOk ? '✅' : '⬜') + ' ' + cond.revealed + ' / 50 cases révélées</div>' +
+      '<div style="font-size:12px;color:' + (cond.basesLvl5Ok ? '#80e080' : '#e08080') + '">' +
+        (cond.basesLvl5Ok ? '✅' : '⬜') + ' ' + cond.basesLvl5 + ' / 3 Bases Niv.5</div>' +
+    '</div>';
 
     if (unlocked) {
-      // Estimation Ether
       var etherEstimate = pm ? pm.computeEther() : 0;
-      html += '<div style="font-size:12px;color:#f0c040;margin-bottom:8px">✨ Éther estimé : +' + etherEstimate + ' Éther</div>';
-      html += '<div style="font-size:10px;color:rgba(255,255,255,.4);margin-bottom:8px">Fouilllez l&#39;autel pour déclencher le Prestige.</div>';
+      // Séparateur Prestige preview
+      html +=
+        '<div class="altar-prestige-preview">' +
+          '<div class="app-title">⚡ Ce Prestige vous donnera</div>' +
+          '<div class="app-row"><span>✨ Éther</span><span class="app-val app-ether">+' + etherEstimate + '</span></div>' +
+          '<div class="app-row"><span>📖 Pages Codex</span><span class="app-val app-pages">+' + previewPages + '</span></div>' +
+          '<div class="app-row app-small"><span>Multiplicateur Codex actuel</span><span>×' + codexMult.toFixed(1) + ' (Niv.' + codexLevel + ')</span></div>' +
+          '<div class="app-row app-small"><span>Pages totales après</span><span>' + (codexPages + previewPages) + '</span></div>' +
+        '</div>';
+      html += '<div style="font-size:10px;color:rgba(255,255,255,.35);text-align:center;margin-top:6px">Fouillez l\'Autel pour déclencher la Renaissance.</div>';
     } else {
       html += '<div style="font-size:10px;color:rgba(255,255,255,.35)">Remplissez les conditions pour activer cet autel.</div>';
+      if (cm && codexLevel > 1) {
+        html += '<div style="font-size:11px;color:#c080ff;margin-top:8px;padding:6px 8px;background:rgba(176,96,255,0.08);border-radius:6px">' +
+          '📖 Codex Niv.' + codexLevel + ' — multiplicateur actuel : ×' + codexMult.toFixed(1) + ' Éther</div>';
+      }
     }
 
     body.innerHTML = html;

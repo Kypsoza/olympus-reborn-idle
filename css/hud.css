@@ -1476,3 +1476,306 @@
   transition: transform 0.15s ease;
 }
 .prm-close:hover { transform: scale(1.05); }
+
+/* ═══════════════════════════════════════════════════════════
+   Phase 6 — Codex Olympien
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Badge Codex HUD ────────────────────────────────────── */
+#codex-hud-badge {
+  position: fixed;
+  right: 12px;
+  bottom: 136px;   /* au-dessus de prestige-conditions-bar */
+  width: 220px;
+  background: rgba(15, 8, 30, 0.92);
+  border: 1px solid rgba(200, 150, 26, 0.35);
+  border-radius: 10px;
+  padding: 6px 10px;
+  z-index: 120;
+  backdrop-filter: blur(6px);
+  display: none;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 0 14px rgba(200, 150, 26, 0.15);
+  flex-wrap: wrap;
+}
+#codex-hud-badge.chb-visible { display: flex; }
+.chb-icon { font-size: 16px; }
+.chb-level {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 700;
+  color: #c8961a;
+}
+.chb-mult {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 800;
+  color: #f0d060;
+  margin-left: auto;
+}
+.chb-bar-track {
+  width: 100%;
+  height: 3px;
+  background: rgba(255,255,255,0.07);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.chb-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #c8961a, #f0d060);
+  border-radius: 2px;
+  transition: width 0.5s ease;
+}
+
+/* ── Toast Level Up Codex ───────────────────────────────── */
+#codex-levelup-toast {
+  position: fixed;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #1a0e05, #2a1a08);
+  border: 2px solid #c8961a;
+  border-radius: 12px;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 8000;
+  box-shadow: 0 0 30px rgba(200, 150, 26, 0.5);
+  animation: cltSlideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+             cltFadeOut 0.5s ease 4s forwards;
+  min-width: 240px;
+  max-width: 320px;
+}
+@keyframes cltSlideIn {
+  from { opacity:0; transform: translateX(-50%) translateY(-20px); }
+  to   { opacity:1; transform: translateX(-50%) translateY(0); }
+}
+@keyframes cltFadeOut {
+  from { opacity:1; }
+  to   { opacity:0; pointer-events:none; }
+}
+.clt-icon { font-size: 28px; }
+.clt-text { flex: 1; }
+.clt-title {
+  font-family: var(--font-title, serif);
+  font-size: 14px;
+  font-weight: 700;
+  color: #f0d060;
+}
+.clt-sub {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: #c0a060;
+  margin-top: 2px;
+}
+.clt-sub b { color: #f0d060; }
+
+/* ── Tab Codex — Layout principal ──────────────────────── */
+.cx-wrap {
+  padding: 12px 16px;
+  font-family: var(--font-ui);
+  max-height: calc(100% - 20px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* En-tête */
+.cx-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: linear-gradient(135deg, rgba(200,150,26,0.1), rgba(30,20,5,0.8));
+  border: 1px solid rgba(200,150,26,0.3);
+  border-radius: 10px;
+}
+.cx-book-icon { font-size: 32px; }
+.cx-title-block { flex: 1; }
+.cx-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: #f0d060;
+  font-family: var(--font-title, serif);
+}
+.cx-subtitle { font-size: 11px; color: #a08040; margin-top: 2px; }
+.cx-mult-badge {
+  background: rgba(200,150,26,0.2);
+  border: 1px solid rgba(200,150,26,0.5);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 14px;
+  font-weight: 800;
+  color: #f0d060;
+  white-space: nowrap;
+  text-shadow: 0 0 12px rgba(240,208,96,0.6);
+}
+
+/* Barre de progression */
+.cx-prog-section { display: flex; flex-direction: column; gap: 5px; }
+.cx-prog-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #a09060;
+}
+.cx-prog-label b { color: #f0d060; }
+.cx-prog-track {
+  height: 8px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.cx-prog-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #c8961a, #f0d060);
+  border-radius: 4px;
+  transition: width 0.5s ease;
+  box-shadow: 0 0 8px rgba(240,208,96,0.4);
+}
+
+/* Preview prochain prestige */
+.cx-preview {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.cx-preview-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #808080;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 8px;
+}
+.cx-preview-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #a0a0a0;
+  margin-bottom: 4px;
+}
+.cx-pages-gain { color: #f0d060; font-weight: 700; }
+.cx-bonus { color: #80e080; font-weight: 600; }
+
+/* Investissements Éther */
+.cx-invest-title, .cx-level-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #808080;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  padding-bottom: 4px;
+}
+.cx-ether-avail {
+  font-size: 12px;
+  color: #c0a060;
+  text-align: right;
+}
+.cx-ether-avail b { color: #f0d060; }
+.cx-invest-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.cx-invest-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(200,150,26,0.15);
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.cx-invest-card.cx-maxed {
+  border-color: rgba(128,224,128,0.2);
+  background: rgba(128,224,128,0.04);
+}
+.cx-ic-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #d0b060;
+}
+.cx-ic-level { font-size: 10px; color: #808060; }
+.cx-ic-desc { font-size: 10px; color: #707070; line-height: 1.4; flex: 1; }
+.cx-ic-btn {
+  margin-top: 6px;
+  background: linear-gradient(135deg, #3a2a08, #6a4a10);
+  border: 1px solid #c8961a;
+  border-radius: 6px;
+  color: #f0d060;
+  font-size: 11px;
+  font-family: var(--font-ui);
+  padding: 5px 8px;
+  cursor: pointer;
+  transition: transform 0.12s, background 0.12s;
+  text-align: center;
+}
+.cx-ic-btn:hover { background: linear-gradient(135deg, #5a4010, #8a6018); transform: scale(1.03); }
+.cx-ic-btn:active { transform: scale(0.97); }
+.cx-ic-btn.cx-ic-locked {
+  background: rgba(255,255,255,0.04);
+  border-color: rgba(255,255,255,0.1);
+  color: #606060;
+  cursor: default;
+  font-size: 10px;
+}
+
+/* Table des niveaux */
+.cx-level-table {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.cx-lv-row {
+  display: flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 5px;
+  font-size: 11px;
+  color: #808060;
+}
+.cx-lv-row.cx-lv-active {
+  background: rgba(200,150,26,0.12);
+  color: #f0d060;
+  font-weight: 700;
+  border: 1px solid rgba(200,150,26,0.3);
+}
+.cx-lv-num { width: 60px; }
+.cx-lv-req { flex: 1; color: #606060; }
+.cx-lv-row.cx-lv-active .cx-lv-req { color: #c0a060; }
+.cx-lv-mult { font-weight: 700; color: #c8961a; }
+.cx-lv-row.cx-lv-active .cx-lv-mult { color: #f0d060; }
+
+/* ── Altar Prestige Preview ─────────────────────────────── */
+.altar-prestige-preview {
+  background: linear-gradient(135deg, rgba(30,20,5,0.9), rgba(20,10,30,0.9));
+  border: 1px solid rgba(200,150,26,0.4);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 6px;
+}
+.app-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #f0d060;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+.app-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #a0a0a0;
+  margin-bottom: 4px;
+}
+.app-row.app-small { font-size: 10px; color: #707070; margin-bottom: 2px; }
+.app-val { font-weight: 700; }
+.app-ether { color: #80d8ff; }
+.app-pages { color: #f0d060; }

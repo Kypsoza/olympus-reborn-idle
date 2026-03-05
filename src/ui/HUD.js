@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════
-   HUD.js — v0.5.3 — Interface tête haute (Phase 2)
+   HUD.js — v0.6.0 — Interface tête haute (Phase 2)
    Ajouts : tooltip enrichi bâtiments, feedback visuel
 ════════════════════════════════════════════════════════════ */
 
@@ -42,6 +42,25 @@ class HUD {
     if (this.els.score) this.els.score.textContent = MathUtils.formatNumber(score);
     // Mise à jour compteur conditions prestige
     this._refreshPrestigeConditions();
+    // Mise à jour indicateur Codex
+    this._refreshCodexBadge();
+  }
+
+  _refreshCodexBadge() {
+    var cm = this.codex;
+    var el = document.getElementById('codex-hud-badge');
+    if (!el || !cm) return;
+    var mult = cm.getEtherMultiplier();
+    var pct  = Math.round(cm.getProgressToNextLevel() * 100);
+    el.innerHTML =
+      '<span class="chb-icon">📖</span>' +
+      '<span class="chb-level">Niv.' + cm.codexLevel + '</span>' +
+      '<span class="chb-mult">×' + mult.toFixed(1) + '</span>' +
+      '<div class="chb-bar-track"><div class="chb-bar-fill" style="width:' + pct + '%"></div></div>';
+    // Afficher seulement si au moins 1 prestige fait (pages > 0)
+    if (cm.pages > 0 || cm.codexLevel > 1) {
+      el.classList.add('chb-visible');
+    }
   }
 
   _refreshPrestigeConditions() {
@@ -260,6 +279,10 @@ class HUD {
     EventBus.on('building:upgraded',   () => this._refreshScore());
     EventBus.on('cell:revealed',       () => this._refreshScore());
     EventBus.on('base:upgraded',       () => this._refreshScore());
+    EventBus.on('codex:pages_gained',  () => { this._refreshScore(); this._refreshCodexBadge(); });
+    EventBus.on('codex:level_up',      () => { this._refreshScore(); this._refreshCodexBadge(); });
+    EventBus.on('codex:upgraded',      () => { this._refreshCodexBadge(); });
+    EventBus.on('prestige:complete',   () => { this._refreshScore(); this._refreshCodexBadge(); });
 
     EventBus.on('population:updated', ({ total, workers, available }) => {
       const wEl  = document.getElementById('pop-workers');
