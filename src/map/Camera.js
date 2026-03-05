@@ -109,9 +109,15 @@ class Camera {
     }, { passive: false });
 
     // Touch : drag + pinch
+    // _wasPinching : bloque le tap qui suit un pinch-to-zoom
+    this._wasPinching = false;
+    this._pinchEndTime = 0;
+
     c.addEventListener('touchstart', e => {
       e.preventDefault();
       this._touches = [...e.touches];
+      // Si on pose 2 doigts, on entre en mode pinch
+      if (e.touches.length === 2) this._wasPinching = true;
     }, { passive: false });
 
     c.addEventListener('touchmove', e => {
@@ -124,20 +130,20 @@ class Camera {
         this.y += touches[0].clientY - this._touches[0].clientY;
         EventBus.emit('camera:moved');
       }
-      else if (touches.length === 2 && this._touches.length === 2) {
-        // Pinch zoom — ratio de distance, atténué pour éviter la sur-sensibilité
-        const prevDist = Math.hypot(
+      else if (touches.length === 2 && this._touches.length >= 1) {
+        // Pinch zoom — ratio de distance, sensibilité modérée
+        const prevDist = this._touches.length === 2 ? Math.hypot(
           this._touches[0].clientX - this._touches[1].clientX,
           this._touches[0].clientY - this._touches[1].clientY
-        );
+        ) : 0;
         const newDist = Math.hypot(
           touches[0].clientX - touches[1].clientX,
           touches[0].clientY - touches[1].clientY
         );
         if (prevDist > 10) {
           const ratio = newDist / prevDist;
-          // Atténuation 0.35 : réduit la sensibilité de ~65%
-          const smoothRatio = 1 + (ratio - 1) * 0.35;
+          // Atténuation 0.55 : sensibilité agréable (ni trop lente, ni brutale)
+          const smoothRatio = 1 + (ratio - 1) * 0.55;
           const midX = (touches[0].clientX + touches[1].clientX) / 2;
           const midY = (touches[0].clientY + touches[1].clientY) / 2;
           const rect  = c.getBoundingClientRect();
@@ -149,11 +155,17 @@ class Camera {
           this.zoom = newZoom;
           EventBus.emit('camera:zoomed');
         }
+        this._wasPinching = true;
       }
       this._touches = touches;
     }, { passive: false });
 
     c.addEventListener('touchend', e => {
+      // Mémoriser la fin du pinch pour bloquer le tap fantôme
+      if (this._wasPinching && e.touches.length < 2) {
+        this._pinchEndTime = Date.now();
+        this._wasPinching = false;
+      }
       this._touches = [...e.touches];
     });
   }

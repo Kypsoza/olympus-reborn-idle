@@ -734,6 +734,10 @@ class MapRenderer {
     this.canvas.addEventListener('touchend', e => {
       _lastTouch = Date.now();
       if (e.changedTouches.length !== 1) return;
+
+      // Bloquer le tap fantôme qui suit un pinch-to-zoom (300ms de grâce)
+      if (this.camera._pinchEndTime && Date.now() - this.camera._pinchEndTime < 300) return;
+
       const t = e.changedTouches[0];
       const rect = this.canvas.getBoundingClientRect();
       const world = this.camera.screenToWorld(t.clientX-rect.left, t.clientY-rect.top);

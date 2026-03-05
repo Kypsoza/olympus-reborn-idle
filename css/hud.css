@@ -90,27 +90,35 @@
 #res-nourr    .resource-value { color: var(--col-nourr); }
 #res-fer      .resource-value { color: var(--col-fer); }
 
-/* Actions HUD */
+/* Actions HUD — boutons fixes en haut à droite de la carte */
 #hud-actions {
+  position: fixed;
+  top: calc(var(--hud-top-h) + 8px);
+  right: 10px;
   display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 7px;
+  z-index: 300;
 }
 .hud-btn {
-  width: 36px; height: 36px;
+  width: 42px; height: 42px;
   display: flex; align-items: center; justify-content: center;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid var(--col-border-gold);
-  border-radius: var(--radius-sm);
+  background: rgba(12,9,26,0.85);
+  border: 1px solid rgba(200,149,26,0.5);
+  border-radius: 10px;
   font-size: 20px;
   color: var(--col-gold-light);
   transition: all 0.2s;
   flex-shrink: 0;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.55);
+  cursor: pointer;
 }
 .hud-btn:hover {
-  background: rgba(200,149,26,0.15);
-  box-shadow: 0 0 10px rgba(200,149,26,0.3);
+  background: rgba(200,149,26,0.2);
+  border-color: var(--col-gold-light);
+  box-shadow: 0 0 12px rgba(200,149,26,0.35);
   transform: translateY(-1px);
 }
 .hud-btn:active { transform: translateY(0); }
@@ -121,9 +129,9 @@
 }
 #burger-menu {
   display: none;
-  position: absolute;
-  top: calc(var(--hud-top-h) + 4px);
-  right: 8px;
+  position: fixed;
+  top: calc(var(--hud-top-h) + 8px);
+  right: 58px;
   background: linear-gradient(160deg, #1a1530, #120d24);
   border: 1px solid var(--col-border-gold);
   border-radius: var(--radius);
@@ -354,27 +362,12 @@
   .hud-pop-item .resource-name { display: none; }
   #pop-bar-wrap     { width: 36px; }
 
-  /* ── BOUTONS FLOTTANTS sur la carte ─────────────────────
-     Placés en haut-droite de la carte, sous le HUD         */
+  /* Boutons flottants : ajustement mobile */
   #hud-actions {
-    position: fixed;
-    top: calc(var(--hud-top-h) + 8px);
-    right: 8px;
-    flex-direction: column;
     gap: 8px;
-    z-index: 300;
-    background: none;
+    right: 8px;
   }
   .hud-btn {
-    width: 46px; height: 46px;
-    font-size: 20px;
-    background: rgba(14,11,30,0.88);
-    border: 1px solid rgba(200,149,26,0.45);
-    border-radius: 12px;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.6);
-    backdrop-filter: blur(4px);
-  }
-  #burger-btn {
     width: 46px; height: 46px;
     font-size: 22px;
   }

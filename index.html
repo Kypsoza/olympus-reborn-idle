@@ -8,14 +8,14 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="css/main.css?v=55" />
-  <link rel="stylesheet" href="css/hud.css?v=55" />
-  <link rel="stylesheet" href="css/map.css?v=55" />
-  <link rel="stylesheet" href="css/ui.css?v=55" />
-  <link rel="stylesheet" href="css/animations.css?v=55" />
-  <link rel="stylesheet" href="css/bottom-panel.css?v=55" />
-  <link rel="stylesheet" href="css/buildings.css?v=55" />
-  <link rel="stylesheet" href="css/help-panel.css?v=55" />
+  <link rel="stylesheet" href="css/main.css?v=56" />
+  <link rel="stylesheet" href="css/hud.css?v=56" />
+  <link rel="stylesheet" href="css/map.css?v=56" />
+  <link rel="stylesheet" href="css/ui.css?v=56" />
+  <link rel="stylesheet" href="css/animations.css?v=56" />
+  <link rel="stylesheet" href="css/bottom-panel.css?v=56" />
+  <link rel="stylesheet" href="css/buildings.css?v=56" />
+  <link rel="stylesheet" href="css/help-panel.css?v=56" />
 </head>
 <body>
   <div id="era-screen-flash"></div>
@@ -239,16 +239,18 @@
       </div>
 
       <div id="era-badge" style="display:none;font-family:Cinzel,serif;font-size:11px;color:#c8a840;padding:4px 10px;border:1px solid rgba(200,168,64,0.4);border-radius:8px;margin-right:8px;align-self:center;letter-spacing:1px;">⛩ Antiquité</div>
-      <div id="hud-actions">
-        <button class="hud-btn" id="btn-save" title="Sauvegarder">💾</button>
-        <button class="hud-btn" id="btn-help" title="Encyclopédie">?</button>
-        <button class="hud-btn" id="burger-btn" title="Menu">☰</button>
-        <div id="score-renaissance">
-          <span class="score-label">Score de Renaissance</span>
-          <span class="score-value" id="val-score">0</span>
-        </div>
-      </div>
     </header>
+
+    <!-- BOUTONS FLOTTANTS (fixes sur la carte, toujours visibles) -->
+    <div id="hud-actions">
+      <button class="hud-btn" id="btn-save" title="Sauvegarder">💾</button>
+      <button class="hud-btn" id="btn-help" title="Encyclopédie">?</button>
+      <button class="hud-btn" id="burger-btn" title="Menu">☰</button>
+      <div id="score-renaissance">
+        <span class="score-label">Score de Renaissance</span>
+        <span class="score-value" id="val-score">0</span>
+      </div>
+    </div>
 
     <!-- BURGER MENU MOBILE -->
     <div id="burger-menu">
@@ -312,26 +314,26 @@
   <!-- ═══════════════════════════════════════════════════════
        SCRIPTS (ordre de chargement important)
   ════════════════════════════════════════════════════════ -->
-  <script src="src/utils/MathUtils.js?v=55"></script>
-  <script src="src/utils/HexUtils.js?v=55"></script>
-  <script src="src/utils/Compression.js?v=55"></script>
-  <script src="src/engine/EventBus.js?v=55"></script>
-  <script src="src/engine/SaveManager.js?v=55"></script>
-  <script src="src/map/HexCell.js?v=55"></script>
-  <script src="src/map/HexGrid.js?v=55"></script>
-  <script src="src/map/Camera.js?v=55"></script>
-  <script src="src/map/MapRenderer.js?v=55"></script>
-  <script src="src/systems/ResourceManager.js?v=55"></script>
-  <script src="src/systems/TalentManager.js?v=55"></script>
-  <script src="src/systems/ScoutManager.js?v=55"></script>
-  <script src="src/systems/PrestigeManager.js?v=55"></script>
-  <script src="src/systems/BuildingManager.js?v=55"></script>
-  <script src="src/ui/HUD.js?v=55"></script>
-  <script src="src/ui/BuildingPanel.js?v=55"></script>
-  <script src="src/ui/HelpPanel.js?v=55"></script>
-  <script src="src/ui/OfflineModal.js?v=55"></script>
-  <script src="src/engine/GoogleDriveSync.js?v=55"></script>
-  <script src="src/engine/GameLoop.js?v=55"></script>
+  <script src="src/utils/MathUtils.js?v=56"></script>
+  <script src="src/utils/HexUtils.js?v=56"></script>
+  <script src="src/utils/Compression.js?v=56"></script>
+  <script src="src/engine/EventBus.js?v=56"></script>
+  <script src="src/engine/SaveManager.js?v=56"></script>
+  <script src="src/map/HexCell.js?v=56"></script>
+  <script src="src/map/HexGrid.js?v=56"></script>
+  <script src="src/map/Camera.js?v=56"></script>
+  <script src="src/map/MapRenderer.js?v=56"></script>
+  <script src="src/systems/ResourceManager.js?v=56"></script>
+  <script src="src/systems/TalentManager.js?v=56"></script>
+  <script src="src/systems/ScoutManager.js?v=56"></script>
+  <script src="src/systems/PrestigeManager.js?v=56"></script>
+  <script src="src/systems/BuildingManager.js?v=56"></script>
+  <script src="src/ui/HUD.js?v=56"></script>
+  <script src="src/ui/BuildingPanel.js?v=56"></script>
+  <script src="src/ui/HelpPanel.js?v=56"></script>
+  <script src="src/ui/OfflineModal.js?v=56"></script>
+  <script src="src/engine/GoogleDriveSync.js?v=56"></script>
+  <script src="src/engine/GameLoop.js?v=56"></script>
 
   <script>
   /* ── Écran Titre + Google Drive Sync ───────────────────── */
