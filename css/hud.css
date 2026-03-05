@@ -302,8 +302,9 @@
   background: linear-gradient(0deg, #0e0b1e 0%, rgba(10,8,18,0.95) 100%);
   border-top: 1px solid var(--col-border);
   z-index: 600;
-  overflow: visible;   /* ne jamais clipper les boutons */
+  overflow: visible;
   min-height: var(--hud-bottom-h);
+  box-sizing: border-box;
 }
 #info-text {
   font-family: var(--font-body);
@@ -624,13 +625,17 @@
   #hud-bottom {
     display: flex;
     align-items: center;
-    padding: 0 10px;
+    padding: 0 10px env(safe-area-inset-bottom, 0px);
     gap: 8px;
-    height: var(--hud-bottom-h);
+    min-height: var(--hud-bottom-h);
+    height: auto;
     background: linear-gradient(0deg, rgba(8,6,18,0.98) 0%, rgba(12,9,22,0.95) 100%);
     border-top: 1px solid rgba(200,149,26,0.3);
     position: relative;
-    z-index: 600;   /* au-dessus du drawer (200) et zoom (300) */
+    z-index: 600;
+    /* S24+ : forcer visibilité */
+    flex-shrink: 0;
+    box-sizing: border-box;
   }
 
   #info-text {

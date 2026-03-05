@@ -126,9 +126,10 @@ button { cursor: pointer; border: none; background: none; font-family: var(--fon
 ════════════════════════════════════════════════════════════ */
 #game-container {
   display: grid;
-  grid-template-rows: var(--hud-top-h) 1fr var(--hud-bottom-h);
+  grid-template-rows: var(--hud-top-h) 1fr auto;  /* footer auto = s'adapte au safe-area */
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
 }
 
