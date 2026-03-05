@@ -8,14 +8,14 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="css/main.css?v=57" />
-  <link rel="stylesheet" href="css/hud.css?v=57" />
-  <link rel="stylesheet" href="css/map.css?v=57" />
-  <link rel="stylesheet" href="css/ui.css?v=57" />
-  <link rel="stylesheet" href="css/animations.css?v=57" />
-  <link rel="stylesheet" href="css/bottom-panel.css?v=57" />
-  <link rel="stylesheet" href="css/buildings.css?v=57" />
-  <link rel="stylesheet" href="css/help-panel.css?v=57" />
+  <link rel="stylesheet" href="css/main.css?v=58" />
+  <link rel="stylesheet" href="css/hud.css?v=58" />
+  <link rel="stylesheet" href="css/map.css?v=58" />
+  <link rel="stylesheet" href="css/ui.css?v=58" />
+  <link rel="stylesheet" href="css/animations.css?v=58" />
+  <link rel="stylesheet" href="css/bottom-panel.css?v=58" />
+  <link rel="stylesheet" href="css/buildings.css?v=58" />
+  <link rel="stylesheet" href="css/help-panel.css?v=58" />
 </head>
 <body>
   <div id="era-screen-flash"></div>
@@ -241,45 +241,6 @@
       <div id="era-badge" style="display:none;font-family:Cinzel,serif;font-size:11px;color:#c8a840;padding:4px 10px;border:1px solid rgba(200,168,64,0.4);border-radius:8px;margin-right:8px;align-self:center;letter-spacing:1px;">⛩ Antiquité</div>
     </header>
 
-        <!-- BOUTONS FLOTTANTS fixes sur la carte -->
-    <div id="hud-actions">
-      <!-- PC uniquement : save et help visibles -->
-      <button class="hud-btn pc-only" id="btn-save" title="Sauvegarder">💾</button>
-      <button class="hud-btn pc-only" id="btn-help" title="Encyclopédie">?</button>
-      <!-- Toujours visible : burger -->
-      <button class="hud-btn" id="burger-btn" title="Menu">☰</button>
-      <!-- Zoom controls intégrés aux boutons flottants -->
-      <div id="zoom-controls">
-        <button class="hud-btn zoom-btn" id="btn-zoom-in"    title="Zoom +">＋</button>
-        <button class="hud-btn zoom-btn" id="btn-zoom-reset" title="Vue par défaut">⊡</button>
-        <button class="hud-btn zoom-btn" id="btn-zoom-out"   title="Zoom −">－</button>
-      </div>
-      <div id="score-renaissance">
-        <span class="score-label">Score de Renaissance</span>
-        <span class="score-value" id="val-score">0</span>
-      </div>
-    </div>
-    </div>
-
-    <!-- BURGER MENU MOBILE -->
-    <div id="burger-menu">
-      <!-- Profil Google (visible si connecté) -->
-      <div id="burger-google-profile" style="display:none">
-        <div class="burger-profile-card">
-          <img id="burger-user-pic" src="" width="28" height="28" class="burger-user-pic" alt="">
-          <div class="burger-user-text">
-            <div class="burger-user-name" id="burger-user-name">…</div>
-            <div class="burger-user-email" id="burger-user-email">…</div>
-          </div>
-        </div>
-        <button class="burger-item burger-item-google" id="burger-signout-google">🔓 Se déconnecter de Google</button>
-        <div class="burger-divider"></div>
-      </div>
-      <button class="burger-item" id="burger-save">💾 Sauvegarder</button>
-      <button class="burger-item" id="burger-help">📖 Encyclopédie</button>
-      <button class="burger-item burger-item-danger" id="burger-reset">🗑️ Réinitialiser</button>
-    </div>
-
     <!-- ZONE CARTE -->
     <main id="map-container">
       <canvas id="game-canvas"></canvas>
@@ -306,31 +267,65 @@
       <!-- population déplacée dans HUD top -->
     </footer>
 
+  <!-- BOUTONS FLOTTANTS fixes (position:fixed, hors du grid) -->
+  <div id="hud-actions">
+    <button class="hud-btn pc-only" id="btn-save" title="Sauvegarder">💾</button>
+    <button class="hud-btn pc-only" id="btn-help" title="Encyclopédie">?</button>
+    <button class="hud-btn" id="burger-btn" title="Menu">☰</button>
+    <div id="zoom-controls">
+      <button class="hud-btn zoom-btn" id="btn-zoom-in"    title="Zoom +">＋</button>
+      <button class="hud-btn zoom-btn" id="btn-zoom-reset" title="Vue par défaut">⊡</button>
+      <button class="hud-btn zoom-btn" id="btn-zoom-out"   title="Zoom −">－</button>
+    </div>
+    <div id="score-renaissance">
+      <span class="score-label">Score de Renaissance</span>
+      <span class="score-value" id="val-score">0</span>
+    </div>
+  </div>
+
+  <!-- BURGER MENU -->
+  <div id="burger-menu">
+    <div id="burger-google-profile" style="display:none">
+      <div class="burger-profile-card">
+        <img id="burger-user-pic" src="" width="28" height="28" class="burger-user-pic" alt="">
+        <div class="burger-user-text">
+          <div class="burger-user-name" id="burger-user-name">…</div>
+          <div class="burger-user-email" id="burger-user-email">…</div>
+        </div>
+      </div>
+      <button class="burger-item burger-item-google" id="burger-signout-google">🔓 Se déconnecter de Google</button>
+      <div class="burger-divider"></div>
+    </div>
+    <button class="burger-item" id="burger-save">💾 Sauvegarder</button>
+    <button class="burger-item" id="burger-help">📖 Encyclopédie</button>
+    <button class="burger-item burger-item-danger" id="burger-reset">🗑️ Réinitialiser</button>
+  </div>
+
   </div><!-- fin #game-container -->
 
   <!-- ═══════════════════════════════════════════════════════
        SCRIPTS (ordre de chargement important)
   ════════════════════════════════════════════════════════ -->
-  <script src="src/utils/MathUtils.js?v=57"></script>
-  <script src="src/utils/HexUtils.js?v=57"></script>
-  <script src="src/utils/Compression.js?v=57"></script>
-  <script src="src/engine/EventBus.js?v=57"></script>
-  <script src="src/engine/SaveManager.js?v=57"></script>
-  <script src="src/map/HexCell.js?v=57"></script>
-  <script src="src/map/HexGrid.js?v=57"></script>
-  <script src="src/map/Camera.js?v=57"></script>
-  <script src="src/map/MapRenderer.js?v=57"></script>
-  <script src="src/systems/ResourceManager.js?v=57"></script>
-  <script src="src/systems/TalentManager.js?v=57"></script>
-  <script src="src/systems/ScoutManager.js?v=57"></script>
-  <script src="src/systems/PrestigeManager.js?v=57"></script>
-  <script src="src/systems/BuildingManager.js?v=57"></script>
-  <script src="src/ui/HUD.js?v=57"></script>
-  <script src="src/ui/BuildingPanel.js?v=57"></script>
-  <script src="src/ui/HelpPanel.js?v=57"></script>
-  <script src="src/ui/OfflineModal.js?v=57"></script>
-  <script src="src/engine/GoogleDriveSync.js?v=57"></script>
-  <script src="src/engine/GameLoop.js?v=57"></script>
+  <script src="src/utils/MathUtils.js?v=58"></script>
+  <script src="src/utils/HexUtils.js?v=58"></script>
+  <script src="src/utils/Compression.js?v=58"></script>
+  <script src="src/engine/EventBus.js?v=58"></script>
+  <script src="src/engine/SaveManager.js?v=58"></script>
+  <script src="src/map/HexCell.js?v=58"></script>
+  <script src="src/map/HexGrid.js?v=58"></script>
+  <script src="src/map/Camera.js?v=58"></script>
+  <script src="src/map/MapRenderer.js?v=58"></script>
+  <script src="src/systems/ResourceManager.js?v=58"></script>
+  <script src="src/systems/TalentManager.js?v=58"></script>
+  <script src="src/systems/ScoutManager.js?v=58"></script>
+  <script src="src/systems/PrestigeManager.js?v=58"></script>
+  <script src="src/systems/BuildingManager.js?v=58"></script>
+  <script src="src/ui/HUD.js?v=58"></script>
+  <script src="src/ui/BuildingPanel.js?v=58"></script>
+  <script src="src/ui/HelpPanel.js?v=58"></script>
+  <script src="src/ui/OfflineModal.js?v=58"></script>
+  <script src="src/engine/GoogleDriveSync.js?v=58"></script>
+  <script src="src/engine/GameLoop.js?v=58"></script>
 
   <script>
   /* ── Écran Titre + Google Drive Sync ───────────────────── */
