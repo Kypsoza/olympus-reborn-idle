@@ -73,6 +73,7 @@ class GameLoop {
 
     // 5. HUD + panneau
     this.hud           = new HUD(this.resources, this.grid);
+    this.hud.prestige  = this.prestigeManager;
     this.buildingPanel = new BuildingPanel(this.buildingManager, this.resources, this.talentManager);
     this.helpPanel     = new HelpPanel();
     this.offlineModal  = new OfflineModal();

@@ -17,14 +17,14 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="css/main.css?v=64" />
-  <link rel="stylesheet" href="css/hud.css?v=64" />
-  <link rel="stylesheet" href="css/map.css?v=64" />
-  <link rel="stylesheet" href="css/ui.css?v=64" />
-  <link rel="stylesheet" href="css/animations.css?v=64" />
-  <link rel="stylesheet" href="css/bottom-panel.css?v=64" />
-  <link rel="stylesheet" href="css/buildings.css?v=64" />
-  <link rel="stylesheet" href="css/help-panel.css?v=64" />
+  <link rel="stylesheet" href="css/main.css?v=65" />
+  <link rel="stylesheet" href="css/hud.css?v=65" />
+  <link rel="stylesheet" href="css/map.css?v=65" />
+  <link rel="stylesheet" href="css/ui.css?v=65" />
+  <link rel="stylesheet" href="css/animations.css?v=65" />
+  <link rel="stylesheet" href="css/bottom-panel.css?v=65" />
+  <link rel="stylesheet" href="css/buildings.css?v=65" />
+  <link rel="stylesheet" href="css/help-panel.css?v=65" />
 </head>
 <body>
   <div id="era-screen-flash"></div>
@@ -224,6 +224,15 @@
             <span class="resource-rate" id="rate-amrita"></span>
           </div>
         </div>
+        <!-- Ambroisie (Ère 2, Phase 5) -->
+        <div class="resource-item resource-era2" id="res-ambroisie" style="display:none" data-tooltip="Ambroisie — Nectar des dieux, produite par la Distillerie Sacrée">
+          <div class="resource-icon">🍯</div>
+          <div class="resource-info">
+            <span class="resource-name">Ambroisie</span>
+            <span class="resource-value" id="val-ambroisie">0</span>
+            <span class="resource-rate" id="rate-ambroisie"></span>
+          </div>
+        </div>
         <!-- Population (déplacée du footer) -->
         <div class="resource-item hud-pop-item" id="res-pop" data-tooltip="Population — Travailleurs / Capacité">
           <div class="resource-icon">👥</div>
@@ -272,6 +281,12 @@
     <footer id="hud-bottom">
       <div id="info-panel">
         <span id="info-text">Tap une case pour explorer...</span>
+      </div>
+      <!-- Indicateur Bonheur -->
+      <div id="happiness-indicator" title="Bonheur de la population">
+        <span id="happiness-icon">😊</span>
+        <div id="happiness-bar"><div id="happiness-bar-fill"></div></div>
+        <span id="happiness-value">50%</span>
       </div>
       <!-- Boutons footer mobile (Talents + Menu) -->
       <div id="mob-footer-btns">
@@ -354,26 +369,26 @@
   <!-- ═══════════════════════════════════════════════════════
        SCRIPTS (ordre de chargement important)
   ════════════════════════════════════════════════════════ -->
-  <script src="src/utils/MathUtils.js?v=64"></script>
-  <script src="src/utils/HexUtils.js?v=64"></script>
-  <script src="src/utils/Compression.js?v=64"></script>
-  <script src="src/engine/EventBus.js?v=64"></script>
-  <script src="src/engine/SaveManager.js?v=64"></script>
-  <script src="src/map/HexCell.js?v=64"></script>
-  <script src="src/map/HexGrid.js?v=64"></script>
-  <script src="src/map/Camera.js?v=64"></script>
-  <script src="src/map/MapRenderer.js?v=64"></script>
-  <script src="src/systems/ResourceManager.js?v=64"></script>
-  <script src="src/systems/TalentManager.js?v=64"></script>
-  <script src="src/systems/ScoutManager.js?v=64"></script>
-  <script src="src/systems/PrestigeManager.js?v=64"></script>
-  <script src="src/systems/BuildingManager.js?v=64"></script>
-  <script src="src/ui/HUD.js?v=64"></script>
-  <script src="src/ui/BuildingPanel.js?v=64"></script>
-  <script src="src/ui/HelpPanel.js?v=64"></script>
-  <script src="src/ui/OfflineModal.js?v=64"></script>
-  <script src="src/engine/GoogleDriveSync.js?v=64"></script>
-  <script src="src/engine/GameLoop.js?v=64"></script>
+  <script src="src/utils/MathUtils.js?v=65"></script>
+  <script src="src/utils/HexUtils.js?v=65"></script>
+  <script src="src/utils/Compression.js?v=65"></script>
+  <script src="src/engine/EventBus.js?v=65"></script>
+  <script src="src/engine/SaveManager.js?v=65"></script>
+  <script src="src/map/HexCell.js?v=65"></script>
+  <script src="src/map/HexGrid.js?v=65"></script>
+  <script src="src/map/Camera.js?v=65"></script>
+  <script src="src/map/MapRenderer.js?v=65"></script>
+  <script src="src/systems/ResourceManager.js?v=65"></script>
+  <script src="src/systems/TalentManager.js?v=65"></script>
+  <script src="src/systems/ScoutManager.js?v=65"></script>
+  <script src="src/systems/PrestigeManager.js?v=65"></script>
+  <script src="src/systems/BuildingManager.js?v=65"></script>
+  <script src="src/ui/HUD.js?v=65"></script>
+  <script src="src/ui/BuildingPanel.js?v=65"></script>
+  <script src="src/ui/HelpPanel.js?v=65"></script>
+  <script src="src/ui/OfflineModal.js?v=65"></script>
+  <script src="src/engine/GoogleDriveSync.js?v=65"></script>
+  <script src="src/engine/GameLoop.js?v=65"></script>
 
   <script>
   /* ── Écran Titre + Google Drive Sync ───────────────────── */

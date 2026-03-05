@@ -29,6 +29,7 @@ class HUD {
 
     this._prevValues = {};
     this._tickCount  = 0;
+    this.prestige    = null; // injecté par GameLoop après init
 
     this._bindEvents();
     this._bindButtons();
@@ -73,11 +74,22 @@ class HUD {
     if (this.els.survivors) this.els.survivors.textContent = snap.survivants;
     if (this.els.maxSurv)   this.els.maxSurv.textContent   = snap.maxSurvivants;
 
-    const score = this.grid.computeRenaissanceScore();
+    const score = this.prestige ? this.prestige.getLiveScore() : this.grid.computeRenaissanceScore();
     if (this.els.score) this.els.score.textContent = MathUtils.formatNumber(score);
 
+    // Bonheur
+    const happiness = this.rm.happinessScore || 50;
+    const happEl = document.getElementById('happiness-bar-fill');
+    const happVal = document.getElementById('happiness-value');
+    if (happEl) happEl.style.width = happiness + '%';
+    if (happVal) happVal.textContent = Math.round(happiness) + '%';
+    const happIcon = document.getElementById('happiness-icon');
+    if (happIcon) {
+      happIcon.textContent = happiness >= 75 ? '😊' : happiness >= 40 ? '😐' : '😟';
+    }
+
     // Nouvelles ressources Era 2/3 — afficher seulement si > 0 ou rate > 0
-    const newRes = ['nectar','bronze','acier','farine','foudre','orichalque','metal_divin','amrita'];
+    const newRes = ['nectar','bronze','acier','farine','foudre','orichalque','metal_divin','amrita','ambroisie'];
     newRes.forEach(function(k) {
       const r = snap[k];
       if (!r) return;
@@ -175,6 +187,14 @@ class HUD {
   // ── Événements ──────────────────────────────────────────
   _bindEvents() {
     EventBus.on('resources:updated', snap => this.update(snap));
+    EventBus.on('happiness:updated', ({ score }) => {
+      const happEl = document.getElementById('happiness-bar-fill');
+      const happVal = document.getElementById('happiness-value');
+      const happIcon = document.getElementById('happiness-icon');
+      if (happEl) happEl.style.width = score + '%';
+      if (happVal) happVal.textContent = Math.round(score) + '%';
+      if (happIcon) happIcon.textContent = score >= 75 ? '😊' : score >= 40 ? '😐' : '😟';
+    });
     EventBus.on('road:placed',   () => this._refreshScore());
     EventBus.on('road:removed',  () => this._refreshScore());
     EventBus.on('building:built',      () => this._refreshScore());

@@ -19,6 +19,7 @@ class ResourceManager {
       acier:       { value: 0,    max: 1e12, rate: 0, era: 2 },
       farine:      { value: 0,    max: 1e12, rate: 0, era: 2 },
       foudre:      { value: 0,    max: 1e9,  rate: 0, era: 2 },
+      ambroisie:   { value: 0,    max: 1e9,  rate: 0, era: 2 },
       // ── Ère 3 ─────────────────────────────────────────
       orichalque:  { value: 0,    max: 1e9,  rate: 0, era: 3 },
       metal_divin: { value: 0,    max: 1e9,  rate: 0, era: 3 },

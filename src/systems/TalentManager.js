@@ -225,6 +225,96 @@ const ETHER_DEFS = {
     desc:'+25% production globale permanente.',
     icon:'\u{1F4AB}', cost:{ether:25000}, requires:['const_prod','ere3'],
     effect:{type:'constellation',bonus:'prodAll',value:25} },
+
+  // ── BRANCHE PRODUCTION (Phase 5) ────────────────────────
+  prod_all1:  { id:'prod_all1',  branch:'production', name:'Forge des Titans I',
+    desc:'Production globale +15%.',           icon:'\u{1F525}',
+    cost:{ether:80}, requires:[],
+    effect:{type:'prodBonusAll', value:15} },
+  prod_all2:  { id:'prod_all2',  branch:'production', name:'Forge des Titans II',
+    desc:'Production globale +30%.',           icon:'\u{1F525}',
+    cost:{ether:200}, requires:['prod_all1'],
+    effect:{type:'prodBonusAll', value:30} },
+  prod_all3:  { id:'prod_all3',  branch:'production', name:'Forge des Titans III',
+    desc:'Production globale +50%.',           icon:'\u{1F525}',
+    cost:{ether:500}, requires:['prod_all2'],
+    effect:{type:'prodBonusAll', value:50} },
+  prod_food1: { id:'prod_food1', branch:'production', name:'Abondance I',
+    desc:'Nourr & Nectar & Ambroisie +40%.',   icon:'\u{1F33E}',
+    cost:{ether:120}, requires:[],
+    effect:{type:'prodBonus', building:'farm,verger,jardins,distillerie', value:40} },
+  prod_food2: { id:'prod_food2', branch:'production', name:'Abondance II',
+    desc:'Nourr & Nectar & Ambroisie +80%.',   icon:'\u{1F33E}',
+    cost:{ether:350}, requires:['prod_food1'],
+    effect:{type:'prodBonus', building:'farm,verger,jardins,distillerie', value:80} },
+  prod_craft1:{ id:'prod_craft1',branch:'production', name:'Artisanat Divin I',
+    desc:'Forge, Mine, Fonderie +40%.',        icon:'\u{1F528}',
+    cost:{ether:120}, requires:[],
+    effect:{type:'prodBonus', building:'mine_copper,mine_iron,atelier_forgeron,fonderie_celeste,forge_divine,tresor', value:40} },
+  prod_craft2:{ id:'prod_craft2',branch:'production', name:'Artisanat Divin II',
+    desc:'Forge, Mine, Fonderie +80%.',        icon:'\u{1F528}',
+    cost:{ether:350}, requires:['prod_craft1'],
+    effect:{type:'prodBonus', building:'mine_copper,mine_iron,atelier_forgeron,fonderie_celeste,forge_divine,tresor', value:80} },
+
+  // ── BRANCHE EXPLORATION (Phase 5) ───────────────────────
+  expl_dig1:  { id:'expl_dig1',  branch:'exploration', name:'Pionnier I',
+    desc:'Cout fouilles -20%.',                icon:'\u{1F9ED}',
+    cost:{ether:60}, requires:[],
+    effect:{type:'digCostReduction', value:0.20} },
+  expl_dig2:  { id:'expl_dig2',  branch:'exploration', name:'Pionnier II',
+    desc:'Cout fouilles -35%.',                icon:'\u{1F9ED}',
+    cost:{ether:180}, requires:['expl_dig1'],
+    effect:{type:'digCostReduction', value:0.35} },
+  expl_scout1:{ id:'expl_scout1',branch:'exploration', name:'Eclaireur I',
+    desc:'Vitesse scouts +50%.',               icon:'\u{1F50D}',
+    cost:{ether:90}, requires:[],
+    effect:{type:'scoutSpeed', value:0.50} },
+  expl_scout2:{ id:'expl_scout2',branch:'exploration', name:'Eclaireur II',
+    desc:'Vitesse scouts +100%.',              icon:'\u{1F50D}',
+    cost:{ether:250}, requires:['expl_scout1'],
+    effect:{type:'scoutSpeed', value:1.00} },
+  expl_reveal1:{id:'expl_reveal1',branch:'exploration', name:'Cartographe I',
+    desc:'Depart : 2 anneaux supplementaires reveles.', icon:'\u{1F5FA}\uFE0F',
+    cost:{ether:150}, requires:[],
+    effect:{type:'startReveal', value:2} },
+  expl_radius1:{id:'expl_radius1',branch:'exploration', name:'Cartographe II',
+    desc:'Rayon de vision des scouts +1.',     icon:'\u{1F5FA}\uFE0F',
+    cost:{ether:300}, requires:['expl_reveal1'],
+    effect:{type:'scoutRadius', value:1} },
+  expl_free1: { id:'expl_free1', branch:'exploration', name:'Sens Divin',
+    desc:'1 fouille gratuite par minute.',     icon:'\u2728',
+    cost:{ether:400}, requires:['expl_dig2'],
+    effect:{type:'freeDigPerMin', value:1} },
+
+  // ── BRANCHE PRESTIGE (Phase 5) ───────────────────────────
+  pres_ether1:{ id:'pres_ether1',branch:'prestige_branch', name:'Cristallisation I',
+    desc:'Ether gagne au prestige +20%.',      icon:'\u{1F4AB}',
+    cost:{ether:100}, requires:[],
+    effect:{type:'etherGainPct', value:20} },
+  pres_ether2:{ id:'pres_ether2',branch:'prestige_branch', name:'Cristallisation II',
+    desc:'Ether gagne au prestige +40%.',      icon:'\u{1F4AB}',
+    cost:{ether:280}, requires:['pres_ether1'],
+    effect:{type:'etherGainPct', value:40} },
+  pres_ether3:{ id:'pres_ether3',branch:'prestige_branch', name:'Cristallisation III',
+    desc:'Ether gagne au prestige +75%.',      icon:'\u{1F4AB}',
+    cost:{ether:700}, requires:['pres_ether2'],
+    effect:{type:'etherGainPct', value:75} },
+  pres_score1:{ id:'pres_score1',branch:'prestige_branch', name:'Memoire Olympienne I',
+    desc:'Score Renaissance +25%.',            icon:'\u{1F3C6}',
+    cost:{ether:150}, requires:[],
+    effect:{type:'scoreMult', value:25} },
+  pres_score2:{ id:'pres_score2',branch:'prestige_branch', name:'Memoire Olympienne II',
+    desc:'Score Renaissance +50%.',            icon:'\u{1F3C6}',
+    cost:{ether:400}, requires:['pres_score1'],
+    effect:{type:'scoreMult', value:50} },
+  pres_start1:{ id:'pres_start1',branch:'prestige_branch', name:'Heritage I',
+    desc:'Depart avec +500 de chaque ressource de base.',icon:'\u{1F381}',
+    cost:{ether:200}, requires:[],
+    effect:{type:'startBonus', value:500} },
+  pres_start2:{ id:'pres_start2',branch:'prestige_branch', name:'Heritage II',
+    desc:'Depart avec +2000 de chaque ressource de base.',icon:'\u{1F381}',
+    cost:{ether:600}, requires:['pres_start1'],
+    effect:{type:'startBonus', value:2000} },
 };
 
 const TALENT_BRANCHES = [
@@ -259,6 +349,21 @@ const ETHER_BRANCHES = [
   { id:'constellations',label:'Constellations', icon:'\u2B50', color:'#4fc3f7',
     cols:[['const_prod','const_dig','const_pop','const_ether','const_prod2']],
     colLabels:['Etoiles'] },
+  { id:'production',    label:'Production',     icon:'\u{1F525}', color:'#ff7043',
+    cols:[['prod_all1','prod_all2','prod_all3'],
+          ['prod_food1','prod_food2'],
+          ['prod_craft1','prod_craft2']],
+    colLabels:['Global','Nourriture','Artisanat'] },
+  { id:'exploration',   label:'Exploration',    icon:'\u{1F9ED}', color:'#26c6da',
+    cols:[['expl_dig1','expl_dig2','expl_free1'],
+          ['expl_scout1','expl_scout2'],
+          ['expl_reveal1','expl_radius1']],
+    colLabels:['Fouilles','Scouts','Carte'] },
+  { id:'prestige_branch',label:'Prestige',      icon:'\u{1F4AB}', color:'#ab47bc',
+    cols:[['pres_ether1','pres_ether2','pres_ether3'],
+          ['pres_score1','pres_score2'],
+          ['pres_start1','pres_start2']],
+    colLabels:['Ether','Score','Heritage'] },
 ];
 
 class TalentManager {
@@ -357,6 +462,7 @@ class TalentManager {
 
   getBonusProductionPct(buildingId) {
     let total = 0;
+    // Talents Drachmes in-run
     Object.keys(this.learned).forEach(id => {
       const eff = TALENT_DEFS[id] && TALENT_DEFS[id].effect;
       if (!eff) return;
@@ -365,9 +471,20 @@ class TalentManager {
       }
       if (eff.type === 'prodBonusAll') total += eff.value;
     });
+    // Constellations Ether
     total += this.getConstellationBonus('prodAll');
+    // Reliques
     if (this.hasRelique('amphore') &&
         ['farm','verger','jardins'].includes(buildingId)) total += 20;
+    // Nouvelles branches Ether permanentes
+    Object.keys(this.etherLearned).forEach(id => {
+      const eff = ETHER_DEFS[id] && ETHER_DEFS[id].effect;
+      if (!eff) return;
+      if (eff.type === 'prodBonusAll') total += eff.value;
+      if (eff.type === 'prodBonus' && eff.building) {
+        if (eff.building.split(',').includes(buildingId)) total += eff.value;
+      }
+    });
     return total;
   }
 
@@ -378,6 +495,11 @@ class TalentManager {
       if (eff && eff.type === 'digCostReduction') red += eff.value;
     });
     red += this.getConstellationBonus('digCost');
+    // Branche exploration Ether
+    Object.keys(this.etherLearned).forEach(id => {
+      const eff = ETHER_DEFS[id] && ETHER_DEFS[id].effect;
+      if (eff && eff.type === 'digCostReduction') red += eff.value;
+    });
     return Math.max(0.05, 1 - red);
   }
 
@@ -412,7 +534,48 @@ class TalentManager {
   getEtherGainMult() {
     let pct = this.getConstellationBonus('etherGain');
     if (this.hasRelique('omphalos')) pct += 50;
+    // Nouvelles branches Prestige
+    Object.keys(this.etherLearned).forEach(id => {
+      const eff = ETHER_DEFS[id] && ETHER_DEFS[id].effect;
+      if (eff && eff.type === 'etherGainPct') pct += eff.value;
+    });
     return 1 + pct / 100;
+  }
+
+  getScoreMult() {
+    let pct = 0;
+    Object.keys(this.etherLearned).forEach(id => {
+      const eff = ETHER_DEFS[id] && ETHER_DEFS[id].effect;
+      if (eff && eff.type === 'scoreMult') pct += eff.value;
+    });
+    return 1 + pct / 100;
+  }
+
+  getStartBonus() {
+    let bonus = 0;
+    Object.keys(this.etherLearned).forEach(id => {
+      const eff = ETHER_DEFS[id] && ETHER_DEFS[id].effect;
+      if (eff && eff.type === 'startBonus') bonus = Math.max(bonus, eff.value);
+    });
+    return bonus;
+  }
+
+  getScoutSpeedMult() {
+    let mult = 1;
+    Object.keys(this.etherLearned).forEach(id => {
+      const eff = ETHER_DEFS[id] && ETHER_DEFS[id].effect;
+      if (eff && eff.type === 'scoutSpeed') mult += eff.value;
+    });
+    return mult;
+  }
+
+  getProdBonusAllEther() {
+    let pct = 0;
+    Object.keys(this.etherLearned).forEach(id => {
+      const eff = ETHER_DEFS[id] && ETHER_DEFS[id].effect;
+      if (eff && eff.type === 'prodBonusAll') pct += eff.value;
+    });
+    return pct;
   }
 
   resetInRunTalents() { this.learned = {}; }

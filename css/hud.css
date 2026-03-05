@@ -377,6 +377,49 @@
 }
 
 
+/* ── Indicateur Bonheur ─────────────────────────────────── */
+#happiness-indicator {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  padding: 0 8px;
+  border-left: 1px solid rgba(200,149,26,0.15);
+  border-right: 1px solid rgba(200,149,26,0.15);
+}
+#happiness-icon {
+  font-size: 18px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+#happiness-bar {
+  width: 50px;
+  height: 6px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 3px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+#happiness-bar-fill {
+  height: 100%;
+  width: 50%;
+  background: linear-gradient(90deg, #e05050, #f0d060 50%, #60c860);
+  border-radius: 3px;
+  transition: width 0.6s ease, background 0.6s;
+}
+#happiness-value {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: rgba(255,255,255,0.5);
+  min-width: 32px;
+  text-align: right;
+}
+/* Sur mobile, simplifier : juste l'icône */
+@media (max-width: 600px) {
+  #happiness-bar, #happiness-value { display: none; }
+  #happiness-indicator { border: none; padding: 0 4px; }
+}
+
 /* ── Footer mobile — boutons toujours présents ─────────── */
 /* Styles globaux (hors media query) pour fonctionner sur tout appareil */
 #mob-footer-btns {

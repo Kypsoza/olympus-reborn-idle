@@ -192,6 +192,38 @@ const BUILDINGS = {
   },
 
   // ═══════════════════════════════════════
+  // ==============================================
+  // ERE 2 — Nouveaux batiments (Phase 5)
+  // ==============================================
+  bibliotheque: {
+    id:'bibliotheque', name:'Bibliotheque', glyph:'\u{1F4DA}', era:2,
+    validTerrain:['plain'],
+    baseProd:{drachmes:4}, consumesWorkers:2,
+    buildCost:{drachmes:800,bois:400,fer:100},
+    upgradeCostBase:{drachmes:500,bois:200,fer:50},
+    description:'Savoir divin. Reduit le cout des fouilles de 15%.',
+    maxLevel:20, auraType:'knowledge', auraRadius:2,
+  },
+  distillerie: {
+    id:'distillerie', name:'Distillerie Sacree', glyph:'\u{1F6B0}', era:2,
+    validTerrain:['plain','river'],
+    baseProd:{ambroisie:0.15}, consumesWorkers:3,
+    consumes:{nectar:0.5, nourr:1.5},
+    buildCost:{drachmes:1200,bois:300,nectar:200},
+    upgradeCostBase:{drachmes:700,bois:150,nectar:100},
+    description:'Transforme Nectar et Nourriture en Ambroisie.',
+    maxLevel:25,
+  },
+  fontaine: {
+    id:'fontaine', name:'Fontaine de Hygie', glyph:'\u26F2', era:2,
+    validTerrain:['plain'],
+    baseProd:{habitants:0.04}, consumesWorkers:1,
+    buildCost:{drachmes:600,bois:200,bronze:50},
+    upgradeCostBase:{drachmes:350,bois:100,bronze:25},
+    description:'Augmente la population et ameliore le Bonheur.',
+    maxLevel:15, auraType:'happiness', auraRadius:2,
+  },
+
   // ERA 3 — Age Divin
   // ═══════════════════════════════════════
   jardins: {
@@ -580,7 +612,7 @@ class BuildingManager {
     const rates = {
       drachmes:0,bois:0,nourr:0,fer:0,habitants:0,
       nectar:0,bronze:0,acier:0,farine:0,foudre:0,
-      orichalque:0,metal_divin:0,amrita:0,ether:0,
+      orichalque:0,metal_divin:0,amrita:0,ambroisie:0,ether:0,
     };
     let workersUsed = 0;
     let totalHabitants = 0;
@@ -611,6 +643,31 @@ class BuildingManager {
           if (d <= agoraRadius) {
             const prev = agoraMults.get(target.key) || 1;
             agoraMults.set(target.key, prev * (def.auraValue || 1.5));
+          }
+        });
+      }
+
+      // Bibliotheque — aura knowledge : reduit cout fouilles sur la zone
+      if (src.building === 'bibliotheque') {
+        const lvl = src.buildingLevel || 1;
+        const bonus = Math.min(0.40, 0.05 + lvl * 0.01); // 6-15% selon niveau
+        this.grid.cells.forEach(target => {
+          if (!target.isRevealed && !target.isHidden) return;
+          const d = HexUtils.hexDistance(src.q, src.r, target.q, target.r);
+          if (d <= radius) {
+            target._knowledgeDigBonus = (target._knowledgeDigBonus || 0) + bonus;
+          }
+        });
+      }
+
+      // Fontaine — aura happiness : bonus production sur bâtiments logement adjacents
+      if (src.building === 'fontaine') {
+        this.grid.cells.forEach(target => {
+          if (!target.isRevealed || !target.building) return;
+          if (!['huttes','maison','palais'].includes(target.building)) return;
+          const d = HexUtils.hexDistance(src.q, src.r, target.q, target.r);
+          if (d <= radius) {
+            target._happinessBonus = (target._happinessBonus || 0) + 0.15;
           }
         });
       }
@@ -726,15 +783,39 @@ class BuildingManager {
     const availableHabitants = Math.max(0, totalHabitants - workersUsed);
     if (popProdBonus > 0 && availableHabitants > 0) {
       const habitantMult = 1 + (availableHabitants * popProdBonus / 100);
-      const keysToBoost  = ['drachmes','bois','nourr','fer','nectar','bronze','acier','farine','foudre','orichalque','metal_divin','amrita'];
+      const keysToBoost  = ['drachmes','bois','nourr','fer','nectar','bronze','acier','farine','foudre','orichalque','metal_divin','amrita','ambroisie'];
       keysToBoost.forEach(k => { if (rates[k] > 0) rates[k] *= habitantMult; });
     }
 
     // Multiplicateur global Senat
     if (hasSenat) {
-      const keysToBoost = ['drachmes','bois','nourr','fer','nectar','bronze','acier','farine','foudre','orichalque','metal_divin','amrita'];
+      const keysToBoost = ['drachmes','bois','nourr','fer','nectar','bronze','acier','farine','foudre','orichalque','metal_divin','amrita','ambroisie'];
       keysToBoost.forEach(k => { if (rates[k] > 0) rates[k] *= senatMult; });
     }
+
+    // ── Calcul Bonheur ──────────────────────────────────
+    let happinessScore = 50; // base 50%
+    // +bonus nourriture : si nourr rate > 0 et habitants > 0
+    if (rates.nourr > 0 && totalHabitants > 0) {
+      const nourPerHab = rates.nourr / Math.max(1, totalHabitants);
+      happinessScore += Math.min(25, nourPerHab * 5);
+    } else if (rates.nourr < 0) {
+      happinessScore -= 20; // famine
+    }
+    // +bonus fontaines
+    let fontaineCount = 0;
+    this.grid.cells.forEach(c => { if (c.building === 'fontaine' && c.isConnected) fontaineCount++; });
+    happinessScore += fontaineCount * 8;
+    // +bonus population non saturée
+    if (totalHabitants > 0 && workersUsed < totalHabitants) {
+      happinessScore += 10;
+    } else if (workersUsed >= totalHabitants && totalHabitants > 0) {
+      happinessScore -= 15; // surpopulation ouvrière
+    }
+    // Clamp 0-100
+    happinessScore = Math.max(0, Math.min(100, happinessScore));
+    this.rm.happinessScore = happinessScore;
+    EventBus.emit('happiness:updated', { score: happinessScore });
 
     // Appliquer les rates
     Object.entries(rates).forEach(([k,v]) => this.rm.setRate(k, v));

@@ -111,13 +111,22 @@ class PrestigeManager {
   // ── Calcul Ether ─────────────────────────────────────────
   computeEther() {
     var score = this.grid.computeRenaissanceScore();
-    // Formule exponentielle : sqrt(score) * 15 → valeurs satisfaisantes
-    // score=1000 → ~474 Ether, score=10000 → ~1500, score=100000 → ~4743
+    // Multiplicateur score (talent Memoire Olympienne)
+    var scoreMult = this.talentManager ? this.talentManager.getScoreMult() : 1;
+    score = Math.floor(score * scoreMult);
+    // Formule exponentielle : sqrt(score) * 15
     var base = Math.floor(Math.sqrt(score) * 15);
     // Bonus prestige : +5% par prestige precedent
     var prestigeMult = 1 + this.prestigeCount * 0.05;
     var etherMult = this.talentManager ? this.talentManager.getEtherGainMult() : 1;
     return Math.max(10, Math.floor(base * prestigeMult * etherMult));
+  }
+
+  // Score Renaissance en temps réel (affiché dans le HUD)
+  getLiveScore() {
+    var score = this.grid.computeRenaissanceScore();
+    var scoreMult = this.talentManager ? this.talentManager.getScoreMult() : 1;
+    return Math.floor(score * scoreMult);
   }
 
   // ── Sequence de Prestige ─────────────────────────────────
@@ -168,10 +177,11 @@ class PrestigeManager {
     });
     // Valeurs de depart selon reliques
     var hasReliqueCarte = self.talentManager && self.talentManager.hasRelique('carte');
-    self.rm.resources.drachmes.value = 500;
-    self.rm.resources.bois.value     = 200;
-    self.rm.resources.nourr.value    = 100;
-    self.rm.resources.fer.value      = 50;
+    var startBonus = self.talentManager ? self.talentManager.getStartBonus() : 0;
+    self.rm.resources.drachmes.value = 500  + startBonus;
+    self.rm.resources.bois.value     = 200  + startBonus;
+    self.rm.resources.nourr.value    = 100  + Math.floor(startBonus / 2);
+    self.rm.resources.fer.value      = 50   + Math.floor(startBonus / 4);
     self.rm.resources.habitants.value = 0;
     self.rm.resources.nectar.value   = 0;
     self.rm.resources.bronze.value   = 0;
@@ -181,6 +191,7 @@ class PrestigeManager {
     self.rm.resources.orichalque.value= 0;
     self.rm.resources.metal_divin.value=0;
     self.rm.resources.amrita.value   = 0;
+    self.rm.resources.ambroisie.value = 0;
 
     // Reset grille (nouvelle graine)
     self.grid._reset(self.heritage);
