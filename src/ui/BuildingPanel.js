@@ -151,43 +151,41 @@ class BuildingPanel {
   _renderDrachmeTree(el) {
     var self = this;
 
-    /* ──────────────────────────────────────────────────────
-       ARBRE DRACHMES — radial, pan+zoom, nœuds lisibles
-       Canvas virtuel 1200×1200, nœuds R=44px, espacement 160px
-       ────────────────────────────────────────────────────── */
-    var VW = 1200, VH = 1200;
-    var CX = VW/2, CY = VH/2;
-    var R  = 44;    // rayon nœud (plus grand = lisible)
+    /* ══════════════════════════════════════════════════════
+       ARBRE DRACHMES — grille verticale dynamique
+       1 colonne par branche (COL_W=180px)
+       2 sous-colonnes si b.cols.length==2 (offset ±38px)
+       1 sous-colonne centrée si b.cols.length==1
+       Max 4 nœuds par sous-colonne → NODE_Y[0..3]
+       R=32, espacement vertical=90px → min dist 76px > 2R=64
+    ══════════════════════════════════════════════════════ */
 
     var branches = self.tm.getBranchData();
-    var NB = branches.length; // 7 branches
+    var NB    = branches.length;
+    var COL_W = 180;
+    var R     = 32;
+    var SUB   = 38;
+    var NODE_Y = [80, 170, 260, 350];
+    var VW    = NB * COL_W;
+    var VH    = 430;
 
-    var BRANCH_ANGLES = {};
-    branches.forEach(function(b, bi) {
-      BRANCH_ANGLES[b.id] = -Math.PI/2 + (2*Math.PI/NB) * bi;
-    });
-
-    /* Positions : 2 colonnes par branche, offset angulaire élargi
-       pour éviter toute superposition même à courte distance */
+    /* Calcul des positions */
     var NODE_POS = {};
     var EDGES    = [];
 
-    branches.forEach(function(b) {
-      var baseAngle = BRANCH_ANGLES[b.id];
-      var twoCol    = b.cols.length === 2;
-      // Offset entre les 2 sous-colonnes — plus large pour éviter chevauchements
-      var colOffAng = twoCol ? 0.28 : 0;
-
+    branches.forEach(function(b, bi) {
+      var cx    = COL_W/2 + bi * COL_W;
+      var ncols = b.cols.length;
       b.cols.forEach(function(col, ci) {
-        var ang = baseAngle + (ci===0 ? -colOffAng : colOffAng);
+        var sx = (ncols === 1) ? cx : cx + (ci === 0 ? -SUB : SUB);
         col.forEach(function(id, ri) {
-          var dist = 160 + ri * 160; // espacement plus grand entre anneaux
           NODE_POS[id] = {
-            x: CX + Math.cos(ang) * dist,
-            y: CY + Math.sin(ang) * dist,
-            branchId: b.id, branchColor: b.color,
-            branchIcon: b.icon, branchLabel: b.label,
-            angle: ang, dist: dist
+            x: sx,
+            y: NODE_Y[ri] || (NODE_Y[NODE_Y.length-1] + (ri - NODE_Y.length + 1) * 90),
+            branchColor: b.color,
+            branchLabel: b.label,
+            branchIcon:  b.icon,
+            branchId:    b.id
           };
           var def = self.tm.getTalentDef(id);
           if (def && def.requires) def.requires.forEach(function(req) {
@@ -201,348 +199,380 @@ class BuildingPanel {
       if (self.tm.learned[id]) return 'learned';
       return self.tm.canLearn(id).ok ? 'available' : 'locked';
     }
-    function fmtV(v) { return v>=1000?(v/1000).toFixed(0)+'k':''+v; }
+    function fmtV(v) { return v >= 1000 ? (v/1000).toFixed(0)+'k' : ''+v; }
     function fmtCost(cost) {
-      var icons={drachmes:'🪙',bois:'🪵',nourr:'🌾',fer:'⚙️'};
-      return Object.entries(cost).map(function(e){return fmtV(e[1])+(icons[e[0]]||e[0]);}).join('  ');
+      var icons = { drachmes:'🪙', bois:'🪵', nourr:'🌾', fer:'⚙️' };
+      return Object.entries(cost).map(function(e) {
+        return fmtV(e[1]) + (icons[e[0]] || e[0]);
+      }).join('  ');
     }
 
     function buildSVG() {
       var s = '<svg id="dt-svg" xmlns="http://www.w3.org/2000/svg"'
-        +' width="'+VW+'" height="'+VH+'"'
-        +' style="display:block;overflow:visible">';
+        + ' width="' + VW + '" height="' + VH + '"'
+        + ' style="display:block;overflow:visible">';
 
-      s += '<defs>';
-      s += '<filter id="dt-gd" x="-80%" y="-80%" width="260%" height="260%">'
-         + '<feGaussianBlur stdDeviation="7" result="b"/>'
-         + '<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>';
-      s += '<filter id="dt-ga" x="-60%" y="-60%" width="220%" height="220%">'
-         + '<feGaussianBlur stdDeviation="4" result="b"/>'
-         + '<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>';
-      s += '<linearGradient id="dt-bg" x1="0" y1="0" x2="0" y2="1">'
-         + '<stop offset="0%" stop-color="#0c0a00"/>'
-         + '<stop offset="100%" stop-color="#080600"/>'
-         + '</linearGradient>';
-      s += '</defs>';
+      s += '<defs>'
+        + '<filter id="dt-gd" x="-80%" y="-80%" width="260%" height="260%">'
+        + '<feGaussianBlur stdDeviation="6" result="b"/>'
+        + '<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
+        + '<filter id="dt-ga" x="-60%" y="-60%" width="220%" height="220%">'
+        + '<feGaussianBlur stdDeviation="3" result="b"/>'
+        + '<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
+        + '</defs>';
 
-      // Fond
-      s += '<rect width="'+VW+'" height="'+VH+'" fill="url(#dt-bg)" rx="16"/>';
-      // Grille points (espacement suffisant pour ne pas charger)
-      for (var gx=60;gx<VW;gx+=70) for (var gy=60;gy<VH;gy+=70)
-        s += '<circle cx="'+gx+'" cy="'+gy+'" r="1.5" fill="rgba(255,220,100,0.025)"/>';
+      /* Fond */
+      s += '<rect width="' + VW + '" height="' + VH + '" fill="#080600"/>';
 
-      // Cercles guides concentriques (1 seul par anneau)
-      [160,320,480].forEach(function(rd) {
-        s += '<circle cx="'+CX+'" cy="'+CY+'" r="'+rd+'" fill="none"'
-          +' stroke="rgba(255,220,100,0.05)" stroke-width="1" stroke-dasharray="4,16"/>';
+      /* Séparateurs verticaux entre branches */
+      branches.forEach(function(b, bi) {
+        if (bi === 0) return;
+        var x = bi * COL_W;
+        s += '<line x1="' + x + '" y1="0" x2="' + x + '" y2="' + VH + '"'
+           + ' stroke="rgba(255,255,255,0.05)" stroke-width="1"/>';
       });
 
-      // Rayons de branche + label au bout
-      branches.forEach(function(b) {
-        var ang = BRANCH_ANGLES[b.id];
-        var ex = CX + Math.cos(ang)*560, ey = CY + Math.sin(ang)*560;
-        s += '<line x1="'+CX+'" y1="'+CY+'" x2="'+ex+'" y2="'+ey+'"'
-          +' stroke="'+b.color+'" stroke-width="1" opacity="0.08"/>';
-        var lx = CX + Math.cos(ang)*590, ly = CY + Math.sin(ang)*590;
-        s += '<text text-anchor="middle" dominant-baseline="middle"'
-          +' font-size="15" fill="'+b.color+'" font-family="Cinzel,serif" font-weight="700"'
-          +' transform="translate('+lx+','+ly+')" letter-spacing="0.4"'
-          +' style="pointer-events:none">'+b.icon+' '+b.label.toUpperCase()+'</text>';
+      /* Labels de branche */
+      branches.forEach(function(b, bi) {
+        var cx = COL_W/2 + bi * COL_W;
+        s += '<text x="' + cx + '" y="36" text-anchor="middle"'
+           + ' font-size="12" fill="' + b.color + '" font-family="Cinzel,serif" font-weight="700"'
+           + ' style="pointer-events:none">'
+           + b.icon + ' ' + b.label.toUpperCase() + '</text>';
       });
 
-      // Nœud central
-      s += '<circle cx="'+CX+'" cy="'+CY+'" r="38" fill="rgba(25,15,5,0.97)"'
-        +' stroke="#c8961a" stroke-width="3" filter="url(#dt-gd)"/>';
-      s += '<text x="'+CX+'" y="'+(CY+1)+'" text-anchor="middle" dominant-baseline="middle"'
-        +' font-size="26" style="pointer-events:none">⚡</text>';
-
-      // Lignes de connexion
+      /* Lignes de connexion */
       EDGES.forEach(function(e) {
-        var a=NODE_POS[e[0]], b=NODE_POS[e[1]]; if (!a||!b) return;
-        var sa=getState(e[0]), sb=getState(e[1]);
-        var active=sa==='learned'&&sb==='learned';
-        var half=sa==='learned'&&sb!=='learned';
-        var col = active ? 'rgba(240,192,60,0.9)' : half ? 'rgba(160,220,60,0.45)' : 'rgba(80,70,30,0.35)';
-        var w = active ? 3.5 : 2;
-        var mx=(a.x+b.x)/2, my=(a.y+b.y)/2;
-        var path;
-        if (Math.abs(a.x-b.x) < 5) {
-          path='M'+a.x+','+a.y+' L'+b.x+','+b.y;
-        } else {
-          path='M'+a.x+','+(a.y+R)+' C'+a.x+','+(my)+' '+b.x+','+(my)+' '+b.x+','+(b.y-R);
-        }
-        s += '<path d="'+path+'" stroke="'+col+'" stroke-width="'+w+'" fill="none"'
-          +(active?'':' stroke-dasharray="7,4"')+'/>';
+        var a = NODE_POS[e[0]], b = NODE_POS[e[1]]; if (!a || !b) return;
+        var sa = getState(e[0]), sb = getState(e[1]);
+        var active = sa === 'learned' && sb === 'learned';
+        var half   = sa === 'learned' && sb !== 'learned';
+        var col    = active ? 'rgba(240,192,60,0.88)' : half ? 'rgba(160,220,60,0.42)' : 'rgba(80,70,30,0.30)';
+        var w      = active ? 3 : 1.5;
+        s += '<line x1="' + a.x + '" y1="' + a.y + '" x2="' + b.x + '" y2="' + b.y + '"'
+           + ' stroke="' + col + '" stroke-width="' + w + '"'
+           + (active ? '' : ' stroke-dasharray="5,4"') + '/>';
         if (active)
-          s += '<circle cx="'+mx+'" cy="'+my+'" r="4" fill="rgba(240,200,60,0.9)"/>';
+          s += '<circle cx="' + ((a.x+b.x)/2) + '" cy="' + ((a.y+b.y)/2) + '"'
+             + ' r="3" fill="rgba(240,200,60,0.88)"/>';
       });
 
-      // Nœuds
+      /* Nœuds — UN SEUL cercle SVG par nœud, zéro superposition */
       Object.entries(NODE_POS).forEach(function(entry) {
-        var id=entry[0], pos=entry[1];
-        var def=self.tm.getTalentDef(id); if (!def) return;
-        var st=getState(id);
-        var bc=pos.branchColor;
-        var stroke = st==='learned' ? bc : st==='available' ? bc : 'rgba(70,65,40,0.5)';
-        var fill   = st==='learned' ? 'rgba(28,20,0,0.97)' : st==='available' ? 'rgba(6,12,2,0.97)' : 'rgba(5,4,2,0.88)';
-        var filt   = st==='learned' ? ' filter="url(#dt-gd)"' : st==='available' ? ' filter="url(#dt-ga)"' : '';
-        var sw     = st==='learned' ? 3 : st==='available' ? 2 : 1.5;
-        var alpha  = st==='locked' ? '0.35' : '1';
-        var cur    = st!=='locked' ? 'pointer' : 'default';
-        var textcol= st==='learned' ? '#fff0a0' : st==='available' ? '#c0e890' : '#4a4830';
+        var id  = entry[0], pos = entry[1];
+        var def = self.tm.getTalentDef(id); if (!def) return;
+        var st  = getState(id);
+        var bc  = pos.branchColor;
 
-        // Un seul anneau décoratif (uniquement si learned)
-        if (st==='learned') {
-          s += '<circle cx="'+pos.x+'" cy="'+pos.y+'" r="'+(R+10)+'" fill="none"'
-            +' stroke="'+bc+'" stroke-width="1" opacity="0.2" stroke-dasharray="3,10"/>';
-        }
-        // Cercle principal UNIQUEMENT (suppression du inner ring intermédiaire)
-        s += '<circle cx="'+pos.x+'" cy="'+pos.y+'" r="'+R+'"'
-          +' fill="'+fill+'" stroke="'+stroke+'" stroke-width="'+sw+'"'
-          +filt+' data-dnode="'+id+'" style="cursor:'+cur+';opacity:'+alpha+'"/>';
+        var stroke = st==='learned'   ? bc
+                   : st==='available' ? bc
+                   : 'rgba(70,65,40,0.4)';
+        var fill   = st==='learned'   ? 'rgba(26,18,0,0.97)'
+                   : st==='available' ? 'rgba(5,12,2,0.97)'
+                   : 'rgba(5,4,2,0.85)';
+        var filt   = st==='learned'   ? ' filter="url(#dt-gd)"'
+                   : st==='available' ? ' filter="url(#dt-ga)"' : '';
+        var sw     = st==='learned'   ? 2.5 : st==='available' ? 2 : 1.2;
+        var alpha  = st==='locked'    ? '0.30' : '1';
+        var cur    = st !== 'locked'  ? 'pointer' : 'default';
+        var tcol   = st==='learned'   ? '#fff0a0'
+                   : st==='available' ? '#c0e890' : '#4a4830';
 
-        // Icône (centré, plus grand)
-        var icon = st==='locked' ? '🔒' : def.icon;
-        s += '<text x="'+pos.x+'" y="'+(pos.y-5)+'" text-anchor="middle" dominant-baseline="middle"'
-          +' font-size="26" style="pointer-events:none;user-select:none">'+icon+'</text>';
+        /* Halo uniquement si learned */
+        if (st === 'learned')
+          s += '<circle cx="' + pos.x + '" cy="' + pos.y + '" r="' + (R+8) + '"'
+             + ' fill="none" stroke="' + bc + '" stroke-width="0.8"'
+             + ' opacity="0.18" stroke-dasharray="3,8"/>';
 
-        // Coût / check (sous l'icône, lisible)
-        if (st!=='learned') {
-          var fv=Object.values(def.cost)[0];
-          var afford=Object.entries(def.cost).every(function(e){return self.rm.get(e[0])>=e[1];});
-          s += '<text x="'+pos.x+'" y="'+(pos.y+R*0.55)+'" text-anchor="middle"'
-            +' font-size="14" fill="'+(afford?'#a0e060':'#e06050')+'" font-family="Cinzel,serif" font-weight="700"'
-            +' style="pointer-events:none">'+fmtV(fv)+'</text>';
+        /* Cercle principal — UNIQUE, contient tout */
+        s += '<circle cx="' + pos.x + '" cy="' + pos.y + '" r="' + R + '"'
+           + ' fill="' + fill + '" stroke="' + stroke + '" stroke-width="' + sw + '"'
+           + filt
+           + ' data-dnode="' + id + '"'
+           + ' style="cursor:' + cur + ';opacity:' + alpha + '"/>';
+
+        /* Emoji centré */
+        var icon = st === 'locked' ? '🔒' : def.icon;
+        s += '<text x="' + pos.x + '" y="' + (pos.y - 3) + '"'
+           + ' text-anchor="middle" dominant-baseline="middle"'
+           + ' font-size="20" style="pointer-events:none;user-select:none">'
+           + icon + '</text>';
+
+        /* Coût ou checkmark */
+        if (st !== 'learned') {
+          var fv     = Object.values(def.cost)[0];
+          var afford = Object.entries(def.cost).every(function(e) {
+            return self.rm.get(e[0]) >= e[1];
+          });
+          s += '<text x="' + pos.x + '" y="' + (pos.y + R*0.55) + '"'
+             + ' text-anchor="middle" font-size="12"'
+             + ' fill="' + (afford ? '#a0e060' : '#e06050') + '"'
+             + ' font-family="Cinzel,serif" font-weight="700"'
+             + ' style="pointer-events:none">' + fmtV(fv) + '</text>';
         } else {
-          s += '<text x="'+pos.x+'" y="'+(pos.y+R*0.55)+'" text-anchor="middle"'
-            +' font-size="17" fill="#90e050" style="pointer-events:none">✓</text>';
+          s += '<text x="' + pos.x + '" y="' + (pos.y + R*0.55) + '"'
+             + ' text-anchor="middle" font-size="14" fill="#90e050"'
+             + ' style="pointer-events:none">✓</text>';
         }
 
-        // Nom (plus grand, sous le cercle)
-        var nm = def.name.length>15 ? def.name.substring(0,14)+'…' : def.name;
-        s += '<text x="'+pos.x+'" y="'+(pos.y+R+20)+'" text-anchor="middle"'
-          +' font-size="14" fill="'+textcol+'" font-family="Cinzel,serif" font-weight="600"'
-          +' style="pointer-events:none">'+nm+'</text>';
+        /* Nom tronqué sous le cercle */
+        var nm = def.name.length > 13 ? def.name.substring(0,12)+'…' : def.name;
+        s += '<text x="' + pos.x + '" y="' + (pos.y + R + 15) + '"'
+           + ' text-anchor="middle" font-size="11" fill="' + tcol + '"'
+           + ' font-family="Cinzel,serif" font-weight="600"'
+           + ' style="pointer-events:none">' + nm + '</text>';
       });
 
       s += '</svg>';
       return s;
     }
 
-    // ── Tooltip latéral ──────────────────────────────────
+    /* Tooltip latéral */
     function buildTT(id) {
-      var def=self.tm.getTalentDef(id); if (!def) return '';
-      var st=getState(id), pos=NODE_POS[id];
-      if (!pos) return '';
-      var bc=pos.branchColor;
-      var reqNames=(def.requires||[]).map(function(r){var d=self.tm.getTalentDef(r);return d?d.name:r;}).join(', ');
-      var afford=Object.entries(def.cost).every(function(e){return self.rm.get(e[0])>=e[1];});
-      var btn='';
-      if (st==='learned') {
-        btn='<div class="tt2-acquired">✓ Talent acquis</div>';
-      } else if (st==='available') {
-        btn='<button class="tt2-buy tt2-buy-d" data-learn="'+id+'">'
-          +(afford?'💰 Acheter — '+fmtCost(def.cost):'🔒 Ressources insuffisantes')+'</button>';
+      var def = self.tm.getTalentDef(id); if (!def) return '';
+      var st  = getState(id);
+      var pos = NODE_POS[id]; if (!pos) return '';
+      var bc  = pos.branchColor;
+      var reqNames = (def.requires || []).map(function(r) {
+        var d = self.tm.getTalentDef(r); return d ? d.name : r;
+      }).join(', ');
+      var afford = Object.entries(def.cost).every(function(e) {
+        return self.rm.get(e[0]) >= e[1];
+      });
+      var btn = '';
+      if (st === 'learned') {
+        btn = '<div class="tt2-acquired">✓ Talent acquis</div>';
+      } else if (st === 'available') {
+        btn = '<button class="tt2-buy tt2-buy-d" data-learn="' + id + '">'
+            + (afford ? '💰 Acheter — ' + fmtCost(def.cost) : '🔒 Ressources insuffisantes')
+            + '</button>';
       } else {
-        var check=self.tm.canLearn(id);
-        btn='<div class="tt2-locked">🔒 '+check.reason+'</div>';
+        var check = self.tm.canLearn(id);
+        btn = '<div class="tt2-locked">🔒 ' + check.reason + '</div>';
       }
-      return '<div class="tt2-head"><span class="tt2-icon">'+def.icon+'</span>'
-        +'<div><div class="tt2-name">'+def.name+'</div>'
-        +'<div class="tt2-branch" style="color:'+bc+'">'+pos.branchLabel.toUpperCase()+'</div></div></div>'
-        +'<div class="tt2-desc">'+def.desc+'</div>'
-        +(reqNames?'<div class="tt2-req">🔗 Prérequis : '+reqNames+'</div>':'')
-        +'<div class="tt2-cost">'+fmtCost(def.cost)+'</div>'
-        +btn;
+      return '<div class="tt2-head">'
+           + '<span class="tt2-icon">' + def.icon + '</span>'
+           + '<div>'
+           + '<div class="tt2-name">' + def.name + '</div>'
+           + '<div class="tt2-branch" style="color:' + bc + '">' + pos.branchLabel.toUpperCase() + '</div>'
+           + '</div></div>'
+           + '<div class="tt2-desc">' + def.desc + '</div>'
+           + (reqNames ? '<div class="tt2-req">🔗 Prérequis : ' + reqNames + '</div>' : '')
+           + '<div class="tt2-cost">' + fmtCost(def.cost) + '</div>'
+           + btn;
     }
 
-    // ── Compteur Drachmes ────────────────────────────────
-    var drach = self.rm ? Math.floor(self.rm.get('drachmes')) : 0;
-    var drachStr = drach>=1000 ? (drach/1000).toFixed(1)+'k' : ''+drach;
+    var drach    = self.rm ? Math.floor(self.rm.get('drachmes')) : 0;
+    var drachStr = drach >= 1000 ? (drach/1000).toFixed(1)+'k' : ''+drach;
 
     el.innerHTML =
       '<div class="et-header">'
-      +'<span class="et-ether-count" style="color:#e8c040">🪙 '+drachStr+' Drachmes</span>'
-      +'<span class="et-hint">Cliquez sur un nœud pour voir les détails</span>'
-      +'<div class="at-zoom-controls">'
-        +'<button class="at-zoom-btn" id="dt-zm">−</button>'
-        +'<span class="at-zoom-label" id="dt-zl">100%</span>'
-        +'<button class="at-zoom-btn" id="dt-zp">+</button>'
-        +'<button class="at-zoom-btn" id="dt-zr" title="Recentrer">⌂</button>'
-      +'</div>'
-      +'</div>'
-      +'<div class="at-wrap">'
-        +'<div class="at-canvas-outer" id="dt-outer">'
-          +'<div class="at-canvas-inner" id="dt-inner">'+buildSVG()+'</div>'
-        +'</div>'
-        +'<div class="at-tooltip-panel" id="dt-ttbox"><div class="at-tt-placeholder">Cliquez un nœud<br>pour les détails</div></div>'
-      +'</div>';
+      + '<span class="et-ether-count" style="color:#e8c040">🪙 ' + drachStr + ' Drachmes</span>'
+      + '<span class="et-hint">Cliquez un nœud pour les détails</span>'
+      + '<div class="at-zoom-controls">'
+        + '<button class="at-zoom-btn" id="dt-zm">−</button>'
+        + '<span class="at-zoom-label" id="dt-zl">100%</span>'
+        + '<button class="at-zoom-btn" id="dt-zp">+</button>'
+        + '<button class="at-zoom-btn" id="dt-zr" title="Recentrer">⌂</button>'
+      + '</div>'
+      + '</div>'
+      + '<div class="at-wrap">'
+        + '<div class="at-canvas-outer" id="dt-outer">'
+          + '<div class="at-canvas-inner" id="dt-inner">' + buildSVG() + '</div>'
+        + '</div>'
+        + '<div class="at-tooltip-panel" id="dt-ttbox">'
+          + '<div class="at-tt-placeholder">Cliquez un nœud<br>pour les détails</div>'
+        + '</div>'
+      + '</div>';
 
     var outer   = el.querySelector('#dt-outer');
     var inner   = el.querySelector('#dt-inner');
     var ttBox   = el.querySelector('#dt-ttbox');
     var zoomLbl = el.querySelector('#dt-zl');
-    var camX=-(VW-outer.clientWidth)/2, camY=-(VH-outer.clientHeight)/2, camZ=1;
+    var camX = 0, camY = 0, camZ = 1;
+    var curNode = null;
 
     function applyCamera() {
-      inner.style.transform='translate('+camX+'px,'+camY+'px) scale('+camZ+')';
-      zoomLbl.textContent=Math.round(camZ*100)+'%';
+      inner.style.transform = 'translate(' + camX + 'px,' + camY + 'px) scale(' + camZ + ')';
+      zoomLbl.textContent   = Math.round(camZ * 100) + '%';
     }
-    // Centrage initial après render
+
+    /* Centrage initial : zoom pour faire tenir toute la largeur */
     requestAnimationFrame(function() {
-      camX=-(VW*camZ-outer.clientWidth)/2;
-      camY=-(VH*camZ-outer.clientHeight)/2;
+      var avail = outer.clientWidth - 296; /* largeur dispo moins sidebar */
+      var fitZ  = Math.min(1.0, avail / VW, outer.clientHeight / VH);
+      camZ = Math.max(0.45, fitZ);
+      camX = (outer.clientWidth - VW * camZ) / 2;
+      camY = (outer.clientHeight - VH * camZ) / 2;
       applyCamera();
     });
 
-    // Pan
-    var drag=false, dx=0, dy=0, ox=0, oy=0;
+    /* Pan souris */
+    var drag = false, ox = 0, oy = 0;
     outer.addEventListener('mousedown', function(e) {
-      if (e.button!==0) return;
-      drag=true; ox=e.clientX-camX; oy=e.clientY-camY;
-      outer.style.cursor='grabbing';
+      if (e.button !== 0) return;
+      drag = true; ox = e.clientX - camX; oy = e.clientY - camY;
+      outer.style.cursor = 'grabbing';
     });
     window.addEventListener('mousemove', function(e) {
       if (!drag) return;
-      camX=e.clientX-ox; camY=e.clientY-oy; applyCamera();
+      camX = e.clientX - ox; camY = e.clientY - oy; applyCamera();
     });
-    window.addEventListener('mouseup', function() { drag=false; outer.style.cursor='grab'; });
+    window.addEventListener('mouseup', function() { drag = false; outer.style.cursor = 'grab'; });
 
-    // Pinch/touch
-    var touches={}, lastDist=0;
+    /* Pinch touch */
+    var touches = {}, lastDist = 0;
     outer.addEventListener('touchstart', function(e) {
-      Array.from(e.changedTouches).forEach(function(t){touches[t.identifier]={x:t.clientX,y:t.clientY};});
-    }, {passive:true});
+      Array.from(e.changedTouches).forEach(function(t) {
+        touches[t.identifier] = { x:t.clientX, y:t.clientY };
+      });
+    }, { passive:true });
     outer.addEventListener('touchmove', function(e) {
       e.preventDefault();
-      var ts=Array.from(e.touches);
-      if (ts.length===1) {
-        var t=ts[0], prev=touches[t.identifier];
-        if (prev) { camX+=t.clientX-prev.x; camY+=t.clientY-prev.y; applyCamera(); }
-        touches[t.identifier]={x:t.clientX,y:t.clientY};
-      } else if (ts.length===2) {
-        var d=Math.hypot(ts[0].clientX-ts[1].clientX, ts[0].clientY-ts[1].clientY);
+      var ts = Array.from(e.touches);
+      if (ts.length === 1) {
+        var t = ts[0], prev = touches[t.identifier];
+        if (prev) { camX += t.clientX - prev.x; camY += t.clientY - prev.y; applyCamera(); }
+        touches[t.identifier] = { x:t.clientX, y:t.clientY };
+      } else if (ts.length === 2) {
+        var d  = Math.hypot(ts[0].clientX - ts[1].clientX, ts[0].clientY - ts[1].clientY);
         if (lastDist) {
-          var f=d/lastDist, nz=Math.max(0.3,Math.min(2.5,camZ*f));
-          var mx=(ts[0].clientX+ts[1].clientX)/2, my=(ts[0].clientY+ts[1].clientY)/2;
-          var r=outer.getBoundingClientRect();
-          var lx=mx-r.left, ly=my-r.top;
-          camX=lx-(lx-camX)*(nz/camZ); camY=ly-(ly-camY)*(nz/camZ); camZ=nz;
-          applyCamera();
+          var f  = d / lastDist;
+          var nz = Math.max(0.3, Math.min(2.5, camZ * f));
+          var mx = (ts[0].clientX + ts[1].clientX) / 2;
+          var my = (ts[0].clientY + ts[1].clientY) / 2;
+          var r  = outer.getBoundingClientRect();
+          camX = (mx-r.left) - ((mx-r.left) - camX) * (nz/camZ);
+          camY = (my-r.top)  - ((my-r.top)  - camY) * (nz/camZ);
+          camZ = nz; applyCamera();
         }
-        lastDist=d;
-        ts.forEach(function(t){touches[t.identifier]={x:t.clientX,y:t.clientY};});
+        lastDist = d;
+        ts.forEach(function(t) { touches[t.identifier] = { x:t.clientX, y:t.clientY }; });
       }
-    }, {passive:false});
+    }, { passive:false });
     outer.addEventListener('touchend', function(e) {
-      Array.from(e.changedTouches).forEach(function(t){delete touches[t.identifier];});
-      if (Object.keys(touches).length<2) lastDist=0;
-    }, {passive:true});
+      Array.from(e.changedTouches).forEach(function(t) { delete touches[t.identifier]; });
+      if (Object.keys(touches).length < 2) lastDist = 0;
+    }, { passive:true });
 
-    // Zoom molette
+    /* Zoom molette */
     outer.addEventListener('wheel', function(e) {
       e.preventDefault();
-      var f=e.deltaY<0?1.12:1/1.12, nz=Math.max(0.25,Math.min(2.5,camZ*f));
-      var r=outer.getBoundingClientRect();
-      var lx=e.clientX-r.left, ly=e.clientY-r.top;
-      camX=lx-(lx-camX)*(nz/camZ); camY=ly-(ly-camY)*(nz/camZ); camZ=nz;
-      applyCamera();
-    }, {passive:false});
+      var f  = e.deltaY < 0 ? 1.12 : 1/1.12;
+      var nz = Math.max(0.25, Math.min(2.5, camZ * f));
+      var r  = outer.getBoundingClientRect();
+      var lx = e.clientX - r.left, ly = e.clientY - r.top;
+      camX = lx - (lx - camX) * (nz / camZ);
+      camY = ly - (ly - camY) * (nz / camZ);
+      camZ = nz; applyCamera();
+    }, { passive:false });
 
-    // Boutons zoom
     el.querySelector('#dt-zp').addEventListener('click', function() {
-      var nz=Math.min(2.5,camZ*1.2);
-      camX-=(VW/2)*(nz-camZ); camY-=(VH/2)*(nz-camZ); camZ=nz; applyCamera();
+      var nz = Math.min(2.5, camZ * 1.2);
+      var cx = outer.clientWidth/2, cy = outer.clientHeight/2;
+      camX = cx - (cx - camX) * (nz/camZ);
+      camY = cy - (cy - camY) * (nz/camZ);
+      camZ = nz; applyCamera();
     });
     el.querySelector('#dt-zm').addEventListener('click', function() {
-      var nz=Math.max(0.25,camZ/1.2);
-      camX-=(VW/2)*(nz-camZ); camY-=(VH/2)*(nz-camZ); camZ=nz; applyCamera();
+      var nz = Math.max(0.25, camZ / 1.2);
+      var cx = outer.clientWidth/2, cy = outer.clientHeight/2;
+      camX = cx - (cx - camX) * (nz/camZ);
+      camY = cy - (cy - camY) * (nz/camZ);
+      camZ = nz; applyCamera();
     });
     el.querySelector('#dt-zr').addEventListener('click', function() {
-      camZ=0.75;
       requestAnimationFrame(function() {
-        camX=-(VW*camZ-outer.clientWidth)/2;
-        camY=-(VH*camZ-outer.clientHeight)/2;
+        var avail = outer.clientWidth - 296;
+        var fitZ  = Math.min(1.0, avail / VW, outer.clientHeight / VH);
+        camZ = Math.max(0.45, fitZ);
+        camX = (outer.clientWidth  - VW * camZ) / 2;
+        camY = (outer.clientHeight - VH * camZ) / 2;
         applyCamera();
       });
     });
 
-    // Clic sur nœud → tooltip
-    var svg = el.querySelector('#dt-svg');
-    var curNode = null;
-    svg.addEventListener('click', function(e) {
-      var c=e.target.closest('[data-dnode]'); if (!c) return;
-      var id=c.dataset.dnode;
-      curNode=id;
-      ttBox.innerHTML=buildTT(id);
-    });
+    /* Clic nœud → tooltip */
+    function bindSVG(svg) {
+      svg.addEventListener('click', function(e) {
+        var c = e.target.closest('[data-dnode]'); if (!c) return;
+        curNode = c.dataset.dnode;
+        ttBox.innerHTML = buildTT(curNode);
+      });
+    }
+    bindSVG(el.querySelector('#dt-svg'));
 
-    // Délégation bouton acheter
+    /* Bouton acheter */
     ttBox.addEventListener('click', function(e) {
-      var btn=e.target.closest('[data-learn]'); if (!btn) return;
-      var id=btn.dataset.learn;
-      var ok=self.tm.learn(id);
-      if (ok) {
-        var newSVG=document.createElement('div');
-        newSVG.innerHTML=buildSVG();
-        svg.parentNode.replaceChild(newSVG.firstChild,svg);
-        // rebind svg reference
-        var svgNew=el.querySelector('#dt-svg');
-        svgNew.addEventListener('click', function(e) {
-          var c=e.target.closest('[data-dnode]'); if (!c) return;
-          curNode=c.dataset.dnode;
-          ttBox.innerHTML=buildTT(curNode);
-        });
-        if (curNode) ttBox.innerHTML=buildTT(curNode);
-        var dNew=self.rm?Math.floor(self.rm.get('drachmes')):0;
-        var hdr=el.querySelector('.et-ether-count');
-        if (hdr) hdr.textContent='🪙 '+(dNew>=1000?(dNew/1000).toFixed(1)+'k':dNew)+' Drachmes';
-      }
+      var btn = e.target.closest('[data-learn]'); if (!btn) return;
+      if (!self.tm.learn(btn.dataset.learn)) return;
+      var newDiv = document.createElement('div');
+      newDiv.innerHTML = buildSVG();
+      var oldSvg = el.querySelector('#dt-svg');
+      oldSvg.parentNode.replaceChild(newDiv.firstChild, oldSvg);
+      bindSVG(el.querySelector('#dt-svg'));
+      if (curNode) ttBox.innerHTML = buildTT(curNode);
+      var dNew = self.rm ? Math.floor(self.rm.get('drachmes')) : 0;
+      var hdr  = el.querySelector('.et-ether-count');
+      if (hdr) hdr.textContent = '🪙 ' + (dNew>=1000 ? (dNew/1000).toFixed(1)+'k' : dNew) + ' Drachmes';
     });
   }
+
 
 
   _renderEtherTree(el) {
     var self = this;
     var etherOwned = self.rm ? Math.floor(self.rm.get('ether')) : 0;
 
-    /* ──────────────────────────────────────────────────────
-       ARBRE ÉTHER — layout en 3 colonnes, nœuds R=38/50
-       ViewBox fixe 820×520, nœuds bien espacés (pas de superposition)
-       ────────────────────────────────────────────────────── */
-    var VW=900, VH=560;
+    /* ══════════════════════════════════════════════════════
+       ARBRE ÉTHER — 3 colonnes fixes, nœuds R=36/48
+       Layout : Reliques (2 sous-col) | Ères (1 col) | Constellations (2 sous-col)
+       Espacement vertical 130px, sous-cols ±50px → min dist ~100px > 2×R=72
+       ══════════════════════════════════════════════════════ */
 
-    // Positions recalculées pour espacement maximal
+    /* Positions explicites — garanties sans chevauchement */
+    var R    = 36;
+    var R_ERA = 48;
+
+    /* Grille 5 colonnes, VW=900, VH=520
+       Col 0 (x=90)  : Reliques gauche
+       Col 1 (x=220) : Reliques droite
+       Col 2 (x=450) : Ères (centre)
+       Col 3 (x=680) : Constellations gauche
+       Col 4 (x=810) : Constellations droite                */
+    var VW = 900, VH = 520;
+    var CX = [90, 220, 450, 680, 810];
+    var RY = [115, 250, 385];   /* y des 3 rangs */
+
     var NODES = {
-      /* ── ÈRES (colonne centrale) ── */
-      ere2:             { x:450, y: 90  },
-      ere3:             { x:450, y:210  },
-      /* ── RELIQUES (2 colonnes gauche) ── */
-      relique_amphore:  { x:120, y:160  },
-      relique_enclume:  { x:120, y:285  },
-      relique_carte:    { x:120, y:410  },
-      relique_graine:   { x:260, y:160  },
-      relique_eclair:   { x:260, y:285  },
-      relique_omphalos: { x:260, y:410  },
-      /* ── CONSTELLATIONS (2 colonnes droite) ── */
-      const_prod:       { x:615, y:160  },
-      const_dig:        { x:615, y:285  },
-      const_pop:        { x:760, y:160  },
-      const_ether:      { x:760, y:285  },
-      const_prod2:      { x:690, y:410  },
+      /* Ères — colonne 2, grands nœuds */
+      ere2:             { x: CX[2], y: RY[0] },
+      ere3:             { x: CX[2], y: RY[1] },
+      /* Reliques — col 0 et 1 */
+      relique_amphore:  { x: CX[0], y: RY[0] },
+      relique_enclume:  { x: CX[0], y: RY[1] },
+      relique_carte:    { x: CX[0], y: RY[2] },
+      relique_graine:   { x: CX[1], y: RY[0] },
+      relique_eclair:   { x: CX[1], y: RY[1] },
+      relique_omphalos: { x: CX[1], y: RY[2] },
+      /* Constellations — col 3 et 4 */
+      const_prod:       { x: CX[3], y: RY[0] },
+      const_dig:        { x: CX[3], y: RY[1] },
+      const_pop:        { x: CX[4], y: RY[0] },
+      const_ether:      { x: CX[4], y: RY[1] },
+      const_prod2:      { x: (CX[3]+CX[4])/2, y: RY[2] },
     };
 
     var EDGES = [
       ['ere2','ere3'],
-      ['ere2','relique_amphore'],['ere2','relique_graine'],
-      ['ere2','const_prod'],    ['ere2','const_dig'],
+      ['ere2','relique_amphore'], ['ere2','relique_graine'],
+      ['ere2','const_prod'],      ['ere2','const_dig'],
       ['relique_amphore','relique_enclume'], ['relique_graine','relique_eclair'],
       ['relique_enclume','relique_carte'],   ['relique_eclair','relique_omphalos'],
-      ['const_prod','const_pop'], ['const_dig','const_ether'],
-      ['const_pop','const_prod2'],['const_ether','const_prod2'],
+      ['const_prod','const_pop'],  ['const_dig','const_ether'],
+      ['const_pop','const_prod2'], ['const_ether','const_prod2'],
     ];
 
-    var R=38, R_ERA=52;
     var BCOL = { eres:'#c8a840', reliques:'#a060e0', constellations:'#40b8f0' };
 
     function getState(id) {
@@ -551,167 +581,202 @@ class BuildingPanel {
     }
     function ethFmt(v) { return v>=10000?(v/1000).toFixed(0)+'k':v>=1000?(v/1000).toFixed(1)+'k':''+v; }
     function getBranchColor(id) {
-      var def=self.tm.getEtherDef(id); if (!def) return '#888';
+      var def = self.tm.getEtherDef(id); if (!def) return '#888';
       return BCOL[def.branch] || '#888';
     }
 
     function buildSVG() {
-      var s='<svg id="et-svg" xmlns="http://www.w3.org/2000/svg"'
-        +' viewBox="0 0 '+VW+' '+VH+'"'
-        +' style="width:100%;height:100%;display:block">';
+      var s = '<svg id="et-svg" xmlns="http://www.w3.org/2000/svg"'
+            + ' viewBox="0 0 ' + VW + ' ' + VH + '"'
+            + ' style="width:100%;height:100%;display:block">';
 
-      s+='<defs>';
-      s+='<radialGradient id="etbg" cx="50%" cy="40%" r="55%">'
-        +'<stop offset="0%" stop-color="#0e0820"/>'
-        +'<stop offset="100%" stop-color="#040308"/>'
-        +'</radialGradient>';
-      s+='<filter id="etgp"><feGaussianBlur stdDeviation="6" result="b"/>'
-        +'<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>';
-      s+='<filter id="etgb"><feGaussianBlur stdDeviation="3.5" result="b"/>'
-        +'<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>';
-      s+='<filter id="etgg"><feGaussianBlur stdDeviation="8" result="b"/>'
-        +'<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>';
-      s+='</defs>';
+      s += '<defs>'
+         + '<radialGradient id="etbg" cx="50%" cy="40%" r="55%">'
+         + '<stop offset="0%" stop-color="#0e0820"/>'
+         + '<stop offset="100%" stop-color="#040308"/>'
+         + '</radialGradient>'
+         + '<filter id="etgp"><feGaussianBlur stdDeviation="6" result="b"/>'
+         + '<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
+         + '<filter id="etgb"><feGaussianBlur stdDeviation="3.5" result="b"/>'
+         + '<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
+         + '<filter id="etgg"><feGaussianBlur stdDeviation="8" result="b"/>'
+         + '<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
+         + '</defs>';
 
-      s+='<rect width="'+VW+'" height="'+VH+'" fill="url(#etbg)"/>';
-      // Grille légère
-      for (var gx=40;gx<VW;gx+=50) for (var gy=40;gy<VH;gy+=50)
-        s+='<circle cx="'+gx+'" cy="'+gy+'" r="1.5" fill="rgba(180,100,255,0.03)"/>';
+      s += '<rect width="' + VW + '" height="' + VH + '" fill="url(#etbg)"/>';
 
-      // Labels de section (en haut, bien lisibles)
-      s+='<text x="190" y="42" text-anchor="middle" font-size="16" fill="#a060e0" font-family="Cinzel,serif" font-weight="700" style="pointer-events:none">🫙 RELIQUES</text>';
-      s+='<text x="450" y="42" text-anchor="middle" font-size="16" fill="#c8a840" font-family="Cinzel,serif" font-weight="700" style="pointer-events:none">🏛️ ÈRES</text>';
-      s+='<text x="690" y="42" text-anchor="middle" font-size="16" fill="#40b8f0" font-family="Cinzel,serif" font-weight="700" style="pointer-events:none">⭐ CONSTELLATIONS</text>';
+      /* Labels de section */
+      s += '<text x="155" y="44" text-anchor="middle" font-size="15" fill="#a060e0"'
+         + ' font-family="Cinzel,serif" font-weight="700" style="pointer-events:none">🫙 RELIQUES</text>';
+      s += '<text x="450" y="44" text-anchor="middle" font-size="15" fill="#c8a840"'
+         + ' font-family="Cinzel,serif" font-weight="700" style="pointer-events:none">🏛️ ÈRES</text>';
+      s += '<text x="745" y="44" text-anchor="middle" font-size="15" fill="#40b8f0"'
+         + ' font-family="Cinzel,serif" font-weight="700" style="pointer-events:none">⭐ CONSTELLATIONS</text>';
 
-      // Séparateurs verticaux
-      s+='<line x1="360" y1="55" x2="360" y2="'+(VH-20)+'" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>';
-      s+='<line x1="545" y1="55" x2="545" y2="'+(VH-20)+'" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>';
+      /* Séparateurs */
+      s += '<line x1="350" y1="58" x2="350" y2="' + (VH-10) + '"'
+         + ' stroke="rgba(255,255,255,0.04)" stroke-width="1"/>';
+      s += '<line x1="550" y1="58" x2="550" y2="' + (VH-10) + '"'
+         + ' stroke="rgba(255,255,255,0.04)" stroke-width="1"/>';
 
-      // Edges
+      /* Arêtes */
       EDGES.forEach(function(e) {
-        var a=NODES[e[0]], b=NODES[e[1]]; if (!a||!b) return;
-        var sa=getState(e[0]), sb=getState(e[1]);
-        var active=sa==='learned'&&sb==='learned', half=sa==='learned';
-        var col=active?'rgba(180,100,255,0.85)':half?'rgba(100,180,255,0.4)':'rgba(50,40,70,0.45)';
-        s+='<line x1="'+a.x+'" y1="'+a.y+'" x2="'+b.x+'" y2="'+b.y+'"'
-          +' stroke="'+col+'" stroke-width="'+(active?3:2)+'"'
-          +(active?'':' stroke-dasharray="6,4"')+'/>';
-        if (active) s+='<circle cx="'+((a.x+b.x)/2)+'" cy="'+((a.y+b.y)/2)+'" r="3.5" fill="rgba(200,120,255,0.9)"/>';
+        var a = NODES[e[0]], b = NODES[e[1]]; if (!a || !b) return;
+        var sa = getState(e[0]), sb = getState(e[1]);
+        var active = sa==='learned' && sb==='learned';
+        var half   = sa==='learned';
+        var col    = active ? 'rgba(180,100,255,0.88)' : half ? 'rgba(100,180,255,0.38)' : 'rgba(50,40,70,0.42)';
+        s += '<line x1="' + a.x + '" y1="' + a.y + '" x2="' + b.x + '" y2="' + b.y + '"'
+           + ' stroke="' + col + '" stroke-width="' + (active?3:1.8) + '"'
+           + (active ? '' : ' stroke-dasharray="6,4"') + '/>';
+        if (active)
+          s += '<circle cx="' + ((a.x+b.x)/2) + '" cy="' + ((a.y+b.y)/2) + '"'
+             + ' r="3.5" fill="rgba(200,120,255,0.88)"/>';
       });
 
-      // Nodes
+      /* Nœuds */
       Object.keys(NODES).forEach(function(id) {
-        var pos=NODES[id];
-        var def=self.tm.getEtherDef(id); if (!def) return;
-        var st=getState(id);
-        var isEra=def.effect&&def.effect.type==='unlockEra';
-        var r=isEra?R_ERA:R;
-        var bc=getBranchColor(id);
-        var stroke=st==='learned'?bc:st==='available'?bc:'rgba(80,70,100,0.4)';
-        var fill=st==='learned'?'rgba(20,8,40,0.95)':st==='available'?'rgba(4,8,20,0.95)':'rgba(4,3,8,0.88)';
-        var filt=st==='learned'?(isEra?'url(#etgg)':'url(#etgp)'):st==='available'?'url(#etgb)':'';
-        var sw=st==='learned'?3:st==='available'?2:1.5;
-        var opacity=st==='locked'?'0.38':'1';
-        var cursor=st!=='locked'?'pointer':'default';
-        var textcol=st==='learned'?'#e8d8ff':st==='available'?'#a0d8f0':'#484060';
+        var pos = NODES[id];
+        var def = self.tm.getEtherDef(id); if (!def) return;
+        var st  = getState(id);
+        var isEra = def.effect && def.effect.type === 'unlockEra';
+        var r     = isEra ? R_ERA : R;
+        var bc    = getBranchColor(id);
 
-        // Anneau déco uniquement si learned
-        if (st==='learned')
-          s+='<circle cx="'+pos.x+'" cy="'+pos.y+'" r="'+(r+11)+'" fill="none" stroke="'+bc+'" stroke-width="1" opacity="0.22" stroke-dasharray="3,10"/>';
+        var stroke  = st==='learned' ? bc : st==='available' ? bc : 'rgba(80,70,100,0.38)';
+        var fill    = st==='learned' ? 'rgba(20,8,40,0.96)' : st==='available' ? 'rgba(4,8,20,0.96)' : 'rgba(4,3,8,0.88)';
+        var filt    = st==='learned' ? (isEra?'url(#etgg)':'url(#etgp)') : st==='available' ? 'url(#etgb)' : '';
+        var sw      = st==='learned' ? 2.8 : st==='available' ? 2 : 1.2;
+        var opacity = st==='locked'  ? '0.35' : '1';
+        var cursor  = st!=='locked'  ? 'pointer' : 'default';
+        var textcol = st==='learned' ? '#e8d8ff' : st==='available' ? '#a0d8f0' : '#484060';
 
-        // Cercle principal (1 seul)
-        s+='<circle cx="'+pos.x+'" cy="'+pos.y+'" r="'+r+'" fill="'+fill+'" stroke="'+stroke+'" stroke-width="'+sw+'"'
-          +(filt?' filter="'+filt+'"':'')+' data-enode="'+id+'" style="cursor:'+cursor+';opacity:'+opacity+'"/>';
+        /* Anneau déco uniquement si learned */
+        if (st === 'learned')
+          s += '<circle cx="' + pos.x + '" cy="' + pos.y + '" r="' + (r+10) + '"'
+             + ' fill="none" stroke="' + bc + '" stroke-width="0.7" opacity="0.2"'
+             + ' stroke-dasharray="3,9"/>';
 
-        // Icône centré, taille lisible
-        var icon=st==='locked'?'🔒':def.icon;
-        s+='<text x="'+pos.x+'" y="'+(pos.y-(isEra?6:5))+'" text-anchor="middle" dominant-baseline="middle" font-size="'+(isEra?30:24)+'" style="pointer-events:none;user-select:none">'+icon+'</text>';
+        /* Cercle principal — UNIQUE */
+        s += '<circle cx="' + pos.x + '" cy="' + pos.y + '" r="' + r + '"'
+           + ' fill="' + fill + '" stroke="' + stroke + '" stroke-width="' + sw + '"'
+           + (filt ? ' filter="' + filt + '"' : '')
+           + ' data-enode="' + id + '"'
+           + ' style="cursor:' + cursor + ';opacity:' + opacity + '"/>';
 
-        // Coût/check (font plus grand)
-        if (st!=='learned') {
-          var ec=def.cost.ether||0, ca=etherOwned>=ec;
-          s+='<text x="'+pos.x+'" y="'+(pos.y+r*0.55)+'" text-anchor="middle" font-size="'+(isEra?16:14)+'" fill="'+(ca?'#90e060':'#e06050')+'" font-family="Cinzel,serif" font-weight="700" style="pointer-events:none">'+ethFmt(ec)+'✨</text>';
+        /* Icône */
+        var icon = st === 'locked' ? '🔒' : def.icon;
+        s += '<text x="' + pos.x + '" y="' + (pos.y - (isEra?5:4)) + '"'
+           + ' text-anchor="middle" dominant-baseline="middle"'
+           + ' font-size="' + (isEra?28:22) + '"'
+           + ' style="pointer-events:none;user-select:none">' + icon + '</text>';
+
+        /* Coût ou check */
+        if (st !== 'learned') {
+          var ec = def.cost.ether || 0;
+          var ca = etherOwned >= ec;
+          s += '<text x="' + pos.x + '" y="' + (pos.y + r*0.56) + '"'
+             + ' text-anchor="middle" font-size="' + (isEra?15:13) + '"'
+             + ' fill="' + (ca ? '#90e060' : '#e06050') + '"'
+             + ' font-family="Cinzel,serif" font-weight="700"'
+             + ' style="pointer-events:none">' + ethFmt(ec) + '✨</text>';
         } else {
-          s+='<text x="'+pos.x+'" y="'+(pos.y+r*0.55)+'" text-anchor="middle" font-size="17" fill="#a060ff" style="pointer-events:none">✓</text>';
+          s += '<text x="' + pos.x + '" y="' + (pos.y + r*0.56) + '"'
+             + ' text-anchor="middle" font-size="16" fill="#a060ff"'
+             + ' style="pointer-events:none">✓</text>';
         }
 
-        // Nom (plus grand, sous le nœud)
-        var nm=def.name.length>14?def.name.substring(0,13)+'…':def.name;
-        s+='<text x="'+pos.x+'" y="'+(pos.y+r+20)+'" text-anchor="middle" font-size="14" fill="'+textcol+'" font-family="Cinzel,serif" font-weight="600" style="pointer-events:none">'+nm+'</text>';
+        /* Nom sous le nœud */
+        var nm = def.name.length > 13 ? def.name.substring(0, 12) + '…' : def.name;
+        s += '<text x="' + pos.x + '" y="' + (pos.y + r + 18) + '"'
+           + ' text-anchor="middle" font-size="13" fill="' + textcol + '"'
+           + ' font-family="Cinzel,serif" font-weight="600"'
+           + ' style="pointer-events:none">' + nm + '</text>';
       });
 
-      s+='</svg>';
+      s += '</svg>';
       return s;
     }
 
     function buildTooltipHtml(id) {
-      var def=self.tm.getEtherDef(id); if (!def) return '';
-      var st=getState(id), ec=def.cost.ether||0, ca=etherOwned>=ec;
-      var reqNm=(def.requires||[]).map(function(r){var d=self.tm.getEtherDef(r);return d?d.name:r;}).join(', ');
-      var typeLabel=def.effect&&def.effect.type==='unlockEra'?'🏛️ ÈRE'
-                   :def.effect&&def.effect.type==='relique'?'🫙 RELIQUE':'⭐ CONSTELLATION';
-      var bc=getBranchColor(id);
-      var btn='';
-      if (st==='learned') btn='<div class="tt2-acquired">✓ Acquis — Permanent</div>';
-      else if (st==='available') btn='<button class="tt2-buy tt2-buy-e" data-learnether="'+id+'">'
-        +(ca?'🔮 Acquérir — '+ethFmt(ec)+' ✨':'🔒 Éther insuffisant ('+etherOwned+' / '+ethFmt(ec)+')')+'</button>';
-      else { var ch=self.tm.canLearnEther(id); btn='<div class="tt2-locked">🔒 '+ch.reason+'</div>'; }
-      return '<div class="tt2-head"><span class="tt2-icon">'+def.icon+'</span>'
-        +'<div><div class="tt2-name">'+def.name+'</div>'
-        +'<div class="tt2-branch" style="color:'+bc+'">'+typeLabel+'</div></div></div>'
-        +'<div class="tt2-desc">'+def.desc+'</div>'
-        +(reqNm?'<div class="tt2-req">🔗 Prérequis : '+reqNm+'</div>':'')
-        +'<div class="tt2-cost">'+ethFmt(ec)+' ✨</div>'
-        +btn;
+      var def = self.tm.getEtherDef(id); if (!def) return '';
+      var st  = getState(id);
+      var ec  = def.cost.ether || 0;
+      var ca  = etherOwned >= ec;
+      var reqNm = (def.requires || []).map(function(r) {
+        var d = self.tm.getEtherDef(r); return d ? d.name : r;
+      }).join(', ');
+      var typeLabel = def.effect && def.effect.type === 'unlockEra' ? '🏛️ ÈRE'
+                    : def.effect && def.effect.type === 'relique'   ? '🫙 RELIQUE'
+                    : '⭐ CONSTELLATION';
+      var bc  = getBranchColor(id);
+      var btn = '';
+      if (st === 'learned')
+        btn = '<div class="tt2-acquired">✓ Acquis — Permanent</div>';
+      else if (st === 'available')
+        btn = '<button class="tt2-buy tt2-buy-e" data-learnether="' + id + '">'
+            + (ca ? '🔮 Acquérir — ' + ethFmt(ec) + ' ✨' : '🔒 Éther insuffisant (' + etherOwned + ' / ' + ethFmt(ec) + ')')
+            + '</button>';
+      else {
+        var ch = self.tm.canLearnEther(id);
+        btn = '<div class="tt2-locked">🔒 ' + ch.reason + '</div>';
+      }
+      return '<div class="tt2-head"><span class="tt2-icon">' + def.icon + '</span>'
+           + '<div><div class="tt2-name">' + def.name + '</div>'
+           + '<div class="tt2-branch" style="color:' + bc + '">' + typeLabel + '</div></div></div>'
+           + '<div class="tt2-desc">' + def.desc + '</div>'
+           + (reqNm ? '<div class="tt2-req">🔗 Prérequis : ' + reqNm + '</div>' : '')
+           + '<div class="tt2-cost">' + ethFmt(ec) + ' ✨</div>'
+           + btn;
     }
 
-    var etherStr=etherOwned>=1000?(etherOwned/1000).toFixed(1)+'k':''+etherOwned;
-    el.innerHTML=
+    var etherStr = etherOwned >= 1000 ? (etherOwned/1000).toFixed(1)+'k' : ''+etherOwned;
+    el.innerHTML =
       '<div class="et-header">'
-      +'<span class="et-ether-count">✨ '+etherStr+' Éther</span>'
-      +'<span class="et-hint">Cliquez sur un nœud pour voir les détails</span>'
-      +'</div>'
-      +'<div class="at-wrap">'
-        +'<div class="at-svg-box" id="et-svgbox">'+buildSVG()+'</div>'
-        +'<div class="at-tooltip-panel" id="et-ttbox"><div class="at-tt-placeholder">Cliquez sur un nœud</div></div>'
-      +'</div>';
+      + '<span class="et-ether-count">✨ ' + etherStr + ' Éther</span>'
+      + '<span class="et-hint">Cliquez sur un nœud pour les détails</span>'
+      + '</div>'
+      + '<div class="at-wrap">'
+        + '<div class="at-svg-box" id="et-svgbox">' + buildSVG() + '</div>'
+        + '<div class="at-tooltip-panel" id="et-ttbox">'
+          + '<div class="at-tt-placeholder">Cliquez sur un nœud</div>'
+        + '</div>'
+      + '</div>';
 
-    var svgEl=el.querySelector('#et-svg');
-    var ttBox=el.querySelector('#et-ttbox');
+    var svgEl = el.querySelector('#et-svg');
+    var ttBox = el.querySelector('#et-ttbox');
 
     function showTooltip(id) {
-      ttBox.innerHTML=buildTooltipHtml(id);
-      ttBox.dataset.node=id;
+      ttBox.innerHTML = buildTooltipHtml(id);
+      ttBox.dataset.node = id;
     }
 
     svgEl.addEventListener('click', function(e) {
-      var c=e.target.closest('[data-enode]'); if (!c) return;
-      var id=c.dataset.enode, st=getState(id);
-      showTooltip(id);
+      var c = e.target.closest('[data-enode]'); if (!c) return;
+      showTooltip(c.dataset.enode);
     });
 
     ttBox.addEventListener('click', function(e) {
-      var btn=e.target.closest('[data-learnether]'); if (!btn) return;
-      var id=btn.dataset.learnether;
-      if (self.tm.learnEther(id)) {
-        etherOwned = self.rm ? Math.floor(self.rm.get('ether')) : 0;
-        var newSVG=document.createElement('div');
-        newSVG.innerHTML=buildSVG();
-        svgEl.parentNode.replaceChild(newSVG.firstChild,svgEl);
-        var svgNew=el.querySelector('#et-svg');
-        svgNew.addEventListener('click', function(e) {
-          var c=e.target.closest('[data-enode]'); if (!c) return;
-          showTooltip(c.dataset.enode);
-          svgEl=svgNew;
-        });
-        if (ttBox.dataset.node) showTooltip(ttBox.dataset.node);
-        var hdr=el.querySelector('.et-ether-count');
-        var eNew=self.rm?Math.floor(self.rm.get('ether')):0;
-        if (hdr) hdr.textContent='✨ '+(eNew>=1000?(eNew/1000).toFixed(1)+'k':eNew)+' Éther';
-      }
+      var btn = e.target.closest('[data-learnether]'); if (!btn) return;
+      var id  = btn.dataset.learnether;
+      if (!self.tm.learnEther(id)) return;
+      etherOwned = self.rm ? Math.floor(self.rm.get('ether')) : 0;
+      var newDiv = document.createElement('div');
+      newDiv.innerHTML = buildSVG();
+      svgEl.parentNode.replaceChild(newDiv.firstChild, svgEl);
+      svgEl = el.querySelector('#et-svg');
+      svgEl.addEventListener('click', function(e) {
+        var c = e.target.closest('[data-enode]'); if (!c) return;
+        showTooltip(c.dataset.enode);
+      });
+      if (ttBox.dataset.node) showTooltip(ttBox.dataset.node);
+      var hdr = el.querySelector('.et-ether-count');
+      var eNew = self.rm ? Math.floor(self.rm.get('ether')) : 0;
+      if (hdr) hdr.textContent = '✨ ' + (eNew >= 1000 ? (eNew/1000).toFixed(1)+'k' : eNew) + ' Éther';
     });
 
   }
+
 
 
   // ── Helpers ──────────────────────────────────────────────
