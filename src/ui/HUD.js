@@ -44,6 +44,29 @@ class HUD {
     this._refreshPrestigeConditions();
     // Mise à jour indicateur Codex
     this._refreshCodexBadge();
+    // Mise à jour indicateur malédictions
+    this._refreshCurseBar();
+  }
+
+  _refreshCurseBar() {
+    var zm = this.zones;
+    var el = document.getElementById('curse-hud-bar');
+    if (!el) return;
+    if (!zm) { el.style.display = 'none'; return; }
+    var curses = zm.getActiveCurses();
+    var mult   = zm.getCurseMult();
+    if (curses.length === 0 && mult >= 1.0) {
+      el.style.display = 'none';
+      return;
+    }
+    el.style.display = 'flex';
+    var worst = curses.length > 0 ? curses[0].stage.label : '';
+    if (curses.length > 1) worst = curses.length + ' malédictions';
+    var pct = Math.round((1 - mult) * 100);
+    el.innerHTML =
+      '<span class="chb-curse-icon">💀</span>' +
+      '<span class="chb-curse-label">' + worst + '</span>' +
+      '<span class="chb-curse-mult">-' + pct + '%</span>';
   }
 
   _refreshCodexBadge() {
@@ -182,6 +205,24 @@ class HUD {
     });
   }
 
+  _showVictoryModal() {
+    var prev = document.getElementById('victory-modal');
+    if (prev) return;
+    var modal = document.createElement('div');
+    modal.id  = 'victory-modal';
+    modal.innerHTML =
+      '<div class="vm-content">' +
+        '<div class="vm-icon">⚡</div>' +
+        '<div class="vm-title">Âge de l\'Olympe !</div>' +
+        '<div class="vm-sub">Zeus a été vaincu. L\'Olympe est à vous.</div>' +
+        '<div class="vm-details">Tous les multiplicateurs sont désormais ×2 permanents.<br>Continuez à jouer ou recommencez pour battre votre score.</div>' +
+        '<button class="vm-close" onclick="document.getElementById(\'victory-modal\').remove()">🏆 Continuer</button>' +
+      '</div>';
+    document.body.appendChild(modal);
+    // Confettis dorés
+    EventBus.emit('zone:fireworks', { color: '#ffd54f' });
+  }
+
   updateEraBadge(era) {
     const badge = document.getElementById('era-badge');
     if (!badge) return;
@@ -283,6 +324,11 @@ class HUD {
     EventBus.on('codex:level_up',      () => { this._refreshScore(); this._refreshCodexBadge(); });
     EventBus.on('codex:upgraded',      () => { this._refreshCodexBadge(); });
     EventBus.on('prestige:complete',   () => { this._refreshScore(); this._refreshCodexBadge(); });
+    EventBus.on('zone:unlocked',       () => { this._refreshScore(); this._refreshCurseBar(); });
+    EventBus.on('zone:key_crafted',    () => { this._refreshScore(); });
+    EventBus.on('zone:ritual_done',    () => { this._refreshScore(); });
+    EventBus.on('zone:border_cleared', () => { this._refreshScore(); });
+    EventBus.on('game:victory',        () => { this._showVictoryModal(); });
 
     EventBus.on('population:updated', ({ total, workers, available }) => {
       const wEl  = document.getElementById('pop-workers');

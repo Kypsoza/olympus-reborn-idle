@@ -457,7 +457,12 @@ class TalentManager {
       }
       if (eff.type === 'maxLevelAll') total += eff.value;
     });
-    return total + this.getConstellationBonus('maxLevelAll');
+    total += this.getConstellationBonus('maxLevelAll');
+    // Bonus Panthéon
+    if (typeof window !== 'undefined' && window.game && window.game.pantheonManager) {
+      total += window.game.pantheonManager.getMaxLevelBonus(buildingId);
+    }
+    return total;
   }
 
   getBonusProductionPct(buildingId) {
@@ -485,6 +490,11 @@ class TalentManager {
         if (eff.building.split(',').includes(buildingId)) total += eff.value;
       }
     });
+    // Bonus Panthéon permanent
+    if (typeof window !== 'undefined' && window.game && window.game.pantheonManager) {
+      total += window.game.pantheonManager.getGlobalProdBonus();
+      total += window.game.pantheonManager.getBuildingProdBonus(buildingId);
+    }
     return total;
   }
 
@@ -539,6 +549,10 @@ class TalentManager {
       const eff = ETHER_DEFS[id] && ETHER_DEFS[id].effect;
       if (eff && eff.type === 'etherGainPct') pct += eff.value;
     });
+    // Bonus Panthéon
+    if (typeof window !== 'undefined' && window.game && window.game.pantheonManager) {
+      pct += window.game.pantheonManager.getEtherGainBonus();
+    }
     return 1 + pct / 100;
   }
 
@@ -548,6 +562,10 @@ class TalentManager {
       const eff = ETHER_DEFS[id] && ETHER_DEFS[id].effect;
       if (eff && eff.type === 'scoreMult') pct += eff.value;
     });
+    // Bonus Panthéon
+    if (typeof window !== 'undefined' && window.game && window.game.pantheonManager) {
+      pct += window.game.pantheonManager.getScoreBonus();
+    }
     return 1 + pct / 100;
   }
 

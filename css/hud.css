@@ -1779,3 +1779,435 @@
 .app-val { font-weight: 700; }
 .app-ether { color: #80d8ff; }
 .app-pages { color: #f0d060; }
+
+/* ═══════════════════════════════════════════════════════════
+   Phase 7 — Panthéon Olympien
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Wrapper principal ───────────────────────────────────── */
+#pan-wrap {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  gap: 0;
+}
+
+/* ── En-tête ─────────────────────────────────────────────── */
+#pan-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, rgba(200,150,26,0.08), rgba(10,8,20,0.9));
+  border-bottom: 1px solid rgba(200,150,26,0.2);
+  flex-shrink: 0;
+}
+#pan-title {
+  font-family: var(--font-title, serif);
+  font-size: 15px;
+  font-weight: 800;
+  color: #f0d060;
+}
+#pan-ether-count {
+  background: rgba(200,150,26,0.15);
+  border: 1px solid rgba(200,150,26,0.4);
+  border-radius: 8px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #f0d060;
+  white-space: nowrap;
+}
+#pan-hint {
+  font-size: 10px;
+  color: rgba(255,255,255,0.25);
+  margin-left: auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Canvas wrapper ─────────────────────────────────────── */
+#pan-canvas-wrap {
+  flex: 1;
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+  background: #07051a;
+  border-radius: 0 0 10px 10px;
+}
+#pan-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* ── Tooltip ────────────────────────────────────────────── */
+#pan-tooltip {
+  position: absolute;
+  z-index: 9999;
+  background: rgba(10, 8, 22, 0.97);
+  border: 1px solid rgba(200, 150, 26, 0.5);
+  border-radius: 10px;
+  padding: 10px 14px;
+  min-width: 190px;
+  max-width: 240px;
+  pointer-events: none;
+  box-shadow: 0 6px 28px rgba(0,0,0,0.7), 0 0 16px rgba(200,150,26,0.15);
+  font-family: var(--font-ui);
+  backdrop-filter: blur(8px);
+  transition: opacity 0.1s;
+}
+#pan-tooltip.hidden { display: none; }
+
+.pan-tt-header {
+  font-size: 13px;
+  font-weight: 800;
+  margin-bottom: 3px;
+  font-family: var(--font-title, serif);
+}
+.pan-tt-branch {
+  font-size: 10px;
+  color: rgba(255,255,255,0.4);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.pan-tt-desc {
+  font-size: 12px;
+  color: rgba(255,255,255,0.75);
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+.pan-tt-uncapped {
+  font-size: 11px;
+  color: #ffd54f;
+  margin-bottom: 6px;
+}
+.pan-tt-cost {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 6px;
+  text-align: center;
+}
+.pan-tt-ok      { background: rgba(200,150,26,0.2); border:1px solid rgba(200,150,26,0.5); color:#ffd54f; }
+.pan-tt-learned { background: rgba(128,224,128,0.1); border:1px solid rgba(128,224,128,0.3); color:#80e080; }
+.pan-tt-locked  { background: rgba(255,80,80,0.08); border:1px solid rgba(255,80,80,0.2); color:#e08080; font-size:10px; }
+
+/* ── Tab Panthéon : le tp-body doit être flex-column full height ── */
+#tp-body:has(#pan-wrap) {
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Phase 8 — Zones Divines
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Barre malédiction HUD ──────────────────────────────── */
+#curse-hud-bar {
+  position: fixed;
+  right: 12px;
+  bottom: 176px;
+  width: 220px;
+  background: rgba(30, 5, 5, 0.95);
+  border: 1px solid rgba(224, 80, 80, 0.5);
+  border-radius: 10px;
+  padding: 6px 10px;
+  z-index: 120;
+  backdrop-filter: blur(6px);
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 0 14px rgba(224, 80, 80, 0.2);
+  font-family: var(--font-ui);
+}
+.chb-curse-icon { font-size: 14px; }
+.chb-curse-label {
+  font-size: 11px;
+  color: #e08080;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chb-curse-mult {
+  font-size: 12px;
+  font-weight: 800;
+  color: #ff5050;
+  margin-left: auto;
+}
+
+/* ── Wrapper onglet Zones ───────────────────────────────── */
+.zn-wrap {
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-family: var(--font-ui);
+  overflow-y: auto;
+  max-height: 100%;
+}
+
+/* Score Row */
+.zn-score-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  padding: 4px 8px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 6px;
+}
+.zn-score-label { color: #a0a060; }
+.zn-score-val   { font-weight: 800; color: #f0d060; }
+
+/* Barre résumé malédictions (onglet) */
+.zn-curse-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: rgba(224,80,80,0.1);
+  border: 1px solid rgba(224,80,80,0.3);
+  border-radius: 8px;
+  font-size: 12px;
+  color: #e08080;
+}
+.zn-curse-icon { font-size: 16px; }
+.zn-curse-text { flex:1; }
+
+/* Slots craft actifs */
+.zn-craft-active {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 8px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.07);
+}
+.zn-craft-slot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: #c0c0a0;
+}
+.zn-craft-bar {
+  flex: 1;
+  height: 6px;
+  background: rgba(255,255,255,0.07);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.zn-craft-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s linear;
+}
+.zn-craft-rem { font-size: 10px; color: #808060; min-width: 30px; text-align: right; }
+
+/* Grille de cartes */
+.zn-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+@media (max-width: 500px) { .zn-grid { grid-template-columns: 1fr; } }
+
+/* Carte zone */
+.zn-card {
+  border: 1px solid rgba(var(--zone-color-rgb, 128,128,128), 0.25);
+  border-radius: 10px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  background: rgba(10,8,20,0.7);
+  border-color: rgba(128,128,128,0.2);
+  transition: border-color 0.2s;
+}
+.zn-card-unlocked { border-color: rgba(128,224,128,0.35) !important; background: rgba(10,25,15,0.7) !important; }
+.zn-card-cursed   { border-color: rgba(224,80,80,0.35)  !important; background: rgba(25,8,8,0.7) !important; }
+
+.zn-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.zn-card-icon  { font-size: 22px; }
+.zn-card-info  { flex: 1; min-width: 0; }
+.zn-card-name  { font-size: 12px; font-weight: 800; font-family: var(--font-title,serif); }
+.zn-card-biome { font-size: 9px; color: #606060; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.zn-card-status {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+  background: rgba(255,255,255,0.05);
+  color: #808080;
+}
+.zn-card-status.zn-card-unlocked { background: rgba(128,224,128,0.12); color: #80e080; }
+.zn-card-status.zn-card-cursed   { background: rgba(224,80,80,0.12);   color: #e08080; }
+
+/* Production zone */
+.zn-prod {
+  font-size: 10px;
+  color: #80c080;
+  padding: 3px 6px;
+  background: rgba(128,224,128,0.06);
+  border-radius: 5px;
+}
+.zn-residual {
+  font-size: 9px;
+  color: #e08080;
+  padding: 2px 6px;
+  background: rgba(224,80,80,0.06);
+  border-radius: 4px;
+}
+
+/* Conditions */
+.zn-conds { display: flex; flex-direction: column; gap: 3px; }
+.zn-cond  { font-size: 10px; color: #707070; padding: 1px 0; }
+.zn-cond-ok  { color: #80e080; }
+.zn-cond-no  { color: #a09080; }
+.zn-craft-bar-sm {
+  width: 100%;
+  height: 3px;
+  background: rgba(255,255,255,0.07);
+  border-radius: 2px;
+  margin-top: 2px;
+  overflow: hidden;
+}
+
+/* Section Clé Divine */
+.zn-key-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.zn-key-label { font-size: 9px; color: #705030; line-height: 1.4; }
+.zn-key-ready {
+  font-size: 11px;
+  font-weight: 700;
+  color: #f0d060;
+  text-align: center;
+  padding: 4px;
+  background: rgba(200,150,26,0.1);
+  border-radius: 5px;
+}
+
+/* Section Rituel */
+.zn-ritual-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.zn-ritual-label { font-size: 9px; color: #6070a0; }
+
+/* Boutons */
+.zn-btn {
+  width: 100%;
+  padding: 5px 8px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-family: var(--font-ui);
+  font-weight: 700;
+  cursor: pointer;
+  background: linear-gradient(135deg, #1a2208, #2a3810);
+  border: 1px solid #4a8020;
+  color: #90c050;
+  transition: transform 0.12s, background 0.12s;
+  text-align: center;
+}
+.zn-btn:hover:not(.zn-btn-disabled) { background: linear-gradient(135deg,#2a3810,#3a5018); transform:scale(1.02); }
+.zn-btn:active:not(.zn-btn-disabled) { transform:scale(0.97); }
+.zn-btn-disabled {
+  background: rgba(255,255,255,0.03) !important;
+  border-color: rgba(255,255,255,0.1) !important;
+  color: #504040 !important;
+  cursor: default !important;
+}
+.zn-btn-unlock {
+  background: linear-gradient(135deg, #1a1005, #2e1e08) !important;
+  border-color: #c8961a !important;
+  color: #f0d060 !important;
+  font-size: 11px !important;
+  padding: 7px 8px !important;
+  box-shadow: 0 0 12px rgba(200,150,26,0.3);
+  animation: unlockPulse 1.5s ease-in-out infinite;
+}
+@keyframes unlockPulse {
+  0%,100% { box-shadow: 0 0 8px rgba(200,150,26,0.3); }
+  50%      { box-shadow: 0 0 20px rgba(200,150,26,0.6); }
+}
+
+/* Malédiction détail sur la carte */
+.zn-curse-detail {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 10px;
+  color: #e08080;
+  padding: 3px 6px;
+  background: rgba(224,80,80,0.08);
+  border-radius: 5px;
+}
+.zn-curse-timer { font-weight: 700; }
+
+/* ── Modal Victoire ─────────────────────────────────────── */
+#victory-modal {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.88);
+  z-index: 15000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(8px);
+  animation: vmFadeIn 0.6s ease;
+}
+@keyframes vmFadeIn {
+  from { opacity:0; }
+  to   { opacity:1; }
+}
+.vm-content {
+  background: linear-gradient(135deg, #12100a, #1e1a08);
+  border: 2px solid #ffd54f;
+  border-radius: 18px;
+  padding: 36px 40px;
+  text-align: center;
+  max-width: 420px;
+  box-shadow: 0 0 60px rgba(255,213,79,0.4);
+  animation: vmSlideIn 0.5s cubic-bezier(0.175,0.885,0.32,1.275);
+}
+@keyframes vmSlideIn {
+  from { transform:scale(0.7); opacity:0; }
+  to   { transform:scale(1);   opacity:1; }
+}
+.vm-icon  { font-size: 52px; margin-bottom: 12px; }
+.vm-title {
+  font-family: var(--font-title,serif);
+  font-size: 28px;
+  font-weight: 900;
+  color: #ffd54f;
+  text-shadow: 0 0 30px rgba(255,213,79,0.6);
+  margin-bottom: 8px;
+}
+.vm-sub    { font-size: 15px; color: #c0a060; margin-bottom: 14px; }
+.vm-details { font-size: 12px; color: #808060; line-height: 1.6; margin-bottom: 24px; }
+.vm-close {
+  background: linear-gradient(135deg, #4a3008, #8a5810);
+  border: 2px solid #ffd54f;
+  border-radius: 10px;
+  color: #ffd54f;
+  font-size: 15px;
+  font-family: var(--font-ui);
+  font-weight: 800;
+  padding: 10px 30px;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.vm-close:hover { transform:scale(1.05); box-shadow:0 0 20px rgba(255,213,79,0.4); }

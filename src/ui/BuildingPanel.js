@@ -3,8 +3,8 @@
 */
 
 class BuildingPanel {
-  constructor(bm, rm, tm) {
-    this.bm = bm; this.rm = rm; this.tm = tm;
+  constructor(bm, rm, tm, pm, zm) {
+    this.bm = bm; this.rm = rm; this.tm = tm; this.pm_pan = pm; this.zm = zm;
     this.currentCell = null;
     this._createDrawer();
     this._createTalentPanel();
@@ -42,6 +42,8 @@ class BuildingPanel {
             '<button class="tp-tab-btn tp-tab-active" data-tp="drachmes">🪙 Drachmes</button>' +
             '<button class="tp-tab-btn" data-tp="ether">✨ Éther</button>' +
             '<button class="tp-tab-btn" data-tp="codex">📖 Codex</button>' +
+            '<button class="tp-tab-btn" data-tp="pantheon">🏛️ Panthéon</button>' +
+            '<button class="tp-tab-btn" data-tp="zones">🗺️ Zones</button>' +
           '</div>' +
           '<button class="tp-close" id="tp-close">✕</button>' +
         '</div>' +
@@ -139,6 +141,10 @@ class BuildingPanel {
       this._renderEtherTree(el);
     } else if (tab === 'codex') {
       this._renderCodexTab(el);
+    } else if (tab === 'pantheon') {
+      this._renderPantheonTab(el);
+    } else if (tab === 'zones') {
+      this._renderZonesTab(el);
     }
   }
 
@@ -1326,6 +1332,622 @@ class BuildingPanel {
   }
 
   // ── UI Autel de Prométhée ────────────────────────────────
+
+
+
+  // ── Zones Divines (Phase 8) ─────────────────────────────
+  _renderZonesTab(el) {
+    var self = this;
+    var zm   = this.zm || (window.game && window.game.zoneManager);
+    var pm   = window.game && window.game.prestigeManager;
+    var rm   = this.rm;
+
+    if (!zm) {
+      el.innerHTML = '<div style="padding:24px;text-align:center;color:#888">Zones non initialisées.</div>';
+      return;
+    }
+
+    var zones    = zm.getZoneUIData();
+    var curses   = zm.getActiveCurses();
+    var ether    = rm ? Math.floor(rm.get('ether')) : 0;
+    var liveScore = pm ? pm.getLiveScore() : 0;
+
+    // ── En-tête ──────────────────────────────────────────
+    var html =
+      '<div class="zn-wrap">' +
+
+      // Résumé malédictions actives
+      (curses.length > 0 ?
+        '<div class="zn-curse-bar">' +
+          '<span class="zn-curse-icon">⚠️</span>' +
+          '<span class="zn-curse-text">' + curses.length + ' malédiction(s) active(s) — Production ×' +
+            zm.getCurseMult().toFixed(2) + '</span>' +
+        '</div>'
+      : '') +
+
+      // Score actuel
+      '<div class="zn-score-row">' +
+        '<span class="zn-score-label">⭐ Score Renaissance actuel</span>' +
+        '<span class="zn-score-val">' + liveScore.toLocaleString() + '</span>' +
+      '</div>';
+
+    // ── Craft slots actifs ───────────────────────────────
+    var crafting = zones.filter(function(z){ return z.state.craftStarted && !z.state.craftDone; });
+    if (crafting.length > 0) {
+      html += '<div class="zn-craft-active">';
+      crafting.forEach(function(z) {
+        var pct = Math.round((z.state.craftProgress / z.def.keyCraftTime) * 100);
+        var rem = Math.ceil(z.def.keyCraftTime - z.state.craftProgress);
+        html +=
+          '<div class="zn-craft-slot">' +
+            '<span>' + z.def.icon + ' Clé de ' + z.def.god + '</span>' +
+            '<div class="zn-craft-bar"><div class="zn-craft-fill" style="width:' + pct + '%;background:' + z.def.color + '"></div></div>' +
+            '<span class="zn-craft-rem">' + rem + 's</span>' +
+          '</div>';
+      });
+      html += '</div>';
+    }
+
+    // ── Cartes de zones ──────────────────────────────────
+    html += '<div class="zn-grid">';
+
+    zones.forEach(function(z) {
+      var def   = z.def;
+      var state = z.state;
+      var conds = z.conditions;
+      var stage = z.stage;
+
+      var statusClass = state.unlocked ? 'zn-card-unlocked' : (stage ? 'zn-card-cursed' : 'zn-card-locked');
+      var statusLabel = state.unlocked ? '✅ Conquise' :
+                        (stage ? ('⚠️ ' + stage.label) : '🔒 Verrouillée');
+
+      html += '<div class="zn-card ' + statusClass + '" style="--zone-color:' + def.color + '">' +
+
+        // Header carte
+        '<div class="zn-card-head">' +
+          '<span class="zn-card-icon">' + def.icon + '</span>' +
+          '<div class="zn-card-info">' +
+            '<div class="zn-card-name" style="color:' + def.color + '">' + def.god + '</div>' +
+            '<div class="zn-card-biome">' + def.biome + '</div>' +
+          '</div>' +
+          '<div class="zn-card-status ' + statusClass + '">' + statusLabel + '</div>' +
+        '</div>';
+
+      if (state.unlocked) {
+        // Zone conquise : affiche production
+        html +=
+          '<div class="zn-prod">' +
+            Object.entries(def.zoneProduction).map(function(e){ return '▶ +' + e[1] + ' ' + e[0] + '/s'; }).join('  ') +
+          '</div>';
+        if (state.residualCurse && !state.templeBuilt) {
+          html += '<div class="zn-residual">⚠️ Malédiction résiduelle -10% — construisez un Temple</div>';
+        }
+      } else {
+        // Conditions
+        html += '<div class="zn-conds">';
+        conds.forEach(function(c) {
+          var ci = c.ok ? 'zn-cond-ok' : 'zn-cond-no';
+          var val = c.value ? ' (' + c.value + ')' : '';
+          if (c.crafting) {
+            var pct2 = Math.round((c.progress / c.total) * 100);
+            html += '<div class="zn-cond ' + ci + '">' +
+              (c.ok ? '✅' : '⚙️') + ' ' + c.label +
+              '<div class="zn-craft-bar-sm"><div style="width:' + pct2 + '%;background:' + def.color + ';height:100%;border-radius:2px"></div></div>' +
+            '</div>';
+          } else {
+            html += '<div class="zn-cond ' + ci + '">' +
+              (c.ok ? '✅' : '⬜') + ' ' + c.label + val + '</div>';
+          }
+        });
+        html += '</div>';
+
+        // Bouton craft
+        if (!state.craftStarted && !state.craftDone) {
+          var ingList = Object.entries(def.keyIngredients).map(function(e){ return e[1] + ' ' + e[0]; }).join(', ');
+          var canAfford = rm ? rm.canAfford(def.keyIngredients) : false;
+          var slotsFull = crafting.length >= z.maxCraftSlots;
+          html +=
+            '<div class="zn-key-section">' +
+              '<div class="zn-key-label">🗝️ Clé Divine (' + def.keyCraftTime + 's) : ' + ingList + '</div>' +
+              (slotsFull ?
+                '<button class="zn-btn zn-btn-disabled">Slots pleins (' + z.maxCraftSlots + '/' + z.maxCraftSlots + ')</button>' :
+                '<button class="zn-btn' + (canAfford ? '' : ' zn-btn-disabled') + '" data-zone-craft="' + def.id + '">' +
+                  (canAfford ? '⚒️ Crafter la Clé' : '🔒 Ressources insuffisantes') + '</button>'
+              ) +
+            '</div>';
+        } else if (state.craftDone) {
+          html += '<div class="zn-key-ready">🗝️ Clé Divine prête !</div>';
+        }
+
+        // Rituel Déméter
+        if (def.id === 'demeter' && !state.ritualDone) {
+          var hasAmbroisie = rm ? rm.canAfford({ ambroisie: def.ritualAmount }) : false;
+          html +=
+            '<div class="zn-ritual-section">' +
+              '<div class="zn-ritual-label">🕯️ ' + def.ritual + '</div>' +
+              '<button class="zn-btn' + (hasAmbroisie ? '' : ' zn-btn-disabled') + '" data-zone-ritual="demeter">' +
+                (hasAmbroisie ? '🌿 Accomplir le Rituel (-' + def.ritualAmount + ' Ambroisie)' : '🔒 ' + def.ritualAmount + ' Ambroisie requise') +
+              '</button>' +
+            '</div>';
+        }
+
+        // Bouton déverrouillage
+        if (z.canUnlock) {
+          html +=
+            '<button class="zn-btn zn-btn-unlock" data-zone-unlock="' + def.id + '">' +
+              '⚡ Conquérir la Zone de ' + def.god + ' !</button>';
+        }
+
+        // Malédiction en cours
+        if (stage) {
+          var mins = Math.floor(state.curseMinutes || 0);
+          html +=
+            '<div class="zn-curse-detail">' +
+              '<span>💀 ' + stage.label + '</span>' +
+              '<span class="zn-curse-timer">' + mins + ' min</span>' +
+            '</div>';
+        }
+      }
+
+      html += '</div>'; // zn-card
+    });
+
+    html += '</div></div>'; // zn-grid + zn-wrap
+    el.innerHTML = html;
+
+    // ── Bind boutons ────────────────────────────────────
+    el.querySelectorAll('[data-zone-craft]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var zoneId = btn.dataset.zoneCraft;
+        var result = zm.startCraft(zoneId);
+        if (!result.ok) {
+          EventBus.emit('ui:feedback', { text: result.reason, x: window.innerWidth/2, y: window.innerHeight/2, color: '#e05050' });
+        }
+        self._renderZonesTab(el);
+      });
+    });
+
+    el.querySelectorAll('[data-zone-ritual]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var zoneId = btn.dataset.zoneRitual;
+        var result = zm.performDemeterRitual();
+        if (!result.ok) {
+          EventBus.emit('ui:feedback', { text: result.reason, x: window.innerWidth/2, y: window.innerHeight/2, color: '#e05050' });
+        }
+        self._renderZonesTab(el);
+      });
+    });
+
+    el.querySelectorAll('[data-zone-unlock]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var zoneId = btn.dataset.zoneUnlock;
+        var ok = zm.unlock(zoneId);
+        if (!ok) {
+          EventBus.emit('ui:feedback', { text: 'Conditions non remplies.', x: window.innerWidth/2, y: window.innerHeight/2, color: '#e05050' });
+        }
+        self._renderZonesTab(el);
+      });
+    });
+  }
+
+
+  // ── Panthéon (Phase 7) ─────────────────────────────────
+  _renderPantheonTab(el) {
+    var self = this;
+    var pan  = this.pm_pan || (window.game && window.game.pantheonManager);
+    if (!pan) {
+      el.innerHTML = '<div style="padding:24px;text-align:center;color:#888">Panthéon non initialisé.</div>';
+      return;
+    }
+
+    // Contenu HTML : header info + canvas Albion
+    var ether = this.rm ? Math.floor(this.rm.get('ether')) : 0;
+    var fmtE  = function(v){ return v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e4?(v/1e3).toFixed(1)+'k':String(v); };
+
+    el.innerHTML =
+      '<div id="pan-wrap">' +
+        '<div id="pan-header">' +
+          '<div id="pan-title">🏛️ Panthéon Olympien</div>' +
+          '<div id="pan-ether-count">✨ ' + fmtE(ether) + ' Éther</div>' +
+          '<div id="pan-hint">Cliquez un nœud · Molette/pinch pour zoomer · Glisser pour déplacer</div>' +
+        '</div>' +
+        '<div id="pan-canvas-wrap">' +
+          '<canvas id="pan-canvas"></canvas>' +
+        '</div>' +
+        '<div id="pan-tooltip" class="pan-tt hidden"></div>' +
+      '</div>';
+
+    // Laisser le DOM s'insérer avant d'initialiser le canvas
+    requestAnimationFrame(function() {
+      self._initPantheonCanvas(pan, el);
+    });
+  }
+
+  _initPantheonCanvas(pan, container) {
+    var self   = this;
+    var canvas = document.getElementById('pan-canvas');
+    if (!canvas) return;
+
+    var wrap = document.getElementById('pan-canvas-wrap');
+    var W = wrap.offsetWidth  || 800;
+    var H = wrap.offsetHeight || 600;
+    canvas.width  = W;
+    canvas.height = H;
+    var ctx = canvas.getContext('2d');
+
+    // Layout
+    var CX = W / 2, CY = H / 2;
+    var RING_R = [0, 130, 260, 390];   // rayon de chaque anneau (0=centre)
+    var NODE_R = 22;                   // rayon visuel des nœuds
+
+    // Couleurs
+    var BRANCH_COLOR = {};
+    pan.getAllBranches().forEach(function(b){ BRANCH_COLOR[b.id] = b.color; });
+
+    // État caméra (pan/zoom)
+    var cam = { x: 0, y: 0, scale: 1 };
+    var drag = { active: false, sx: 0, sy: 0, cx: 0, cy: 0 };
+    var pinchDist = null;
+
+    // Précalcul positions des nœuds
+    var nodePos = {};  // nodeId → {x, y, branchId, ring, slot}
+    var NODES   = pan.getAllNodes();
+    var BRANCHES= pan.getAllBranches();
+
+    BRANCHES.forEach(function(branch) {
+      var angle = branch.angle;
+      // 5 nœuds par anneau, disposés en éventail autour de l'angle principal
+      [1,2,3].forEach(function(ring) {
+        for (var slot = 0; slot < 5; slot++) {
+          var nodeId = null;
+          // Chercher le nœud correspondant
+          for (var nid in NODES) {
+            var nd = NODES[nid];
+            if (nd.branch === branch.id && nd.ring === ring && nd.slot === slot) {
+              nodeId = nid; break;
+            }
+          }
+          if (!nodeId) return;
+          var r = RING_R[ring];
+          // Spread angulaire : -2 à +2 slots * 0.18 rad
+          var spread = (slot - 2) * 0.18;
+          var a = angle + spread;
+          nodePos[nodeId] = { x: CX + Math.cos(a)*r, y: CY + Math.sin(a)*r, branchId: branch.id, ring: ring, slot: slot };
+        }
+      });
+    });
+
+    // ── Dessin ──────────────────────────────────────────────
+    function toScreen(wx, wy) {
+      return { x: (wx - CX) * cam.scale + CX + cam.x, y: (wy - CY) * cam.scale + CY + cam.y };
+    }
+    function toWorld(sx, sy) {
+      return { x: (sx - CX - cam.x) / cam.scale + CX, y: (sy - CY - cam.y) / cam.scale + CY };
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
+
+      // Fond étoilé
+      ctx.fillStyle = '#07051a';
+      ctx.fillRect(0, 0, W, H);
+
+      // Cercles de guide (anneaux)
+      ctx.save();
+      [1,2,3].forEach(function(ring) {
+        var r = RING_R[ring] * cam.scale;
+        var sc = toScreen(CX, CY);
+        ctx.beginPath();
+        ctx.arc(sc.x, sc.y, r, 0, Math.PI*2);
+        ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      });
+      ctx.restore();
+
+      // Rayons des branches
+      BRANCHES.forEach(function(branch) {
+        var maxR = RING_R[3] * cam.scale;
+        var sc0  = toScreen(CX, CY);
+        var unlocked = pan.isBranchUnlocked(branch.id);
+        ctx.beginPath();
+        ctx.moveTo(sc0.x, sc0.y);
+        ctx.lineTo(sc0.x + Math.cos(branch.angle) * maxR * 1.05, sc0.y + Math.sin(branch.angle) * maxR * 1.05);
+        ctx.strokeStyle = unlocked ? (branch.color + '22') : 'rgba(100,100,100,0.08)';
+        ctx.lineWidth = unlocked ? 2 : 1;
+        ctx.stroke();
+
+        // Label de branche à bord
+        var labelR = (RING_R[3] + 42) * cam.scale;
+        var lsc = { x: sc0.x + Math.cos(branch.angle)*labelR, y: sc0.y + Math.sin(branch.angle)*labelR };
+        ctx.font = (11 * Math.min(cam.scale, 1)) + 'px "Cinzel Decorative", Cinzel, serif';
+        ctx.fillStyle = unlocked ? branch.color : '#404040';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(branch.icon + ' ' + branch.label, lsc.x, lsc.y);
+      });
+
+      // Lignes de connexion (prérequis → nœud)
+      for (var nid in NODES) {
+        var nd  = NODES[nid];
+        var pos = nodePos[nid];
+        if (!pos) continue;
+        (nd.requires || []).forEach(function(reqId) {
+          var rpos = nodePos[reqId];
+          if (!rpos) return;
+          var ps = toScreen(pos.x, pos.y);
+          var rs = toScreen(rpos.x, rpos.y);
+          var state  = pan.getNodeState(nid);
+          var rstate = pan.getNodeState(reqId);
+          var color  = (rstate === 'learned') ? (BRANCH_COLOR[nd.branch] + '80') : 'rgba(80,80,80,0.3)';
+          ctx.beginPath();
+          ctx.moveTo(rs.x, rs.y);
+          ctx.lineTo(ps.x, ps.y);
+          ctx.strokeStyle = color;
+          ctx.lineWidth = (rstate === 'learned') ? 2 : 1;
+          ctx.stroke();
+        });
+      }
+
+      // Nœuds
+      for (var nid in NODES) {
+        var nd  = NODES[nid];
+        var pos = nodePos[nid];
+        if (!pos) continue;
+        var ps    = toScreen(pos.x, pos.y);
+        var r     = NODE_R * Math.min(cam.scale, 1.4);
+        var state = pan.getNodeState(nid);
+        var color = BRANCH_COLOR[nd.branch] || '#888';
+        var pts   = pan.invested[nid] || 0;
+        var unlocked = pan.isBranchUnlocked(nd.branch);
+
+        // Glow pour les nœuds appris / disponibles
+        if (state === 'learned') {
+          ctx.save();
+          ctx.shadowColor = color; ctx.shadowBlur = 12 * cam.scale;
+          ctx.beginPath(); ctx.arc(ps.x, ps.y, r+3, 0, Math.PI*2);
+          ctx.fillStyle = color + '20'; ctx.fill(); ctx.restore();
+        } else if (state === 'available') {
+          ctx.save();
+          ctx.shadowColor = color; ctx.shadowBlur = 6 * cam.scale;
+        }
+
+        // Cercle principal
+        ctx.beginPath(); ctx.arc(ps.x, ps.y, r, 0, Math.PI*2);
+        if (state === 'learned') {
+          var grad = ctx.createRadialGradient(ps.x, ps.y, 0, ps.x, ps.y, r);
+          grad.addColorStop(0, color + 'cc');
+          grad.addColorStop(1, color + '44');
+          ctx.fillStyle = grad;
+        } else if (state === 'available') {
+          ctx.fillStyle = '#1a1530';
+        } else {
+          ctx.fillStyle = unlocked ? '#0f0d20' : '#0a0a0a';
+        }
+        ctx.fill();
+
+        // Bordure
+        ctx.beginPath(); ctx.arc(ps.x, ps.y, r, 0, Math.PI*2);
+        if (state === 'learned') ctx.strokeStyle = color;
+        else if (state === 'available') ctx.strokeStyle = color + 'aa';
+        else ctx.strokeStyle = unlocked ? '#444' : '#222';
+        ctx.lineWidth = state === 'learned' ? 2.5 : 1.5;
+        ctx.stroke();
+
+        if (state === 'available') ctx.restore();
+
+        // Icône
+        var fontSize = Math.round(r * 0.85);
+        ctx.font = fontSize + 'px serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.globalAlpha = (state === 'locked' && !unlocked) ? 0.2 : (state === 'locked' ? 0.4 : 1);
+        ctx.fillText(nd.icon, ps.x, ps.y);
+        ctx.globalAlpha = 1;
+
+        // Badge "xN" pour les nœuds uncapped investis
+        if (nd.uncapped && pts > 0) {
+          var br = r * 0.45;
+          var bx = ps.x + r*0.65, by = ps.y - r*0.65;
+          ctx.beginPath(); ctx.arc(bx, by, br, 0, Math.PI*2);
+          ctx.fillStyle = '#ffd54f'; ctx.fill();
+          ctx.font = 'bold ' + Math.round(br*1.1) + 'px sans-serif';
+          ctx.fillStyle = '#1a1000'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText('×'+pts, bx, by);
+        }
+      }
+
+      // Nœud central
+      var cs = toScreen(CX, CY);
+      var cr = 30 * Math.min(cam.scale, 1.4);
+      ctx.save();
+      ctx.shadowColor = '#ffd54f'; ctx.shadowBlur = 20;
+      ctx.beginPath(); ctx.arc(cs.x, cs.y, cr, 0, Math.PI*2);
+      var cg = ctx.createRadialGradient(cs.x, cs.y, 0, cs.x, cs.y, cr);
+      cg.addColorStop(0, '#fff8dc'); cg.addColorStop(1, '#c8961a44');
+      ctx.fillStyle = cg; ctx.fill();
+      ctx.strokeStyle = '#ffd54f'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.restore();
+      ctx.font = Math.round(cr*0.8) + 'px serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('🏛️', cs.x, cs.y);
+    }
+
+    draw();
+
+    // ── Tooltip ─────────────────────────────────────────────
+    var ttEl = document.getElementById('pan-tooltip');
+
+    function showTooltip(nodeId, screenX, screenY) {
+      if (!ttEl) return;
+      var nd    = NODES[nodeId];
+      if (!nd) return;
+      var state  = pan.getNodeState(nodeId);
+      var pts    = pan.invested[nodeId] || 0;
+      var branch = pan.getAllBranches().find(function(b){ return b.id === nd.branch; });
+      var color  = branch ? branch.color : '#888';
+      var check  = pan.canLearn(nodeId);
+      var etherCost = nd.cost;
+
+      var uncappedInfo = '';
+      if (nd.uncapped && pts > 0) {
+        var ethSpent = pan.pantheonManager ? (pan._etherInUncapped[nodeId] || 0) : (pan._etherInUncapped[nodeId] || 0);
+        uncappedInfo = '<div class="pan-tt-uncapped">Investi : ' + ethSpent + ' Éther (×' + pts + ')</div>';
+      }
+
+      ttEl.innerHTML =
+        '<div class="pan-tt-header" style="color:' + color + '">' + nd.icon + ' ' + nd.name + '</div>' +
+        '<div class="pan-tt-branch">' + (branch ? branch.icon + ' ' + branch.label : '') + ' — Anneau ' + nd.ring + '</div>' +
+        '<div class="pan-tt-desc">' + nd.desc + '</div>' +
+        uncappedInfo +
+        '<div class="pan-tt-cost ' + (state==='learned'?'pan-tt-learned':check.ok?'pan-tt-ok':'pan-tt-locked') + '">' +
+          (state==='learned' && !nd.uncapped ? '✅ Acquis' :
+           check.ok ? '✨ ' + etherCost + ' Éther' : '🔒 ' + check.reason) +
+        '</div>';
+
+      // Position : éviter de déborder
+      var tw = 220, th = 120;
+      var wrap = document.getElementById('pan-canvas-wrap');
+      var wr   = wrap ? wrap.getBoundingClientRect() : {left:0,top:0,width:W,height:H};
+      var lx   = screenX - wr.left + 14;
+      var ly   = screenY - wr.top  - 10;
+      if (lx + tw > wr.width)  lx = screenX - wr.left - tw - 14;
+      if (ly + th > wr.height) ly = screenY - wr.top  - th - 10;
+      ttEl.style.left = lx + 'px'; ttEl.style.top = ly + 'px';
+      ttEl.classList.remove('hidden');
+    }
+
+    function hideTooltip() { if (ttEl) ttEl.classList.add('hidden'); }
+
+    // ── Événements souris/tactile ────────────────────────────
+    function getNodeAt(wx, wy) {
+      for (var nid in nodePos) {
+        var pos = nodePos[nid];
+        var dx  = wx - pos.x, dy = wy - pos.y;
+        if (dx*dx + dy*dy <= NODE_R*NODE_R*1.5) return nid;
+      }
+      return null;
+    }
+
+    canvas.addEventListener('mousedown', function(e) {
+      drag.active = true;
+      drag.sx = e.clientX; drag.sy = e.clientY;
+      drag.cx = cam.x;     drag.cy = cam.y;
+    });
+    canvas.addEventListener('mousemove', function(e) {
+      if (drag.active) {
+        cam.x = drag.cx + (e.clientX - drag.sx);
+        cam.y = drag.cy + (e.clientY - drag.sy);
+        draw(); hideTooltip();
+      } else {
+        var wpos = toWorld(e.offsetX, e.offsetY);
+        var nid  = getNodeAt(wpos.x, wpos.y);
+        if (nid) { canvas.style.cursor = 'pointer'; showTooltip(nid, e.clientX, e.clientY); }
+        else     { canvas.style.cursor = 'default';  hideTooltip(); }
+      }
+    });
+    canvas.addEventListener('mouseup', function(e) {
+      if (!drag.active) return;
+      var moved = Math.abs(e.clientX-drag.sx) + Math.abs(e.clientY-drag.sy);
+      drag.active = false;
+      if (moved < 5) {
+        var wpos = toWorld(e.offsetX, e.offsetY);
+        var nid  = getNodeAt(wpos.x, wpos.y);
+        if (nid) {
+          if (pan.learn(nid, e.clientX, e.clientY)) {
+            draw();
+            // Mettre à jour le compteur Éther dans l'en-tête
+            var etherEl = document.getElementById('pan-ether-count');
+            var newEth  = self.rm ? Math.floor(self.rm.get('ether')) : 0;
+            var fmtE2   = function(v){ return v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e4?(v/1e3).toFixed(1)+'k':String(v); };
+            if (etherEl) etherEl.textContent = '✨ ' + fmtE2(newEth) + ' Éther';
+            showTooltip(nid, e.clientX, e.clientY);
+          }
+        }
+      }
+    });
+    canvas.addEventListener('mouseleave', function(){ drag.active = false; hideTooltip(); });
+
+    // Molette = zoom
+    canvas.addEventListener('wheel', function(e) {
+      e.preventDefault();
+      var delta  = e.deltaY < 0 ? 1.1 : 0.91;
+      var mx = e.offsetX, my = e.offsetY;
+      var wx = (mx - CX - cam.x) / cam.scale + CX;
+      var wy = (my - CY - cam.y) / cam.scale + CY;
+      cam.scale = Math.min(2.5, Math.max(0.35, cam.scale * delta));
+      cam.x = mx - CX - (wx - CX) * cam.scale;
+      cam.y = my - CY - (wy - CY) * cam.scale;
+      draw();
+    }, { passive: false });
+
+    // Tactile : pinch zoom + drag
+    canvas.addEventListener('touchstart', function(e) {
+      if (e.touches.length === 1) {
+        drag.active = true;
+        drag.sx = e.touches[0].clientX; drag.sy = e.touches[0].clientY;
+        drag.cx = cam.x; drag.cy = cam.y;
+      } else if (e.touches.length === 2) {
+        drag.active = false;
+        var dx = e.touches[0].clientX - e.touches[1].clientX;
+        var dy = e.touches[0].clientY - e.touches[1].clientY;
+        pinchDist = Math.sqrt(dx*dx + dy*dy);
+      }
+      e.preventDefault();
+    }, { passive: false });
+    canvas.addEventListener('touchmove', function(e) {
+      if (e.touches.length === 1 && drag.active) {
+        cam.x = drag.cx + (e.touches[0].clientX - drag.sx);
+        cam.y = drag.cy + (e.touches[0].clientY - drag.sy);
+        draw();
+      } else if (e.touches.length === 2 && pinchDist !== null) {
+        var dx = e.touches[0].clientX - e.touches[1].clientX;
+        var dy = e.touches[0].clientY - e.touches[1].clientY;
+        var d  = Math.sqrt(dx*dx + dy*dy);
+        var delta = d / pinchDist;
+        cam.scale = Math.min(2.5, Math.max(0.35, cam.scale * delta));
+        pinchDist = d;
+        draw();
+      }
+      e.preventDefault();
+    }, { passive: false });
+    canvas.addEventListener('touchend', function(e) {
+      if (e.changedTouches.length === 1 && drag.active) {
+        var t = e.changedTouches[0];
+        var moved = Math.abs(t.clientX-drag.sx) + Math.abs(t.clientY-drag.sy);
+        drag.active = false; pinchDist = null;
+        if (moved < 12) {
+          var rect = canvas.getBoundingClientRect();
+          var ox   = t.clientX - rect.left;
+          var oy   = t.clientY - rect.top;
+          var wpos = toWorld(ox, oy);
+          var nid  = getNodeAt(wpos.x, wpos.y);
+          if (nid) { pan.learn(nid, t.clientX, t.clientY); draw(); }
+        }
+      } else { drag.active = false; pinchDist = null; }
+    });
+
+    // Redimensionnement : recalcule canvas si le panel change de taille
+    var ro = new ResizeObserver(function() {
+      var nW = wrap.offsetWidth, nH = wrap.offsetHeight;
+      if (nW > 0 && nH > 0 && (nW !== W || nH !== H)) {
+        W = nW; H = nH; CX = W/2; CY = H/2;
+        canvas.width = W; canvas.height = H;
+        // Recalculer positions nœuds
+        for (var nid in nodePos) {
+          var pos = nodePos[nid];
+          var nd  = NODES[nid];
+          var b   = pan.getAllBranches().find(function(br){ return br.id === nd.branch; });
+          if (!b) continue;
+          var r  = RING_R[nd.ring];
+          var sp = (nd.slot - 2) * 0.18;
+          var a  = b.angle + sp;
+          pos.x = CX + Math.cos(a)*r; pos.y = CY + Math.sin(a)*r;
+        }
+        draw();
+      }
+    });
+    ro.observe(wrap);
+  }
+
 
   // ── Codex Olympien (Phase 6) ────────────────────────────
   _renderCodexTab(el) {

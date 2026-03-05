@@ -817,6 +817,14 @@ class BuildingManager {
     this.rm.happinessScore = happinessScore;
     EventBus.emit('happiness:updated', { score: happinessScore });
 
+    // Appliquer malédiction des Zones Divines (Phase 8)
+    const curseMult = this._curseMult || 1.0;
+    if (curseMult < 1.0) {
+      Object.keys(rates).forEach(k => {
+        if (k !== 'ether' && rates[k] > 0) rates[k] *= curseMult;
+      });
+    }
+
     // Appliquer les rates
     Object.entries(rates).forEach(([k,v]) => this.rm.setRate(k, v));
     this.rm.survivantsAssigned = workersUsed;

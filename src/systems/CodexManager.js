@@ -64,11 +64,20 @@ class CodexManager {
     // Bonus slots : +15 pages par slot acheté
     var slotBonus = this.bonusPageSlots * 15;
 
-    var total = base + buildingBonus + eraBonus + zoneBonus + slotBonus;
+    // Bonus Panthéon (nœuds her_r1_1, her_r2_1, etc.)
+    var pantheonFlatBonus = 0;
+    var pantheonPctBonus  = 0;
+    if (typeof window !== 'undefined' && window.game && window.game.pantheonManager) {
+      pantheonFlatBonus = window.game.pantheonManager.getCodexPagesBonus();
+      pantheonPctBonus  = window.game.pantheonManager.getCodexPagesPctBonus();
+    }
+
+    var total = base + buildingBonus + eraBonus + zoneBonus + slotBonus + pantheonFlatBonus;
 
     // Pages Dorées : x multiplicateur
     var goldenMult = [1, 1.5, 2.25, 3.0][this.goldenPagesLevel] || 1;
-    return Math.floor(total * goldenMult);
+    var finalMult = goldenMult * (1 + pantheonPctBonus / 100);
+    return Math.floor(total * finalMult);
   }
 
   // ── Ajouter des pages (appelé lors du prestige) ──────────

@@ -60,17 +60,29 @@ class GameLoop {
     this.buildingManager._recalculateAllRates();
     this.scoutManager    = new ScoutManager(this.grid, this.buildingManager);
     this.codexManager    = new CodexManager(this.grid, this.resources, this.buildingManager);
+    this.pantheonManager = new PantheonManager(this.resources, this.codexManager);
+    this.zoneManager     = new ZoneManager(this.grid, this.resources, null, null, this.codexManager);
     this.prestigeManager = new PrestigeManager(this.grid, this.resources, this.buildingManager);
     this.prestigeManager.talentManager = this.talentManager;
     this.prestigeManager.codexManager  = this.codexManager;
     this.codexManager.talentManager    = this.talentManager;
+    // Phase 8 : ZoneManager dépendances
+    this.zoneManager.bm              = this.buildingManager;
+    this.zoneManager.pm              = this.prestigeManager;
+    this.zoneManager.pantheonManager = this.pantheonManager;
     if (savedData && savedData.prestige) this.prestigeManager.deserialize(savedData.prestige);
     if (savedData && savedData.codex)    this.codexManager.deserialize(savedData.codex);
+    if (savedData && savedData.pantheon) this.pantheonManager.deserialize(savedData.pantheon);
+    if (savedData && savedData.zones)    this.zoneManager.deserialize(savedData.zones);
     // Restaurer hiddenAt pour offline progress
     if (savedData && savedData.hiddenAt) {
       this._hiddenAt = savedData.hiddenAt;
     }
-    window.game = window.game || {}; window.game.prestigeManager = this.prestigeManager;
+    window.game = window.game || {};
+    window.game.prestigeManager = this.prestigeManager;
+    window.game.codexManager    = this.codexManager;
+    window.game.pantheonManager = this.pantheonManager;
+    window.game.zoneManager     = this.zoneManager;
 
     this._loadProgress(75, 'Restauration de la civilisation...');
     await this._sleep(150);
@@ -79,7 +91,9 @@ class GameLoop {
     this.hud           = new HUD(this.resources, this.grid);
     this.hud.prestige  = this.prestigeManager;
     this.hud.codex     = this.codexManager;
-    this.buildingPanel = new BuildingPanel(this.buildingManager, this.resources, this.talentManager);
+    this.hud.pantheon  = this.pantheonManager;
+    this.hud.zones     = this.zoneManager;
+    this.buildingPanel = new BuildingPanel(this.buildingManager, this.resources, this.talentManager, this.pantheonManager, this.zoneManager);
     this.helpPanel     = new HelpPanel();
     this.offlineModal  = new OfflineModal();
     window._talentPanel = this.buildingPanel;
@@ -139,6 +153,19 @@ class GameLoop {
     this.resources.tick(1);
     this.hud.tickIncrement();
     if (this.scoutManager) this.scoutManager.tick(1);
+    if (this.zoneManager)  this.zoneManager.update(this.TICK_RATE / 1000);
+    // Appliquer le multiplicateur de malédiction sur les ressources
+    if (this.zoneManager) {
+      const curseMult = this.zoneManager.getCurseMult();
+      if (curseMult < 1.0) {
+        // On stocke le mult pour que BuildingManager l'applique
+        this._curseMult = curseMult;
+        if (this.buildingManager) this.buildingManager._curseMult = curseMult;
+      } else {
+        this._curseMult = 1.0;
+        if (this.buildingManager) this.buildingManager._curseMult = 1.0;
+      }
+    }
   }
 
   // ── Événements globaux ───────────────────────────────────
@@ -244,6 +271,8 @@ class GameLoop {
       talents:   this.talentManager.serialize(),
       prestige:  this.prestigeManager.serialize(),
       codex:     this.codexManager    ? this.codexManager.serialize() : null,
+      pantheon:  this.pantheonManager ? this.pantheonManager.serialize() : null,
+      zones:     this.zoneManager     ? this.zoneManager.serialize()     : null,
       hiddenAt:  this._hiddenAt || null,
     });
     // Sync Drive si connecté (sans bloquer)
