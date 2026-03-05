@@ -310,9 +310,16 @@ class HUD {
       }
     });
 
-    // Bouton Talents footer mobile
+    // Bouton Talents footer mobile → déclenche le même btn-talents (BuildingPanel)
     document.getElementById('btn-talents-mob')?.addEventListener('click', () => {
-      EventBus.emit('talents:open');
+      // Simuler un click sur btn-talents qui est bindé dans BuildingPanel
+      const realBtn = document.getElementById('btn-talents');
+      if (realBtn) {
+        realBtn.click();
+      } else {
+        // Fallback : émettre un event que BuildingPanel peut écouter
+        EventBus.emit('talents:toggle');
+      }
     });
 
     // ── Boutons PC ───────────────────────────────────────

@@ -401,18 +401,29 @@
   #era-badge { display: none !important; }
 
   /* Barre ressources scrollable */
+  #hud-top {
+    overflow: hidden;
+    touch-action: pan-x;   /* header réserve le swipe horizontal */
+  }
   #resources-bar {
     flex: 1;
     display: flex;
     gap: 6px;
-    overflow-x: auto;
+    overflow-x: scroll;
     overflow-y: hidden;
     align-items: center;
-    padding: 6px 0;
+    padding: 6px 4px;
     -webkit-overflow-scrolling: touch;
-    scroll-snap-type: x proximity;
+    touch-action: pan-x pinch-zoom;
+    overscroll-behavior-x: contain;
   }
   #resources-bar::-webkit-scrollbar { display: none; }
+  /* Chaque item : pas d'interférence tactile */
+  #resources-bar .resource-item {
+    touch-action: pan-x;
+    user-select: none;
+    -webkit-user-select: none;
+  }
 
   /* Chaque ressource : icône à gauche, valeur + income à droite */
   .resource-item {
@@ -521,7 +532,7 @@
     background: linear-gradient(0deg, rgba(8,6,18,0.98) 0%, rgba(12,9,22,0.95) 100%);
     border-top: 1px solid rgba(200,149,26,0.3);
     position: relative;
-    z-index: 200;
+    z-index: 600;   /* au-dessus du drawer (200) et zoom (300) */
   }
 
   #info-text {

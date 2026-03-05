@@ -1340,6 +1340,7 @@ class BuildingPanel {
     EventBus.on('cell:revealed',       function(d) { if (self.currentCell && self.currentCell.key === d.cell.key) self.refresh(); });
     // resources:updated géré par le HUD uniquement (pas de refresh panel à chaque tick)
     EventBus.on('talent:applied',      function()  { if (self.currentCell) self.refresh(); });
+    EventBus.on('talents:toggle',       function()  { self.toggleTalents(); });
     EventBus.on('road:placed',         function()  { if (self.currentCell) self.refresh(); });
     EventBus.on('road:removed',        function()  { if (self.currentCell) self.refresh(); });
     EventBus.on('terrain:transformed', function()  { if (self.currentCell) self.refresh(); });

@@ -27,6 +27,9 @@ class Camera {
   _centerOnOrigin() {
     this.x = this.canvas.width  / 2;
     this.y = this.canvas.height / 2;
+    this._originX = this.x;
+    this._originY = this.y;
+    this._originZoom = this.zoom;
   }
 
   // ── Transformation ──────────────────────────────────────
@@ -72,8 +75,10 @@ class Camera {
   }
 
   resetView() {
-    this._centerOnOrigin();
-    this.zoom = 1.0;
+    // Revenir exactement à la position et zoom d'origine
+    this.x    = this._originX    ?? this.canvas.width  / 2;
+    this.y    = this._originY    ?? this.canvas.height / 2;
+    this.zoom = this._originZoom ?? 1.0;
   }
 
   // ── Événements Souris ───────────────────────────────────
@@ -126,8 +131,11 @@ class Camera {
 
       if (touches.length === 1 && this._touches.length === 1) {
         // Pan
-        this.x += touches[0].clientX - this._touches[0].clientX;
-        this.y += touches[0].clientY - this._touches[0].clientY;
+        const dx = touches[0].clientX - this._touches[0].clientX;
+        const dy = touches[0].clientY - this._touches[0].clientY;
+        if (Math.abs(dx) > 2 || Math.abs(dy) > 2) this._hasMoved = true;
+        this.x += dx;
+        this.y += dy;
         EventBus.emit('camera:moved');
       }
       else if (touches.length === 2 && this._touches.length >= 1) {
@@ -174,5 +182,10 @@ class Camera {
   resize(w, h) {
     this.canvas.width  = w;
     this.canvas.height = h;
+    // Mettre à jour l'origine si pas encore déplacé
+    if (!this._hasMoved) {
+      this._originX = w / 2;
+      this._originY = h / 2;
+    }
   }
 }
