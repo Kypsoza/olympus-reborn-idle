@@ -120,7 +120,6 @@
   font-family: var(--font-ui, Cinzel, serif);
   white-space: normal;
   word-break: break-word;
-  max-width: 60px;
   line-height: 1.2;
 }
 

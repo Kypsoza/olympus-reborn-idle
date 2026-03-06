@@ -278,6 +278,7 @@ class BuildingPanel {
       return s;
     }
 
+    var _dtSelected = null;
     function buildSVG() {
       var s = '<svg id="dt-svg" xmlns="http://www.w3.org/2000/svg"'
         + ' width="' + VW + '" height="' + VH + '"'
@@ -345,7 +346,7 @@ class BuildingPanel {
         }
         pts += 'Z';
 
-        s += '<g class="dt-node" data-id="' + id + '" style="cursor:pointer">';
+        s += '<g class="dt-node' + (_dtSelected===id?' dt-selected':'') + '" data-id="' + id + '" style="cursor:pointer">';
         // Glow for learned/available
         if (st !== 'locked') {
           s += '<path d="' + pts + '" fill="' + (st==='learned'?col:'rgba(200,160,60,0.2)') + '"'
@@ -424,8 +425,12 @@ class BuildingPanel {
           e.stopPropagation();
           ttPinned = true;
           curNode = g.dataset.id;
+          _dtSelected = curNode;
           ttBox.innerHTML = buildTT(curNode);
           ttBox.style.display = 'block';
+          // Refresh SVG to show selection highlight
+          var _sw = document.getElementById('dt-scroll-wrap');
+          if (_sw) { _sw.innerHTML = '<div style="min-width:'+VW+'px">'+buildSVG()+'</div>'; bindSVG(_sw.querySelector('#dt-svg')); }
         });
       });
     }
@@ -521,6 +526,15 @@ class BuildingPanel {
       return BCOL[def.branch] || '#888';
     }
 
+    var _etSelected = null;
+    function etHexPts(cx, cy, r) {
+      var pts = '';
+      for (var i = 0; i < 6; i++) {
+        var a = Math.PI / 180 * (60*i - 30);
+        pts += (i===0?'M':'L') + (cx+r*Math.cos(a)).toFixed(1) + ',' + (cy+r*Math.sin(a)).toFixed(1);
+      }
+      return pts + 'Z';
+    }
     function buildSVG() {
       var s = '<svg id="et-svg" xmlns="http://www.w3.org/2000/svg"'
             + ' viewBox="0 0 ' + VW + ' ' + VH + '"'
@@ -541,16 +555,18 @@ class BuildingPanel {
 
       s += '<rect width="' + VW + '" height="' + VH + '" fill="url(#etbg)"/>';
 
-      // Runes mythologiques
+      // Runes animées (style cohérent avec Drachmes)
       var ET_RUNES = ['ᚠ','ᚢ','ᚦ','ᚨ','ᚱ','ᚲ','ᚷ','ᚹ','ᚺ','ᚾ','ᛁ','ᛃ','ᛇ','ᛈ','ᛉ','ᛊ','ᛏ','ᛒ','ᛖ','ᛗ','ᛚ','ᛜ','ᛞ','ᛟ'];
+      s += '<style>@keyframes erG{0%{opacity:0.04}40%{opacity:0.15;fill:rgba(255,140,40,0.22)}60%{opacity:0.09;fill:rgba(180,80,255,0.16)}100%{opacity:0.04}}.er{animation:erG 3.5s ease-in-out infinite;pointer-events:none}.er.ep1{animation-delay:1.1s}.er.ep2{animation-delay:2.2s}</style>';
       for (var ri = 0; ri < 24; ri++) {
-        var rx = 10 + (ri * 137.5) % (VW - 20);
-        var ry = 20 + (ri * 73.1)  % (VH - 30);
-        var rsz = 16 + (ri % 4) * 6;
-        var rop = 0.04 + (ri % 3) * 0.025;
-        s += '<text x="' + rx.toFixed(0) + '" y="' + ry.toFixed(0) + '"'
-          + ' font-size="' + rsz + '" fill="rgba(180,120,255,' + rop.toFixed(3) + ')"'
-          + ' font-family="serif" style="pointer-events:none;user-select:none">'
+        var erx = 10 + (ri * 137.5) % (VW - 20);
+        var ery = 20 + (ri * 73.1)  % (VH - 30);
+        var ersz = 18 + (ri % 4) * 5;
+        var erph = ['','ep1','ep2'][ri%3];
+        s += '<text x="' + erx.toFixed(0) + '" y="' + ery.toFixed(0) + '"'
+          + ' class="er ' + erph + '"'
+          + ' font-size="' + ersz + '" fill="rgba(180,120,255,0.06)"'
+          + ' font-family="serif">'
           + ET_RUNES[ri % ET_RUNES.length] + '</text>';
       }
 
@@ -600,16 +616,20 @@ class BuildingPanel {
         var cursor  = st!=='locked'  ? 'pointer' : 'default';
         var textcol = st==='learned' ? '#e8d8ff' : st==='available' ? '#a0d8f0' : '#484060';
 
-        /* Anneau déco uniquement si learned */
-        if (st === 'learned')
-          s += '<circle cx="' + pos.x + '" cy="' + pos.y + '" r="' + (r+10) + '"'
-             + ' fill="none" stroke="' + bc + '" stroke-width="0.7" opacity="0.2"'
-             + ' stroke-dasharray="3,9"/>';
+        /* Anneau déco hex uniquement si learned */
+        if (st === 'learned') {
+          s += '<path d="' + etHexPts(pos.x, pos.y, r+11) + '"'
+             + ' fill="none" stroke="' + bc + '" stroke-width="0.8" opacity="0.2"'
+             + ' stroke-dasharray="4,8"/>';
+        }
 
-        /* Cercle principal — UNIQUE */
-        s += '<circle cx="' + pos.x + '" cy="' + pos.y + '" r="' + r + '"'
+        /* Hexagone principal */
+        var hpts = etHexPts(pos.x, pos.y, r);
+        s += '<path d="' + hpts + '"'
            + ' fill="' + fill + '" stroke="' + stroke + '" stroke-width="' + sw + '"'
+           + ' stroke-linejoin="round"'
            + (filt ? ' filter="' + filt + '"' : '')
+           + (_etSelected===id ? ' class="et-node-selected"' : '')
            + ' data-enode="' + id + '"'
            + ' style="cursor:' + cursor + ';opacity:' + opacity + '"/>';
 
@@ -702,7 +722,16 @@ class BuildingPanel {
 
     svgEl.addEventListener('click', function(e) {
       var c = e.target.closest('[data-enode]'); if (!c) return;
-      showTooltip(c.dataset.enode);
+      var nid = c.dataset.enode;
+      _etSelected = nid;
+      showTooltip(nid);
+      // Refresh SVG to show selection
+      var newDiv = document.createElement('div');
+      newDiv.innerHTML = buildSVG();
+      var newSvg = newDiv.firstChild;
+      svgEl.parentNode.replaceChild(newSvg, svgEl);
+      svgEl = el.querySelector('#et-svg');
+      svgEl.addEventListener('click', arguments.callee);
     });
 
     ttBox.addEventListener('click', function(e) {
@@ -1571,51 +1600,81 @@ class BuildingPanel {
       cgrad.addColorStop(1, 'rgba(0,0,0,0)');
       ctx.fillStyle = cgrad; ctx.fillRect(0, 0, W, H);
 
-      // Runes mythologiques en arrière-plan
+      // Runes animées (scintillement violet/orange)
+      var now = Date.now() / 1000;
       ctx.save();
-      runePositions.forEach(function(rn) {
+      runePositions.forEach(function(rn, ri) {
         var rs = toScreen(rn.x, rn.y);
+        var phase = ri / runePositions.length * Math.PI * 2;
+        var flicker = 0.5 + 0.5 * Math.sin(now * 0.9 + phase);
+        var isOrange = ri % 3 === 0;
+        var baseOp = rn.opacity;
+        var animOp = baseOp + flicker * baseOp * 2.5;
+        if (isOrange)
+          ctx.fillStyle = 'rgba(255,140,40,' + Math.min(animOp, 0.22) + ')';
+        else
+          ctx.fillStyle = 'rgba(180,80,255,' + Math.min(animOp, 0.18) + ')';
         ctx.font = Math.round(rn.size * cam.scale) + 'px serif';
-        ctx.fillStyle = 'rgba(180,140,255,' + rn.opacity + ')';
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.fillText(rn.ch, rs.x, rs.y);
       });
       ctx.restore();
 
-      // Hexagones de guide (anneaux)
+      // ── Secteurs colorés par dieu ──────────────────────
+      var sc0 = toScreen(CX, CY);
+      var outerR = (RING_R[3] + 30) * cam.scale;
+      BRANCHES.forEach(function(branch) {
+        var unlocked = pan.isBranchUnlocked(branch.id);
+        var angleRange = Math.PI * 2 / BRANCHES.length;
+        var a0 = branch.angle - angleRange * 0.5;
+        var a1 = branch.angle + angleRange * 0.5;
+        // Secteur rempli (très transparent)
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(sc0.x, sc0.y);
+        ctx.arc(sc0.x, sc0.y, outerR, a0, a1);
+        ctx.closePath();
+        ctx.fillStyle = branch.color + (unlocked ? '18' : '08');
+        ctx.fill();
+        ctx.restore();
+
+        // Ligne de division entre secteurs
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(sc0.x, sc0.y);
+        ctx.lineTo(sc0.x + Math.cos(a0) * outerR, sc0.y + Math.sin(a0) * outerR);
+        ctx.strokeStyle = branch.color + (unlocked ? '55' : '22');
+        ctx.lineWidth = unlocked ? 1.5 : 0.7;
+        ctx.stroke();
+        ctx.restore();
+      });
+
+      // Cercles de guide (anneaux)
       ctx.save();
       [1,2,3].forEach(function(ring) {
         var r = RING_R[ring] * cam.scale;
-        var sc = toScreen(CX, CY);
-        drawHex(sc.x, sc.y, r);
-        ctx.strokeStyle = 'rgba(200,149,26,0.06)';
+        ctx.beginPath();
+        ctx.arc(sc0.x, sc0.y, r, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(200,149,26,0.10)';
         ctx.lineWidth = 1;
+        ctx.setLineDash([4,6]);
         ctx.stroke();
+        ctx.setLineDash([]);
       });
       ctx.restore();
 
-      // Rayons des branches
+      // Labels de branches
       BRANCHES.forEach(function(branch) {
-        var maxR = RING_R[3] * cam.scale;
-        var sc0  = toScreen(CX, CY);
-        var unlocked = pan.isBranchUnlocked(branch.id);
-        ctx.beginPath();
-        ctx.moveTo(sc0.x, sc0.y);
-        ctx.lineTo(sc0.x + Math.cos(branch.angle) * maxR * 1.05, sc0.y + Math.sin(branch.angle) * maxR * 1.05);
-        ctx.strokeStyle = unlocked ? (branch.color + '22') : 'rgba(100,100,100,0.08)';
-        ctx.lineWidth = unlocked ? 2 : 1;
-        ctx.stroke();
-
-        // Label de branche à bord
-        var labelR = (RING_R[3] + 42) * cam.scale;
+        var labelR = (RING_R[3] + 52) * cam.scale;
         var lsc = { x: sc0.x + Math.cos(branch.angle)*labelR, y: sc0.y + Math.sin(branch.angle)*labelR };
-        ctx.font = (11 * Math.min(cam.scale, 1)) + 'px "Cinzel Decorative", Cinzel, serif';
+        var unlocked = pan.isBranchUnlocked(branch.id);
+        ctx.font = (12 * Math.min(cam.scale, 1.2)) + 'px "Cinzel Decorative", Cinzel, serif';
         ctx.fillStyle = unlocked ? branch.color : '#404040';
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.fillText(branch.icon + ' ' + branch.label, lsc.x, lsc.y);
       });
 
-      // Lignes de connexion (prérequis → nœud)
+      // ── Lignes de connexion (dessinées AVANT tous les nœuds) ──
       for (var nid in NODES) {
         var nd  = NODES[nid];
         var pos = nodePos[nid];
@@ -1627,17 +1686,19 @@ class BuildingPanel {
           var rs = toScreen(rpos.x, rpos.y);
           var state  = pan.getNodeState(nid);
           var rstate = pan.getNodeState(reqId);
-          var color  = (rstate === 'learned') ? (BRANCH_COLOR[nd.branch] + '80') : 'rgba(80,80,80,0.3)';
+          var color  = (rstate === 'learned') ? (BRANCH_COLOR[nd.branch] + '90') : 'rgba(80,80,80,0.28)';
           ctx.beginPath();
           ctx.moveTo(rs.x, rs.y);
           ctx.lineTo(ps.x, ps.y);
           ctx.strokeStyle = color;
-          ctx.lineWidth = (rstate === 'learned') ? 2 : 1;
+          ctx.lineWidth = (rstate === 'learned') ? 2.5 : 1;
+          if (rstate !== 'learned') ctx.setLineDash([4,5]);
           ctx.stroke();
+          ctx.setLineDash([]);
         });
       }
 
-      // Nœuds
+      // ── Nœuds (tous dessinés APRÈS les lignes pour éviter chevauchement) ──
       for (var nid in NODES) {
         var nd  = NODES[nid];
         var pos = nodePos[nid];
@@ -1721,7 +1782,28 @@ class BuildingPanel {
       ctx.fillText('🏛️', cs.x, cs.y);
     }
 
-    draw();
+    // RAF loop for rune animation
+    var _panAnimId = null;
+    var _panLastTime = 0;
+    function drawLoop(ts) {
+      // Throttle to ~30fps for performance
+      if (ts - _panLastTime > 33) {
+        draw();
+        _panLastTime = ts;
+      }
+      _panAnimId = requestAnimationFrame(drawLoop);
+    }
+    _panAnimId = requestAnimationFrame(drawLoop);
+
+    // Cleanup when panel closes
+    var _panCloseBtn = document.getElementById('tp-close');
+    if (_panCloseBtn) {
+      var _panOrigClose = _panCloseBtn.onclick;
+      _panCloseBtn.onclick = function(e) {
+        if (_panAnimId) cancelAnimationFrame(_panAnimId);
+        if (_panOrigClose) _panOrigClose.call(this, e);
+      };
+    }
 
     // ── Tooltip ─────────────────────────────────────────────
     var ttEl = document.getElementById('pan-tooltip');
@@ -1803,8 +1885,9 @@ class BuildingPanel {
         var wpos = toWorld(e.offsetX, e.offsetY);
         var nid  = getNodeAt(wpos.x, wpos.y);
         if (nid) {
+          _panSelected = nid;
+          showTooltip(nid, e.clientX, e.clientY);
           if (pan.learn(nid, e.clientX, e.clientY)) {
-            draw();
             // Mettre à jour le compteur Éther dans l'en-tête
             var etherEl = document.getElementById('pan-ether-count');
             var newEth  = self.rm ? Math.floor(self.rm.get('ether')) : 0;
