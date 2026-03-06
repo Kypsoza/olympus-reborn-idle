@@ -262,6 +262,22 @@ class BuildingPanel {
       });
     }
 
+    var RUNE_CHARS = ['ᚠ','ᚢ','ᚦ','ᚨ','ᚱ','ᚲ','ᚷ','ᚹ','ᚺ','ᚾ','ᛁ','ᛃ','ᛇ','ᛈ','ᛉ','ᛊ','ᛏ','ᛒ','ᛖ','ᛗ','ᛚ','ᛜ','ᛞ','ᛟ'];
+    function buildRuneBg(w, h, count) {
+      var s = '';
+      for (var i = 0; i < count; i++) {
+        var rx = 10 + (i * 137.5) % (w - 20);
+        var ry = 20 + (i * 73.1)  % (h - 30);
+        var sz = 16 + (i % 4) * 6;
+        var op = 0.04 + (i % 3) * 0.025;
+        var ch = RUNE_CHARS[i % RUNE_CHARS.length];
+        s += '<text x="' + rx.toFixed(0) + '" y="' + ry.toFixed(0) + '"'
+          + ' font-size="' + sz + '" fill="rgba(200,160,255,' + op.toFixed(3) + ')"'
+          + ' font-family="serif" style="pointer-events:none;user-select:none">' + ch + '</text>';
+      }
+      return s;
+    }
+
     function buildSVG() {
       var s = '<svg id="dt-svg" xmlns="http://www.w3.org/2000/svg"'
         + ' width="' + VW + '" height="' + VH + '"'
@@ -274,6 +290,8 @@ class BuildingPanel {
         + '<feGaussianBlur stdDeviation="3" result="b"/>'
         + '<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
         + '</defs>';
+      s += '<rect width="' + VW + '" height="' + VH + '" fill="rgba(8,5,18,0.9)"/>';
+      s += buildRuneBg(VW, VH, 22);
 
       // Col separator line
       if (ncols > 1) {
@@ -385,19 +403,26 @@ class BuildingPanel {
 
     var curNode  = null;
     var ttBox    = document.getElementById('dt-tooltip');
+    var ttPinned = false;  // true quand l'utilisateur a cliqué sur un nœud
 
     function bindSVG(svg) {
       if (!svg) return;
       svg.querySelectorAll('.dt-node').forEach(function(g) {
         g.addEventListener('mouseenter', function() {
+          if (ttPinned) return;
           curNode = g.dataset.id;
           ttBox.innerHTML = buildTT(curNode);
           ttBox.style.display = 'block';
         });
         g.addEventListener('mouseleave', function() {
-          if (!ttBox.matches(':hover')) { ttBox.style.display = 'none'; curNode = null; }
+          if (ttPinned) return;
+          setTimeout(function() {
+            if (!ttBox.matches(':hover')) { ttBox.style.display = 'none'; curNode = null; }
+          }, 120);
         });
-        g.addEventListener('click', function() {
+        g.addEventListener('click', function(e) {
+          e.stopPropagation();
+          ttPinned = true;
           curNode = g.dataset.id;
           ttBox.innerHTML = buildTT(curNode);
           ttBox.style.display = 'block';
@@ -406,12 +431,18 @@ class BuildingPanel {
     }
     bindSVG(el.querySelector('#dt-svg'));
 
-    ttBox.addEventListener('mouseleave', function() {
-      ttBox.style.display = 'none'; curNode = null;
+    // Clic en dehors → dépingle
+    document.addEventListener('click', function unpinHandler(e) {
+      if (!ttBox.contains(e.target) && !e.target.closest('.dt-node')) {
+        ttPinned = false;
+        ttBox.style.display = 'none';
+        curNode = null;
+      }
     });
 
     ttBox.addEventListener('click', function(e) {
       var btn = e.target.closest('[data-learn]'); if (!btn) return;
+      e.stopPropagation();
       if (!self.tm.learn(btn.dataset.learn)) return;
       // Rebuild SVG in place
       var scrollWrap = document.getElementById('dt-scroll-wrap');
@@ -509,6 +540,19 @@ class BuildingPanel {
          + '</defs>';
 
       s += '<rect width="' + VW + '" height="' + VH + '" fill="url(#etbg)"/>';
+
+      // Runes mythologiques
+      var ET_RUNES = ['ᚠ','ᚢ','ᚦ','ᚨ','ᚱ','ᚲ','ᚷ','ᚹ','ᚺ','ᚾ','ᛁ','ᛃ','ᛇ','ᛈ','ᛉ','ᛊ','ᛏ','ᛒ','ᛖ','ᛗ','ᛚ','ᛜ','ᛞ','ᛟ'];
+      for (var ri = 0; ri < 24; ri++) {
+        var rx = 10 + (ri * 137.5) % (VW - 20);
+        var ry = 20 + (ri * 73.1)  % (VH - 30);
+        var rsz = 16 + (ri % 4) * 6;
+        var rop = 0.04 + (ri % 3) * 0.025;
+        s += '<text x="' + rx.toFixed(0) + '" y="' + ry.toFixed(0) + '"'
+          + ' font-size="' + rsz + '" fill="rgba(180,120,255,' + rop.toFixed(3) + ')"'
+          + ' font-family="serif" style="pointer-events:none;user-select:none">'
+          + ET_RUNES[ri % ET_RUNES.length] + '</text>';
+      }
 
       /* Labels de section */
       s += '<text x="155" y="44" text-anchor="middle" font-size="15" fill="#a060e0"'
@@ -692,6 +736,12 @@ class BuildingPanel {
       return '<span style="color:' + (ok ? '#80e080' : '#e08080') + '">' + e[1] + ' ' + (RES_ICONS[e[0]] || e[0]) + '</span>';
     }).join(' ');
   }
+  _fmt(v) {
+    if (v >= 1e6) return (v/1e6).toFixed(1)+'M';
+    if (v >= 1e3) return (v/1e3).toFixed(0)+'k';
+    return String(v);
+  }
+
   _costInline(cost) {
     var self = this;
     return Object.entries(cost).map(function(e) {
@@ -704,24 +754,34 @@ class BuildingPanel {
   // ── Crée une hex-bar avec une liste d'items simples ─────
   _hexBar(items, cell) {
     var self = this;
+    var SVG = '<svg viewBox="0 0 100 114" xmlns="http://www.w3.org/2000/svg">' +
+      '<polygon class="hex-poly-fill" points="50,2 96,27 96,87 50,112 4,87 4,27"/>' +
+      '<polygon class="hex-poly-stroke" points="50,2 96,27 96,87 50,112 4,87 4,27"/></svg>';
     var bar = document.createElement('div');
-    bar.className = 'hex-action-bar';
+    bar.style.cssText = 'display:flex;align-items:center;gap:8px;height:100%;padding:0 4px;';
     items.forEach(function(item) {
-      var hexItem = document.createElement('div');
-      hexItem.className = 'hex-item' + (item.locked ? ' hex-locked' : '');
-      if (item.action) hexItem.dataset.action = item.action;
-      var costChips = '';
+      var hexEl = document.createElement('div');
+      var cls = 'hex-btn hex-action';
+      if (item.locked)  cls += ' hex-locked';
+      if (!item.locked) cls += ' hex-ok';
+      if (item.danger)  cls += ' hex-danger';
+      hexEl.className = cls;
+      if (item.action) hexEl.dataset.action = item.action;
+      // Premier coût
+      var costStr = '';
       if (item.costs) {
-        costChips = Object.entries(item.costs).map(function(e){
-          var has = self.rm.get(e[0]) >= e[1];
-          return '<span class="hex-cost-chip'+(has?'':' short')+'">'+(RES_ICONS[e[0]]||e[0])+' '+self._fmt(e[1])+'</span>';
-        }).join('');
+        var firstEntry = Object.entries(item.costs)[0];
+        if (firstEntry) {
+          var has = Object.entries(item.costs).every(function(e){ return self.rm.get(e[0]) >= e[1]; });
+          costStr = '<span class="hex-cost'+(has?'':' short')+'">'+(RES_ICONS[firstEntry[0]]||firstEntry[0])+' '+self._fmt(firstEntry[1])+(Object.keys(item.costs).length>1?'…':'')+'</span>';
+        }
       }
-      hexItem.innerHTML =
-        '<div class="hex-shape"><span class="hex-icon">'+item.icon+'</span></div>' +
-        '<div class="hex-label">'+item.label+'</div>' +
-        '<div class="hex-costs">'+costChips+'</div>';
-      bar.appendChild(hexItem);
+      hexEl.innerHTML =
+        '<div class="hex-bg">' + SVG + '</div>' +
+        '<span class="hex-icon">' + item.icon + '</span>' +
+        '<span class="hex-label">' + item.label + '</span>' +
+        costStr;
+      bar.appendChild(hexEl);
     });
     return bar;
   }
@@ -747,274 +807,268 @@ class BuildingPanel {
   _renderMudUI(cell, body) {
     var self = this; var bm = this.bm;
     var canDrain = bm.rm.canAfford({ drachmes: 120, bois: 60 });
-    var html = '<div class="bp-bld-header">'
-      + '<span class="bp-bld-glyph">🟫</span>'
-      + '<div><div class="bp-bld-name">Vase Marécageuse</div>'
-      + '<div class="bp-bld-lvl">Production passive</div></div></div>';
-    html += '<div class="bp-prod-badges">'
-      + '<span class="bp-prod-badge" style="color:#5aaa5a">🌾 +0.3/s</span>'
-      + '<span class="bp-prod-badge" style="color:#7a9a3a">🪵 +0.1/s</span></div>';
-    html += '<div style="font-size:12px;color:#80c0ff;margin-bottom:8px">👍 Clic = +2🌾 +1🪵 (cd 3s)</div>';
-    html += '<div style="font-size:12px;color:rgba(255,255,255,.4);margin-bottom:10px">Case bloquée — ni bâtiment ni route.</div>';
-    html += '<div class="bp-bld-actions">';
-    html += '<button class="bp-upgrade-btn' + self._lock(canDrain) + '" data-action="mud-drain">'
-      + '🚧 Assécher → Plaine<span class="bp-upgrade-cost">120🪙 + 60🪵</span></button>';
-    html += '</div>';
-    body.innerHTML = html;
+    body.appendChild(self._hexBar([
+      { icon: '🟫', label: '+🌾+🪵 passif', action: null, locked: false },
+      { icon: '🚧', label: 'Assécher', action: 'mud-drain', locked: !canDrain, costs: { drachmes: 120, bois: 60 } }
+    ], cell));
   }
 
   _renderRubbleUI(cell, body) {
     var self = this; var bm = this.bm;
     var canClear = bm.rm.canAfford({ drachmes: 500, bois: 200, fer: 50 });
-    var html = '<div class="bp-bld-header">'
-      + '<span class="bp-bld-glyph">🪨</span>'
-      + '<div><div class="bp-bld-name">Décombres</div>'
-      + '<div class="bp-bld-lvl">Montagne démolie</div></div></div>';
-    html += '<div class="bp-prod-badges">'
-      + '<span class="bp-prod-badge" style="color:#7aaad4">⚙️ +0.2 Fer/s</span>'
-      + '<span class="bp-prod-badge" style="color:#7a9a3a">🪵 +0.1 Bois/s</span></div>';
-    html += '<div style="font-size:12px;color:#80c0ff;margin-bottom:8px">👍 Clic = +1⚙️ (cd 5s)</div>';
-    html += '<div style="font-size:12px;color:rgba(255,255,255,.4);margin-bottom:10px">Case bloquée — ni bâtiment ni route.</div>';
-    html += '<div class="bp-bld-actions">';
-    html += '<button class="bp-upgrade-btn' + self._lock(canClear) + '" data-action="rubble-clear">'
-      + '🧹 Déblayer → Plaine<span class="bp-upgrade-cost">500🪙+200🪵+50⚙️</span></button>';
-    html += '</div>';
-    body.innerHTML = html;
+    body.appendChild(self._hexBar([
+      { icon: '🪨', label: '+⚙️+🪵 passif', action: null, locked: false },
+      { icon: '🧹', label: 'Déblayer', action: 'rubble-clear', locked: !canClear, costs: { drachmes: 500, bois: 200, fer: 50 } }
+    ], cell));
   }
 
   _renderTunnelUI(cell, body) {
     var self = this; var bm = this.bm;
     var canCollapse = bm.rm.canAfford({ drachmes: 100 });
-    var html = '<div class="bp-bld-header">'
-      + '<span class="bp-bld-glyph">🛤️</span>'
-      + '<div><div class="bp-bld-name">Tunnel</div>'
-      + '<div class="bp-bld-lvl">Passage dans la montagne</div></div></div>';
-    html += '<div style="font-size:13px;color:#80e080;margin-bottom:5px">✅ Route constructible sur ce tunnel</div>';
-    html += '<div style="font-size:12px;color:#f0c040;margin-bottom:10px">Relie deux zones séparées par une chaîne de montagnes.</div>';
-    html += '<div class="bp-bld-actions">';
+    var roadItem;
     if (!cell.hasRoad) {
       var rc = bm.canPlaceRoad(cell);
-      html += '<button class="bp-upgrade-btn' + self._lock(rc.ok) + '" data-action="tun-road">'
-        + '🛤️ Construire Route<span class="bp-upgrade-cost">30🪙+10🪵</span></button>';
+      roadItem = { icon: '🛤️', label: 'Route', action: 'tun-road', locked: !rc.ok, costs: { drachmes: 30, bois: 10 } };
     } else {
       var rr = bm.canRemoveRoad(cell);
-      html += '<button class="bp-upgrade-btn' + self._lock(rr.ok) + '" data-action="tun-road-rm">'
-        + '🔨 Démolir Route<span class="bp-upgrade-cost">10🪙</span></button>';
+      roadItem = { icon: '🔨', label: 'Suppr. Route', action: 'tun-road-rm', locked: !rr.ok, danger: true, costs: { drachmes: 10 } };
     }
-    html += '<button class="bp-demolish-btn' + self._lock(canCollapse) + '" data-action="tun-collapse">'
-      + '💥 Effondrer (100🪙)</button>';
-    html += '</div>';
-    body.innerHTML = html;
+    body.appendChild(self._hexBar([
+      roadItem,
+      { icon: '💥', label: 'Effondrer', action: 'tun-collapse', locked: !canCollapse, danger: true, costs: { drachmes: 100 } }
+    ], cell));
   }
 
   _renderEmptyUI(cell, body) {
     var self = this;
 
-    // Tooltip DOM (réutilisé)
+    /* ── SVG hexagone helper ──────────────────────────────── */
+    function hexSVG() {
+      // Flat-top hexagone — points calculés pour 68×78 (ratio utilisé)
+      return '<svg viewBox="0 0 100 114" xmlns="http://www.w3.org/2000/svg">' +
+        '<polygon class="hex-poly-fill" points="50,2 96,27 96,87 50,112 4,87 4,27"/>' +
+        '<polygon class="hex-poly-stroke" points="50,2 96,27 96,87 50,112 4,87 4,27"/>' +
+        '</svg>';
+    }
+
+    /* ── Tooltip DOM ─────────────────────────────────────── */
     var tt = document.getElementById('bld-tooltip');
     if (!tt) {
       tt = document.createElement('div');
       tt.id = 'bld-tooltip';
-      tt.className = 'bld-tooltip';
       document.body.appendChild(tt);
     }
+    tt.className = '';
 
-    function buildCostChips(def) {
-      return Object.entries(def.buildCost).map(function(e) {
-        var has = self.rm.get(e[0]) >= e[1];
-        return '<span class="hex-cost-chip' + (has ? '' : ' short') + '">' +
-          (RES_ICONS[e[0]]||e[0]) + ' ' + self._fmt(e[1]) + '</span>';
-      }).join('');
-    }
-
-    function buildTooltipContent(def, check) {
+    /* ── Contenu tooltip ────────────────────────────────── */
+    function buildTTContent(def, check) {
       var prodLines = '';
-      if (def.baseProdPerField) prodLines += '<div class="btt-prod">🌾 +' + def.baseProdPerField + '/champ/s</div>';
+      if (def.baseProdPerField)   prodLines += '<div class="btt-prod">🌾 +' + def.baseProdPerField + '/champ/s</div>';
       if (def.baseProdPerSupport) prodLines += '<div class="btt-prod">🪵 +' + def.baseProdPerSupport + '/forêt/s</div>';
       if (def.produces) Object.entries(def.produces).forEach(function(e){ prodLines += '<div class="btt-prod">' + (RES_ICONS[e[0]]||e[0]) + ' +' + e[1] + '/s</div>'; });
       if (def.consumes) Object.entries(def.consumes).forEach(function(e){ prodLines += '<div class="btt-consume">' + (RES_ICONS[e[0]]||e[0]) + ' −' + e[1] + '/s</div>'; });
-      var workers = def.consumesWorkers ? '<div class="btt-workers">👷 ' + def.consumesWorkers + ' travailleur(s)</div>' : '';
+      var workers = def.consumesWorkers ? '<div class="btt-workers">👷 ' + def.consumesWorkers + ' travailleurs requis</div>' : '';
       var eraBadge = def.era > 1 ? '<span class="btt-era era-' + def.era + '">Ère ' + def.era + '</span>' : '';
+      var costChips = Object.entries(def.buildCost).map(function(e){
+        var has = self.rm.get(e[0]) >= e[1];
+        return '<span class="btt-cost-item ' + (has?'btt-cost-ok':'btt-cost-ko') + '">' + (RES_ICONS[e[0]]||e[0]) + ' ' + self._fmt(e[1]) + '</span>';
+      }).join('');
       var state = check.ok
         ? '<div class="btt-state ok">✅ Constructible</div>'
         : '<div class="btt-state ko">🔒 ' + check.reason + '</div>';
       return '<div class="btt-head"><span class="btt-icon">' + def.glyph + '</span>' +
         '<div class="btt-title"><span class="btt-name">' + def.name + '</span>' + eraBadge + '</div></div>' +
         '<div class="btt-desc">' + def.description + '</div>' +
+        '<div class="btt-section">Coût</div><div class="btt-costs">' + costChips + '</div>' +
         (prodLines ? '<div class="btt-section">Production</div><div class="btt-prods">' + prodLines + '</div>' : '') +
-        workers + state;
+        workers + state +
+        '<button class="btt-close">✕</button>';
     }
 
-    function showTT(hex, def, check) {
-      tt.innerHTML = buildTooltipContent(def, check);
-      if (!document.querySelector('.btt-close')) {
-        var cb = document.createElement('button');
-        cb.className = 'btt-close';
-        cb.textContent = '✕';
-        cb.addEventListener('click', function(e){ e.stopPropagation(); hideTT(); });
-        tt.appendChild(cb);
-      }
-      tt.className = 'bld-tooltip visible';
+    function showTT(hexEl, def, check) {
+      tt.innerHTML = buildTTContent(def, check);
+      tt.classList.add('visible');
       tt.style.pointerEvents = 'none';
-      // Position PC : au-dessus de l'hexagone
-      var r = hex.getBoundingClientRect();
-      var tw = tt.offsetWidth || 240;
-      var th = tt.offsetHeight || 140;
-      if (window.innerWidth > 600) {
-        var tx = r.left + r.width/2 - tw/2;
-        var ty = r.top - th - 10;
-        if (tx < 8) tx = 8;
-        if (tx + tw > window.innerWidth - 8) tx = window.innerWidth - tw - 8;
-        if (ty < 8) ty = r.bottom + 10;
+      // Liaison du bouton fermeture (mobile)
+      var closeBtn = tt.querySelector('.btt-close');
+      if (closeBtn) {
+        closeBtn.addEventListener('click', function(e){
+          e.stopPropagation();
+          tt.dataset.pinned = '';
+          tt.className = '';
+        });
+      }
+      // Positionnement PC : à gauche de l'hexagone, ou au-dessus
+      var r  = hexEl.getBoundingClientRect();
+      var tw = 255; var th = tt.offsetHeight || 160;
+      var isMob = window.innerWidth <= 600;
+      if (!isMob) {
+        var tx = r.left - tw - 12;
+        var ty = r.top - th + r.height / 2;
+        if (tx < 8) { tx = r.right + 12; }
+        if (ty < 8) ty = 8;
+        if (ty + th > window.innerHeight - 8) ty = window.innerHeight - th - 8;
         tt.style.left = tx + 'px'; tt.style.top = ty + 'px';
+        tt.style.bottom = 'auto';
       } else {
         tt.style.left = ''; tt.style.top = '';
-        tt.style.pointerEvents = 'auto';
       }
     }
     function hideTT() {
-      tt.dataset.pinned = '';
-      tt.className = 'bld-tooltip';
+      if (tt.dataset.pinned) return;
+      tt.className = '';
     }
 
-    // Construire la liste des actions hexagonales
-    var items = [];
-
-    // ── Bâtiments disponibles ─────────────────────────────
+    /* ── Actions disponibles ────────────────────────────── */
     var available = BuildingManager.getBuildingsForTerrain(cell.type);
-    // Ordre : production, logement, infra, militaire, spécial
-    var ORDER = ['farm','lumber','mine_copper','mine_iron','moulin','alambic','autel_fusion','verger','halle','atelier_forgeron','fonderie_celeste','jardins','bosquet','tresor','forge_divine','huttes','maison','palais','pylone','stele_zeus','noeud_olympien','agora','senat','forteresse','bastion','scout','sanctuaire','temple_hermes','oracle','bibliotheque','omphalos'];
-    var sorted = available.sort(function(a,b){
-      var ia = ORDER.indexOf(a.id), ib = ORDER.indexOf(b.id);
-      if (ia<0) ia=999; if (ib<0) ib=999;
-      return ia - ib;
-    });
+    var transforms = BuildingManager.getTerrainTransforms(cell.type);
+    var hasRoadAction = (cell.type === CELL_TYPE.PLAIN || cell.type === CELL_TYPE.FIELD ||
+                         cell.type === CELL_TYPE.GROVE || cell.hasRoad);
 
-    sorted.forEach(function(def) {
+    /* ── Rendu : liste d'hexagones ─────────────────────── */
+    var frag = document.createDocumentFragment();
+
+    /* Bâtiments constructibles */
+    available.forEach(function(def) {
+      if (!def) return;
       var check = self.bm.canBuild(cell, def.id);
       var eraLocked = def.era && def.era > 1 && self.tm && self.tm.getUnlockedEra() < def.era;
-      items.push({
-        type: 'build',
-        icon: def.glyph,
-        label: def.name,
-        locked: !check.ok,
-        eraLocked: eraLocked,
-        def: def,
-        check: check
-      });
+
+      var hexEl = document.createElement('div');
+      var cls = 'hex-btn';
+      if (!check.ok) cls += ' hex-locked';
+      if (check.ok) cls += ' hex-ok';
+      if (eraLocked) cls += ' hex-era-locked';
+      hexEl.className = cls;
+      hexEl.dataset.id = def.id;
+
+      // Coût mini à afficher sous l'icône
+      var firstCostEntry = Object.entries(def.buildCost)[0];
+      var costStr = firstCostEntry
+        ? ((RES_ICONS[firstCostEntry[0]]||firstCostEntry[0]) + ' ' + self._fmt(firstCostEntry[1]) + (Object.keys(def.buildCost).length > 1 ? '…' : ''))
+        : '';
+      var hasAllCosts = Object.entries(def.buildCost).every(function(e){ return self.rm.get(e[0]) >= e[1]; });
+
+      hexEl.innerHTML =
+        '<div class="hex-bg">' + hexSVG() + '</div>' +
+        (window.innerWidth <= 600 ? '<button class="hex-info-btn" data-info="' + def.id + '">i</button>' : '') +
+        (def.era > 1 ? '<span class="hex-era era-' + def.era + '">Ère ' + def.era + '</span>' : '') +
+        '<span class="hex-icon">' + def.glyph + '</span>' +
+        '<span class="hex-label">' + def.name + '</span>' +
+        (costStr ? '<span class="hex-cost' + (hasAllCosts ? '' : ' short') + '">' + costStr + '</span>' : '');
+
+      /* PC : hover tooltip */
+      if (window.innerWidth > 600) {
+        hexEl.addEventListener('mouseenter', function(){ showTT(hexEl, def, check); });
+        hexEl.addEventListener('mouseleave', function(){ if (!tt.dataset.pinned) hideTT(); });
+      }
+
+      frag.appendChild(hexEl);
     });
 
-    // ── Route ─────────────────────────────────────────────
-    var hasRoute = (cell.type === CELL_TYPE.PLAIN || cell.type === CELL_TYPE.FIELD ||
-                    cell.type === CELL_TYPE.GROVE || cell.hasRoad);
-    if (hasRoute) {
-      if (!cell.hasRoad) {
-        var rc = self.bm.canPlaceRoad(cell);
-        items.push({ type:'road', icon:'🛤️', label:'Route', action:'road', locked:!rc.ok, costs:{drachmes:30,bois:10}, desc:'Connecte les bâtiments. Coût : 30🪙 + 10🪵' });
-      } else {
-        var rr = self.bm.canRemoveRoad(cell);
-        items.push({ type:'road-rm', icon:'🚧', label:'Démolir route', action:'road-remove', locked:!rr.ok, costs:{drachmes:10}, desc:'Déconnecte les bâtiments adjacents.' });
-      }
+    /* Séparateur si bâtiments + actions terrain */
+    if (available.length > 0 && (hasRoadAction || transforms.length > 0)) {
+      var sep = document.createElement('div');
+      sep.className = 'hex-separator';
+      frag.appendChild(sep);
     }
 
-    // ── Transformations terrain ────────────────────────────
-    var transforms = BuildingManager.getTerrainTransforms(cell.type);
+    /* Route */
+    if (hasRoadAction) {
+      var roadEl = document.createElement('div');
+      var rc = self.bm.canPlaceRoad(cell);
+      if (cell.hasRoad) {
+        var rr = self.bm.canRemoveRoad(cell);
+        roadEl.className = 'hex-btn hex-action hex-danger' + (rr.ok ? '' : ' hex-locked');
+        roadEl.dataset.action = 'road-remove';
+        roadEl.innerHTML =
+          '<div class="hex-bg">' + hexSVG() + '</div>' +
+          '<span class="hex-icon">🗑️</span>' +
+          '<span class="hex-label">Démolir Route</span>';
+      } else {
+        roadEl.className = 'hex-btn hex-action' + (rc.ok ? ' hex-ok' : ' hex-locked');
+        roadEl.dataset.action = 'road';
+        roadEl.innerHTML =
+          '<div class="hex-bg">' + hexSVG() + '</div>' +
+          '<span class="hex-icon">🛤️</span>' +
+          '<span class="hex-label">Route</span>' +
+          '<span class="hex-cost' + (rc.ok ? '' : ' short') + '">30🪙 10🪵</span>';
+      }
+      frag.appendChild(roadEl);
+    }
+
+    /* Transformations terrain */
     transforms.forEach(function(tr) {
       var ok = self.rm.canAfford(tr.cost);
-      items.push({ type:'transform', icon:tr.glyph, label:tr.label, transform:tr.targetType, locked:!ok, costs:tr.cost, desc:tr.description });
+      var trEl = document.createElement('div');
+      trEl.className = 'hex-btn hex-action' + (ok ? ' hex-ok' : ' hex-locked');
+      trEl.dataset.transform = tr.targetType;
+      var firstCost = Object.entries(tr.cost)[0];
+      var trCost = firstCost ? ((RES_ICONS[firstCost[0]]||firstCost[0]) + ' ' + self._fmt(firstCost[1])) : '';
+      trEl.innerHTML =
+        '<div class="hex-bg">' + hexSVG() + '</div>' +
+        '<span class="hex-icon">' + tr.glyph + '</span>' +
+        '<span class="hex-label">' + tr.label + '</span>' +
+        (trCost ? '<span class="hex-cost' + (ok ? '' : ' short') + '">' + trCost + '</span>' : '');
+      frag.appendChild(trEl);
     });
 
-    if (items.length === 0) {
-      body.innerHTML = '<div class="bp-empty-msg">Aucune action disponible ici.</div>';
-      return;
+    if (available.length === 0 && !hasRoadAction && transforms.length === 0) {
+      var emptyMsg = document.createElement('div');
+      emptyMsg.className = 'bp-empty-msg';
+      emptyMsg.textContent = 'Aucune action disponible ici.';
+      frag.appendChild(emptyMsg);
     }
 
-    // ── Construire la hex-bar ─────────────────────────────
-    var bar = document.createElement('div');
-    bar.className = 'hex-action-bar';
+    body.appendChild(frag);
 
-    items.forEach(function(item) {
-      var hexItem = document.createElement('div');
-      hexItem.className = 'hex-item' + (item.locked ? ' hex-locked' : '');
-
-      var costChips = '';
-      if (item.def) {
-        costChips = buildCostChips(item.def);
-      } else if (item.costs) {
-        costChips = Object.entries(item.costs).map(function(e){
-          var has = self.rm.get(e[0]) >= e[1];
-          return '<span class="hex-cost-chip' + (has?'':' short') + '">' + (RES_ICONS[e[0]]||e[0]) + ' ' + self._fmt(e[1]) + '</span>';
-        }).join('');
-      }
-
-      var badge = item.eraLocked ? '<span class="hex-badge">🔒</span>' : '';
-
-      hexItem.innerHTML =
-        '<div class="hex-shape">' +
-          badge +
-          '<span class="hex-icon">' + item.icon + '</span>' +
-          '<button class="hex-info-btn" data-hexinfo="1">ℹ</button>' +
-        '</div>' +
-        '<div class="hex-label">' + item.label + '</div>' +
-        '<div class="hex-costs">' + costChips + '</div>';
-
-      if (item.type === 'build') {
-        hexItem.dataset.id = item.def.id;
-        hexItem.addEventListener('mouseenter', function(){ showTT(hexItem, item.def, item.check); });
-        hexItem.addEventListener('mouseleave', function(){ if (!tt.dataset.pinned) hideTT(); });
-      } else if (item.action) {
-        hexItem.dataset.action = item.action;
-      } else if (item.transform) {
-        hexItem.dataset.transform = item.transform;
-      }
-
-      bar.appendChild(hexItem);
-    });
-
-    body.appendChild(bar);
-
-    // ── Délégation clic ───────────────────────────────────
-    bar.addEventListener('click', function(e) {
-      // Bouton ℹ
+    /* ── Délégation de clics sur le body ──────────────── */
+    body.addEventListener('click', function handler(e) {
+      // Bouton ⓘ mobile
       var infoBtn = e.target.closest('.hex-info-btn');
       if (infoBtn) {
         e.stopPropagation();
-        var item2 = items[Array.from(bar.children).indexOf(infoBtn.closest('.hex-item'))];
-        if (!item2) return;
-        var hex2 = infoBtn.closest('.hex-item');
-        if (item2.def) {
-          if (tt.dataset.pinned === item2.def.id) { hideTT(); }
-          else { showTT(hex2, item2.def, item2.check); tt.dataset.pinned = item2.def.id; tt.style.pointerEvents = 'auto'; }
-        } else if (item2.desc) {
-          // Simple text tooltip
-          tt.innerHTML = '<div class="btt-name">' + item2.icon + ' ' + item2.label + '</div><div class="btt-desc">' + item2.desc + '</div>';
-          var cb2 = document.createElement('button'); cb2.className='btt-close'; cb2.textContent='✕';
-          cb2.addEventListener('click', function(ev){ ev.stopPropagation(); hideTT(); });
-          tt.appendChild(cb2); tt.className='bld-tooltip visible'; tt.style.left=''; tt.style.top=''; tt.style.pointerEvents='auto'; tt.dataset.pinned='_';
+        var id = infoBtn.dataset.info;
+        var defObj = (typeof BUILDINGS !== 'undefined') ? BUILDINGS[id] : null;
+        if (!defObj) return;
+        var checkObj = self.bm.canBuild(cell, id);
+        var parentHex = infoBtn.closest('.hex-btn');
+        if (tt.dataset.pinned === id) {
+          tt.dataset.pinned = ''; tt.className = '';
+        } else {
+          showTT(parentHex, defObj, checkObj);
+          tt.dataset.pinned = id;
+          tt.classList.add('pinned');
+          tt.style.pointerEvents = 'auto';
         }
         return;
       }
-      // Ferme tooltip épinglé si clic ailleurs
-      if (tt.dataset.pinned) hideTT();
 
-      var hexEl = e.target.closest('.hex-item');
+      // Ferme le tooltip épinglé si clic ailleurs
+      if (tt.dataset.pinned) { tt.dataset.pinned = ''; tt.className = ''; }
+
+      var hexEl = e.target.closest('.hex-btn');
       if (!hexEl || hexEl.classList.contains('hex-locked')) return;
 
-      var _mc = document.getElementById('map-container');
-      var _r  = _mc ? _mc.getBoundingClientRect() : {left:0,top:0,width:window.innerWidth,height:window.innerHeight};
-      var _sx = _r.left + _r.width * 0.5, _sy = _r.top + _r.height * 0.4;
+      var _sx = window.innerWidth / 2, _sy = window.innerHeight / 2;
 
+      // Construction bâtiment
       if (hexEl.dataset.id) {
-        self.bm.build(cell, hexEl.dataset.id, 0, 0); self.refresh(); return;
+        self.bm.build(cell, hexEl.dataset.id, 0, 0);
+        self.refresh(); return;
       }
+      // Transformation terrain
       if (hexEl.dataset.transform) {
-        self.bm.transformTerrain(cell, hexEl.dataset.transform, 0, 0); self.refresh(); return;
+        self.bm.transformTerrain(cell, hexEl.dataset.transform, 0, 0);
+        self.refresh(); return;
       }
+      // Route
       var act = hexEl.dataset.action;
       if (act === 'road')        { self.bm.placeRoad(cell, _sx, _sy); self.refresh(); }
       else if (act === 'road-remove') { self.bm.removeRoad(cell, _sx, _sy); self.refresh(); }
     });
   }
+
 
   // ── UI Batiment ──────────────────────────────────────────
   _renderBuildingUI(cell, body) {
@@ -1423,8 +1477,8 @@ class BuildingPanel {
 
     // Layout
     var CX = W / 2, CY = H / 2;
-    var RING_R = [0, 130, 260, 390];   // rayon de chaque anneau (0=centre)
-    var NODE_R = 22;                   // rayon visuel des nœuds
+    var RING_R = [0, 160, 310, 460];   // rayons plus grands pour éviter les chevauchements
+    var NODE_R = 26;                   // nœuds plus grands
 
     // Couleurs
     var BRANCH_COLOR = {};
@@ -1455,8 +1509,8 @@ class BuildingPanel {
           }
           if (!nodeId) return;
           var r = RING_R[ring];
-          // Spread angulaire : -2 à +2 slots * 0.18 rad
-          var spread = (slot - 2) * 0.18;
+          // Spread angulaire : -2 à +2 slots * 0.22 rad (plus espacé)
+          var spread = (slot - 2) * 0.22;
           var a = angle + spread;
           nodePos[nodeId] = { x: CX + Math.cos(a)*r, y: CY + Math.sin(a)*r, branchId: branch.id, ring: ring, slot: slot };
         }
@@ -1699,15 +1753,16 @@ class BuildingPanel {
            check.ok ? '✨ ' + etherCost + ' Éther' : '🔒 ' + check.reason) +
         '</div>';
 
-      // Position : éviter de déborder
-      var tw = 220, th = 120;
-      var wrap = document.getElementById('pan-canvas-wrap');
-      var wr   = wrap ? wrap.getBoundingClientRect() : {left:0,top:0,width:W,height:H};
-      var lx   = screenX - wr.left + 14;
-      var ly   = screenY - wr.top  - 10;
-      if (lx + tw > wr.width)  lx = screenX - wr.left - tw - 14;
-      if (ly + th > wr.height) ly = screenY - wr.top  - th - 10;
-      ttEl.style.left = lx + 'px'; ttEl.style.top = ly + 'px';
+      // Position fixe (viewport coords) pour éviter jitter canvas
+      var tw = 240, th = 160;
+      var vw = window.innerWidth, vh = window.innerHeight;
+      var lx = screenX + 16;
+      var ly = screenY - 20;
+      if (lx + tw > vw - 8) lx = screenX - tw - 16;
+      if (ly + th > vh - 8) ly = screenY - th - 10;
+      if (ly < 8) ly = 8;
+      ttEl.style.left = lx + 'px';
+      ttEl.style.top  = ly + 'px';
       ttEl.classList.remove('hidden');
     }
 
@@ -1718,7 +1773,7 @@ class BuildingPanel {
       for (var nid in nodePos) {
         var pos = nodePos[nid];
         var dx  = wx - pos.x, dy = wy - pos.y;
-        if (dx*dx + dy*dy <= NODE_R*NODE_R*1.5) return nid;
+        if (dx*dx + dy*dy <= NODE_R*NODE_R*1.6) return nid;
       }
       return null;
     }
@@ -1834,7 +1889,7 @@ class BuildingPanel {
           var b   = pan.getAllBranches().find(function(br){ return br.id === nd.branch; });
           if (!b) continue;
           var r  = RING_R[nd.ring];
-          var sp = (nd.slot - 2) * 0.18;
+          var sp = (nd.slot - 2) * 0.22;
           var a  = b.angle + sp;
           pos.x = CX + Math.cos(a)*r; pos.y = CY + Math.sin(a)*r;
         }

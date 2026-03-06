@@ -392,6 +392,13 @@ class HUD {
     EventBus.on('building:demolished', ({ cell }) => {
       this.setInfo(`🔨 Bâtiment démoli en (${cell.q},${cell.r})`);
     });
+
+    // Reconnexion silencieuse Google → mettre à jour le profil burger/sheet
+    EventBus.on('google:reconnected', () => {
+      this._updateBurgerProfile();
+      this._updateMobSheet();
+      this.setInfo('🔗 Compte Google reconnecté automatiquement.');
+    });
   }
 
   _bindButtons() {

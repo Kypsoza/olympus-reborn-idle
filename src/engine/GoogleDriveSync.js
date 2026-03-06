@@ -90,6 +90,10 @@ const GoogleDriveSync = (() => {
         console.log('[GDriveSync] Token Drive obtenu.');
         // Déclencher le callback de connexion complète
         if (_signInCb) { _signInCb(null); _signInCb = null; }
+        // Reconnexion silencieuse : émettre l'événement pour mettre à jour l'UI
+        else if (typeof EventBus !== 'undefined') {
+          EventBus.emit('google:reconnected', { userInfo: _userInfo });
+        }
       },
     });
     _gisReady = true;

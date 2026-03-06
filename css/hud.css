@@ -56,7 +56,7 @@
   box-shadow: 0 2px 16px rgba(0,0,0,0.5);
   overflow: hidden;
   position: relative;
-  z-index: 100;
+  z-index: 200;
 }
 
 /* Barre scrollable pleine largeur */
@@ -236,7 +236,7 @@
   background: linear-gradient(0deg, #0e0b1e 0%, rgba(10,8,18,0.97) 100%);
   border-top: 1px solid var(--col-border-gold);
   box-shadow: 0 -2px 16px rgba(0,0,0,0.4);
-  z-index: 100;
+  z-index: 300;
   box-sizing: border-box;
   position: relative;
 }

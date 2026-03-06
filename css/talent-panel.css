@@ -217,6 +217,8 @@
    ONGLET CODEX
    ══════════════════════════════════════════════════════════ */
 .cx-wrap {
+  background: rgba(8,5,18,0.6);
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><text x='10' y='50' font-size='24' fill='rgba(200,160,255,0.04)' font-family='serif'>ᚠᚢᚦ</text><text x='60' y='110' font-size='20' fill='rgba(200,160,255,0.03)' font-family='serif'>ᛁᛃᛇ</text><text x='120' y='170' font-size='22' fill='rgba(200,160,255,0.04)' font-family='serif'>ᛏᛒᛖ</text></svg>");
   flex:1; overflow-y:auto; padding:22px 28px 28px;
   display:flex; flex-direction:column; gap:18px;
 }
@@ -224,47 +226,47 @@
 .cx-wrap::-webkit-scrollbar-thumb { background:rgba(200,149,26,.28); border-radius:3px; }
 
 .cx-header { display:flex; align-items:center; gap:14px; padding:14px 18px; flex-wrap:wrap; background:linear-gradient(135deg,rgba(200,150,26,0.11),rgba(30,20,5,0.72)); border:1px solid rgba(200,150,26,0.28); border-radius:12px; }
-.cx-book-icon  { font-size:38px; flex-shrink:0; }
+.cx-book-icon  { font-size:26px; flex-shrink:0; }
 .cx-title-block{ flex:1; }
-.cx-title      { font-family:Cinzel,serif; font-size:20px; font-weight:800; color:#f0d060; }
-.cx-subtitle   { font-size:13px; color:#a08040; margin-top:2px; }
-.cx-mult-badge { background:rgba(200,150,26,0.2); border:1px solid rgba(200,150,26,0.52); border-radius:10px; padding:8px 14px; font-family:Cinzel,serif; font-size:18px; font-weight:800; color:#f0d060; white-space:nowrap; text-shadow:0 0 12px rgba(240,208,96,0.5); }
+.cx-title      { font-family:Cinzel,serif; font-size:26px; font-weight:800; color:#f0d060; }
+.cx-subtitle   { font-size:18px; color:#a08040; margin-top:2px; }
+.cx-mult-badge { background:rgba(200,150,26,0.2); border:1px solid rgba(200,150,26,0.52); border-radius:10px; padding:8px 14px; font-family:Cinzel,serif; font-size:25px; font-weight:800; color:#f0d060; white-space:nowrap; text-shadow:0 0 12px rgba(240,208,96,0.5); }
 
 .cx-prog-section{ display:flex; flex-direction:column; gap:7px; }
-.cx-prog-label  { display:flex; justify-content:space-between; font-size:14px; color:#a09060; }
-.cx-prog-label b{ color:#f0d060; font-size:15px; }
+.cx-prog-label  { display:flex; justify-content:space-between; font-size:19px; color:#a09060; }
+.cx-prog-label b{ color:#f0d060; font-size:20px; }
 .cx-prog-track  { height:10px; background:rgba(255,255,255,0.07); border-radius:5px; overflow:hidden; }
 .cx-prog-fill   { height:100%; background:linear-gradient(90deg,#c8961a,#f0d060); border-radius:5px; transition:width .5s; box-shadow:0 0 8px rgba(240,208,96,0.38); }
 
 .cx-preview      { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); border-radius:10px; padding:13px 16px; }
-.cx-preview-title{ font-size:11px; font-weight:700; color:#707070; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:9px; }
-.cx-preview-row  { display:flex; justify-content:space-between; font-size:14px; color:#a0a0a0; margin-bottom:4px; }
+.cx-preview-title{ font-size:16px; font-weight:700; color:#707070; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:9px; }
+.cx-preview-row  { display:flex; justify-content:space-between; font-size:19px; color:#a0a0a0; margin-bottom:4px; }
 .cx-pages-gain { color:#f0d060; font-weight:700; }
 .cx-bonus      { color:#80e080; font-weight:700; }
 
-.cx-invest-title,.cx-level-title { font-family:Cinzel,serif; font-size:14px; font-weight:700; color:#887040; text-transform:uppercase; letter-spacing:0.6px; border-bottom:1px solid rgba(255,255,255,0.07); padding-bottom:6px; }
-.cx-ether-avail   { font-size:14px; color:#c0a060; text-align:right; margin-top:-9px; }
-.cx-ether-avail b { color:#f0d060; font-size:15px; }
+.cx-invest-title,.cx-level-title { font-family:Cinzel,serif; font-size:20px; font-weight:700; color:#887040; text-transform:uppercase; letter-spacing:0.6px; border-bottom:1px solid rgba(255,255,255,0.07); padding-bottom:6px; }
+.cx-ether-avail   { font-size:19px; color:#c0a060; text-align:right; margin-top:-9px; }
+.cx-ether-avail b { color:#f0d060; font-size:20px; }
 
 .cx-invest-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:11px; }
 .cx-invest-card { background:rgba(255,255,255,0.03); border:1px solid rgba(200,150,26,0.15); border-radius:10px; padding:14px; display:flex; flex-direction:column; gap:6px; }
 .cx-invest-card.cx-maxed { border-color:rgba(128,224,128,0.2); background:rgba(128,224,128,0.03); }
-.cx-ic-label { font-size:15px; font-weight:700; color:#d0b060; }
-.cx-ic-level { font-size:12px; color:#808060; }
-.cx-ic-desc  { font-size:13px; color:#707070; line-height:1.5; flex:1; }
-.cx-ic-btn { margin-top:7px; background:linear-gradient(135deg,#3a2a08,#6a4a10); border:1px solid #c8961a; border-radius:7px; color:#f0d060; font-size:13px; padding:8px 10px; cursor:pointer; transition:transform .12s,background .12s; text-align:center; font-family:Cinzel,serif; font-weight:700; }
+.cx-ic-label { font-size:20px; font-weight:700; color:#d0b060; }
+.cx-ic-level { font-size:17px; color:#808060; }
+.cx-ic-desc  { font-size:18px; color:#707070; line-height:1.5; flex:1; }
+.cx-ic-btn { margin-top:7px; background:linear-gradient(135deg,#3a2a08,#6a4a10); border:1px solid #c8961a; border-radius:7px; color:#f0d060; font-size:18px; padding:8px 10px; cursor:pointer; transition:transform .12s,background .12s; text-align:center; font-family:Cinzel,serif; font-weight:700; }
 .cx-ic-btn:hover { background:linear-gradient(135deg,#5a4010,#8a6018); transform:scale(1.02); }
 .cx-ic-btn.cx-ic-locked { background:rgba(255,255,255,0.03); border-color:rgba(255,255,255,0.09); color:#606060; cursor:default; }
 .cx-ic-btn.cx-ic-locked:hover { transform:none; }
 
 .cx-level-table{ display:flex; flex-direction:column; gap:3px; }
-.cx-lv-row     { display:flex; align-items:center; padding:6px 10px; border-radius:6px; font-size:13px; color:#706050; }
+.cx-lv-row     { display:flex; align-items:center; padding:8px 12px; border-radius:6px; font-size:18px; color:#706050; }
 .cx-lv-row.cx-lv-active { background:rgba(200,150,26,0.12); color:#f0d060; font-weight:700; border:1px solid rgba(200,150,26,0.3); }
 .cx-lv-num  { width:64px; font-weight:700; }
 .cx-lv-req  { flex:1; }
 .cx-lv-row.cx-lv-active .cx-lv-req { color:#c0a060; }
-.cx-lv-mult { font-weight:800; color:#c8961a; font-size:14px; }
-.cx-lv-row.cx-lv-active .cx-lv-mult { color:#f0d060; font-size:15px; }
+.cx-lv-mult { font-weight:800; color:#c8961a; font-size:19px; }
+.cx-lv-row.cx-lv-active .cx-lv-mult { color:#f0d060; font-size:20px; }
 
 /* ══════════════════════════════════════════════════════════
    ONGLET ZONES
@@ -498,3 +500,27 @@
   display: flex;
   flex-direction: column;
 }
+
+/* Pantheon tooltip — position:fixed pour éviter le jitter */
+#pan-tooltip {
+  position: fixed !important;
+  pointer-events: auto;
+  z-index: 9999;
+  width: 240px;
+  background: linear-gradient(145deg, #1a1030, #0d0818);
+  border: 1px solid rgba(200,149,26,0.55);
+  border-radius: 12px;
+  padding: 14px 16px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.85);
+}
+#pan-tooltip.hidden {
+  display: none !important;
+}
+
+/* Zones tab — increase font sizes */
+.zn-wrap { font-size: 15px !important; }
+.zn-zone-name { font-size: 22px !important; }
+.zn-god-name  { font-size: 17px !important; }
+.zn-cond      { font-size: 16px !important; padding: 5px 0 !important; }
+.zn-btn       { font-size: 16px !important; padding: 10px 14px !important; }
+.zn-key-label { font-size: 15px !important; }
