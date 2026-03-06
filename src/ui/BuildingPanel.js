@@ -263,20 +263,59 @@ class BuildingPanel {
     }
 
     var RUNE_CHARS = ['ᚠ','ᚢ','ᚦ','ᚨ','ᚱ','ᚲ','ᚷ','ᚹ','ᚺ','ᚾ','ᛁ','ᛃ','ᛇ','ᛈ','ᛉ','ᛊ','ᛏ','ᛒ','ᛖ','ᛗ','ᛚ','ᛜ','ᛞ','ᛟ'];
-    function buildRuneBg(w, h, count) {
-      var s = '';
-      for (var i = 0; i < count; i++) {
-        var rx = 10 + (i * 137.5) % (w - 20);
-        var ry = 20 + (i * 73.1)  % (h - 30);
-        var sz = 16 + (i % 4) * 6;
-        var op = 0.04 + (i % 3) * 0.025;
-        var ch = RUNE_CHARS[i % RUNE_CHARS.length];
-        s += '<text x="' + rx.toFixed(0) + '" y="' + ry.toFixed(0) + '"'
-          + ' font-size="' + sz + '" fill="rgba(200,160,255,' + op.toFixed(3) + ')"'
-          + ' font-family="serif" style="pointer-events:none;user-select:none">' + ch + '</text>';
+    // RUNE_DATA[i] = {x,y,sz,phase,isOrange}  — précalculées 1x puis réutilisées
+    var RUNE_DATA = (function() {
+      var d = [];
+      for (var i = 0; i < 22; i++) {
+        d.push({
+          x:  10 + (i * 137.5) % (VW - 20),
+          y:  20 + (i * 73.1)  % (VH - 30),
+          sz: 18 + (i % 4) * 5,
+          phase: (i / 22),      // 0..1, décalage de phase
+          isOrange: i % 3 === 0 // 1/3 orange, 2/3 violet
+        });
       }
+      return d;
+    })();
+    var _dtRuneRAF = null;
+    var CYCLE_MS = 3000; // identique à MapRenderer._computePulse
+    function buildRuneBg(w, h, count) {
+      // Génère les éléments SVG avec data-rune-idx pour animation JS
+      var s = '';
+      RUNE_DATA.forEach(function(d, i) {
+        s += '<text class="dt-rune" data-ri="' + i + '"'
+          + ' x="' + d.x.toFixed(0) + '" y="' + d.y.toFixed(0) + '"'
+          + ' font-size="' + d.sz + '" font-family="serif"'
+          + ' fill="rgba(160,60,240,0.04)"'
+          + ' style="pointer-events:none;user-select:none">'
+          + RUNE_CHARS[i % RUNE_CHARS.length] + '</text>';
+      });
       return s;
     }
+    function startRuneAnim(svgEl) {
+      if (_dtRuneRAF) cancelAnimationFrame(_dtRuneRAF);
+      var runes = svgEl ? Array.from(svgEl.querySelectorAll('.dt-rune')) : [];
+      function step() {
+        var now = performance.now();
+        runes.forEach(function(el, i) {
+          var d = RUNE_DATA[i]; if (!d) return;
+          var t = ((now / CYCLE_MS) + d.phase) % 1.0;
+          var pulse = t < 0.5 ? t * 2.0 : (1.0 - t) * 2.0; // triangle wave
+          var op, fill;
+          if (d.isOrange) {
+            op   = 0.04 + pulse * 0.18;
+            fill = 'rgba(255,140,40,' + op.toFixed(3) + ')';
+          } else {
+            op   = 0.03 + pulse * 0.14;
+            fill = 'rgba(160,60,240,' + op.toFixed(3) + ')';
+          }
+          el.setAttribute('fill', fill);
+        });
+        _dtRuneRAF = requestAnimationFrame(step);
+      }
+      _dtRuneRAF = requestAnimationFrame(step);
+    }
+    function stopRuneAnim() { if (_dtRuneRAF) { cancelAnimationFrame(_dtRuneRAF); _dtRuneRAF = null; } }
 
     var _dtSelected = null;
     function buildSVG() {
@@ -430,11 +469,12 @@ class BuildingPanel {
           ttBox.style.display = 'block';
           // Refresh SVG to show selection highlight
           var _sw = document.getElementById('dt-scroll-wrap');
-          if (_sw) { _sw.innerHTML = '<div style="min-width:'+VW+'px">'+buildSVG()+'</div>'; bindSVG(_sw.querySelector('#dt-svg')); }
+          if (_sw) { _sw.innerHTML = '<div style="min-width:'+VW+'px">'+buildSVG()+'</div>'; bindSVG(_sw.querySelector('#dt-svg')); startRuneAnim(_sw.querySelector('#dt-svg')); }
         });
       });
     }
     bindSVG(el.querySelector('#dt-svg'));
+    startRuneAnim(el.querySelector('#dt-svg'));
 
     // Clic en dehors → dépingle
     document.addEventListener('click', function unpinHandler(e) {
@@ -451,8 +491,10 @@ class BuildingPanel {
       if (!self.tm.learn(btn.dataset.learn)) return;
       // Rebuild SVG in place
       var scrollWrap = document.getElementById('dt-scroll-wrap');
+      stopRuneAnim();
       scrollWrap.innerHTML = '<div style="min-width:' + VW + 'px">' + buildSVG() + '</div>';
       bindSVG(scrollWrap.querySelector('#dt-svg'));
+      startRuneAnim(scrollWrap.querySelector('#dt-svg'));
       if (curNode) { ttBox.innerHTML = buildTT(curNode); ttBox.style.display = 'block'; }
       var dNew = self.rm ? Math.floor(self.rm.get('drachmes')) : 0;
       var hdr  = el.querySelector('.dt-drachmes-count');
@@ -527,6 +569,30 @@ class BuildingPanel {
     }
 
     var _etSelected = null;
+    var _etRuneRAF = null;
+    var ET_CYCLE_MS = 3000;
+    var ET_RUNE_META = (function(){
+      var m = []; for(var i=0;i<24;i++) m.push({phase:i/24, isOrange:i%3===0}); return m;
+    })();
+    function startEtRuneAnim(svgEl) {
+      if (_etRuneRAF) cancelAnimationFrame(_etRuneRAF);
+      var runes = svgEl ? Array.from(svgEl.querySelectorAll('.et-rune')) : [];
+      function step() {
+        var now = performance.now();
+        runes.forEach(function(el, i) {
+          var m = ET_RUNE_META[i]; if (!m) return;
+          var t = ((now / ET_CYCLE_MS) + m.phase) % 1.0;
+          var pulse = t < 0.5 ? t*2.0 : (1.0-t)*2.0;
+          var op, fill;
+          if (m.isOrange) { op=0.03+pulse*0.17; fill='rgba(255,140,40,'+op.toFixed(3)+')'; }
+          else            { op=0.02+pulse*0.13; fill='rgba(160,60,240,'+op.toFixed(3)+')'; }
+          el.setAttribute('fill', fill);
+        });
+        _etRuneRAF = requestAnimationFrame(step);
+      }
+      _etRuneRAF = requestAnimationFrame(step);
+    }
+    function stopEtRuneAnim() { if(_etRuneRAF){cancelAnimationFrame(_etRuneRAF);_etRuneRAF=null;} }
     function etHexPts(cx, cy, r) {
       var pts = '';
       for (var i = 0; i < 6; i++) {
@@ -555,18 +621,15 @@ class BuildingPanel {
 
       s += '<rect width="' + VW + '" height="' + VH + '" fill="url(#etbg)"/>';
 
-      // Runes animées (style cohérent avec Drachmes)
+      // Runes — animated via JS RAF (same CYCLE_MS=3000 as MapRenderer)
       var ET_RUNES = ['ᚠ','ᚢ','ᚦ','ᚨ','ᚱ','ᚲ','ᚷ','ᚹ','ᚺ','ᚾ','ᛁ','ᛃ','ᛇ','ᛈ','ᛉ','ᛊ','ᛏ','ᛒ','ᛖ','ᛗ','ᛚ','ᛜ','ᛞ','ᛟ'];
-      s += '<style>@keyframes erG{0%{opacity:0.04}40%{opacity:0.15;fill:rgba(255,140,40,0.22)}60%{opacity:0.09;fill:rgba(180,80,255,0.16)}100%{opacity:0.04}}.er{animation:erG 3.5s ease-in-out infinite;pointer-events:none}.er.ep1{animation-delay:1.1s}.er.ep2{animation-delay:2.2s}</style>';
       for (var ri = 0; ri < 24; ri++) {
         var erx = 10 + (ri * 137.5) % (VW - 20);
         var ery = 20 + (ri * 73.1)  % (VH - 30);
         var ersz = 18 + (ri % 4) * 5;
-        var erph = ['','ep1','ep2'][ri%3];
-        s += '<text x="' + erx.toFixed(0) + '" y="' + ery.toFixed(0) + '"'
-          + ' class="er ' + erph + '"'
-          + ' font-size="' + ersz + '" fill="rgba(180,120,255,0.06)"'
-          + ' font-family="serif">'
+        s += '<text class="et-rune" data-eri="' + ri + '" x="' + erx.toFixed(0) + '" y="' + ery.toFixed(0) + '"'
+          + ' font-size="' + ersz + '" fill="rgba(160,60,240,0.04)"'
+          + ' font-family="serif" style="pointer-events:none;user-select:none">'
           + ET_RUNES[ri % ET_RUNES.length] + '</text>';
       }
 
@@ -616,6 +679,12 @@ class BuildingPanel {
         var cursor  = st!=='locked'  ? 'pointer' : 'default';
         var textcol = st==='learned' ? '#e8d8ff' : st==='available' ? '#a0d8f0' : '#484060';
 
+        /* Anneau sélection */
+        if (id === _etSelected) {
+          s += '<path d="' + etHexPts(pos.x, pos.y, r+8) + '"'
+             + ' fill="rgba(240,168,32,0.12)" stroke="#f0a820" stroke-width="2"'
+             + ' stroke-linejoin="round" filter="url(#etgb)"/>';
+        }
         /* Anneau déco hex uniquement si learned */
         if (st === 'learned') {
           s += '<path d="' + etHexPts(pos.x, pos.y, r+11) + '"'
@@ -629,7 +698,7 @@ class BuildingPanel {
            + ' fill="' + fill + '" stroke="' + stroke + '" stroke-width="' + sw + '"'
            + ' stroke-linejoin="round"'
            + (filt ? ' filter="' + filt + '"' : '')
-           + (_etSelected===id ? ' class="et-node-selected"' : '')
+           + (_etSelected===id ? ' class="et-node-selected" stroke="#f0a820" stroke-width="3"' : '')
            + ' data-enode="' + id + '"'
            + ' style="cursor:' + cursor + ';opacity:' + opacity + '"/>';
 
@@ -714,6 +783,7 @@ class BuildingPanel {
 
     var svgEl = el.querySelector('#et-svg');
     var ttBox = el.querySelector('#et-ttbox');
+    startEtRuneAnim(svgEl);
 
     function showTooltip(id) {
       ttBox.innerHTML = buildTooltipHtml(id);
@@ -731,6 +801,7 @@ class BuildingPanel {
       var newSvg = newDiv.firstChild;
       svgEl.parentNode.replaceChild(newSvg, svgEl);
       svgEl = el.querySelector('#et-svg');
+      startEtRuneAnim(svgEl);
       svgEl.addEventListener('click', arguments.callee);
     });
 
@@ -1308,9 +1379,9 @@ class BuildingPanel {
         var pct = Math.round((z.state.craftProgress / z.def.keyCraftTime) * 100);
         var rem = Math.ceil(z.def.keyCraftTime - z.state.craftProgress);
         html +=
-          '<div class="zn-craft-slot">' +
+          '<div class="zn-craft-slot" data-craft-zone="' + z.def.id + '">' +
             '<span>' + z.def.icon + ' Clé de ' + z.def.god + '</span>' +
-            '<div class="zn-craft-bar"><div class="zn-craft-fill" style="width:' + pct + '%;background:' + z.def.color + '"></div></div>' +
+            '<div class="zn-craft-bar"><div class="zn-craft-fill" style="width:' + pct + '%;background:' + z.def.color + ';transition:width 0.5s linear"></div></div>' +
             '<span class="zn-craft-rem">' + rem + 's</span>' +
           '</div>';
       });
@@ -1359,9 +1430,9 @@ class BuildingPanel {
           var val = c.value ? ' (' + c.value + ')' : '';
           if (c.crafting) {
             var pct2 = Math.round((c.progress / c.total) * 100);
-            html += '<div class="zn-cond ' + ci + '">' +
+            html += '<div class="zn-cond ' + ci + '" data-craft-cond="' + def.id + '">' +
               (c.ok ? '✅' : '⚙️') + ' ' + c.label +
-              '<div class="zn-craft-bar-sm"><div style="width:' + pct2 + '%;background:' + def.color + ';height:100%;border-radius:2px"></div></div>' +
+              '<div class="zn-craft-bar-sm"><div class="zn-craft-fill-sm" style="width:' + pct2 + '%;background:' + def.color + ';height:100%;border-radius:2px;transition:width 0.5s linear"></div></div>' +
             '</div>';
           } else {
             html += '<div class="zn-cond ' + ci + '">' +
@@ -1425,38 +1496,73 @@ class BuildingPanel {
     el.innerHTML = html;
 
     // ── Bind boutons ────────────────────────────────────
-    el.querySelectorAll('[data-zone-craft]').forEach(function(btn) {
-      btn.addEventListener('click', function() {
-        var zoneId = btn.dataset.zoneCraft;
-        var result = zm.startCraft(zoneId);
-        if (!result.ok) {
-          EventBus.emit('ui:feedback', { text: result.reason, x: window.innerWidth/2, y: window.innerHeight/2, color: '#e05050' });
-        }
-        self._renderZonesTab(el);
+    function bindZoneButtons() {
+      el.querySelectorAll('[data-zone-craft]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var zoneId = btn.dataset.zoneCraft;
+          var result = zm.startCraft(zoneId);
+          if (!result.ok) {
+            EventBus.emit('ui:feedback', { text: result.reason, x: window.innerWidth/2, y: window.innerHeight/2, color: '#e05050' });
+          }
+          self._renderZonesTab(el);
+        });
       });
-    });
+      el.querySelectorAll('[data-zone-ritual]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var result = zm.performDemeterRitual();
+          if (!result.ok) {
+            EventBus.emit('ui:feedback', { text: result.reason, x: window.innerWidth/2, y: window.innerHeight/2, color: '#e05050' });
+          }
+          // Full re-render so button state updates correctly
+          self._renderZonesTab(el);
+        });
+      });
+      el.querySelectorAll('[data-zone-unlock]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var zoneId = btn.dataset.zoneUnlock;
+          var ok = zm.unlock(zoneId);
+          if (!ok) {
+            EventBus.emit('ui:feedback', { text: 'Conditions non remplies.', x: window.innerWidth/2, y: window.innerHeight/2, color: '#e05050' });
+          }
+          self._renderZonesTab(el);
+        });
+      });
+    }
+    bindZoneButtons();
 
-    el.querySelectorAll('[data-zone-ritual]').forEach(function(btn) {
-      btn.addEventListener('click', function() {
-        var zoneId = btn.dataset.zoneRitual;
-        var result = zm.performDemeterRitual();
-        if (!result.ok) {
-          EventBus.emit('ui:feedback', { text: result.reason, x: window.innerWidth/2, y: window.innerHeight/2, color: '#e05050' });
-        }
-        self._renderZonesTab(el);
-      });
-    });
+    // ── Live timer: update craft progress bars & counters every second ──
+    if (el._zoneTimer) clearInterval(el._zoneTimer);
+    el._zoneTimer = setInterval(function() {
+      // Only tick if still in zones tab
+      if (!el.closest('#tp-body') && !document.contains(el)) {
+        clearInterval(el._zoneTimer); return;
+      }
+      var nowZones = zm.getZoneUIData();
+      var anyCrafting = nowZones.some(function(z){ return z.state.craftStarted && !z.state.craftDone; });
+      if (!anyCrafting) { clearInterval(el._zoneTimer); return; }
 
-    el.querySelectorAll('[data-zone-unlock]').forEach(function(btn) {
-      btn.addEventListener('click', function() {
-        var zoneId = btn.dataset.zoneUnlock;
-        var ok = zm.unlock(zoneId);
-        if (!ok) {
-          EventBus.emit('ui:feedback', { text: 'Conditions non remplies.', x: window.innerWidth/2, y: window.innerHeight/2, color: '#e05050' });
+      // Update each craft bar in-place without full re-render
+      nowZones.forEach(function(z) {
+        if (!z.state.craftStarted || z.state.craftDone) return;
+        var pct = Math.round((z.state.craftProgress / z.def.keyCraftTime) * 100);
+        var rem = Math.ceil(z.def.keyCraftTime - z.state.craftProgress);
+
+        // Update active craft slot bar (in header section)
+        var slot = el.querySelector('[data-craft-zone="' + z.def.id + '"]');
+        if (slot) {
+          var fill = slot.querySelector('.zn-craft-fill');
+          var remEl = slot.querySelector('.zn-craft-rem');
+          if (fill) fill.style.width = pct + '%';
+          if (remEl) remEl.textContent = rem + 's';
         }
-        self._renderZonesTab(el);
+        // Update condition bar inside card
+        var condBar = el.querySelector('[data-craft-cond="' + z.def.id + '"]');
+        if (condBar) {
+          var fill2 = condBar.querySelector('.zn-craft-fill-sm');
+          if (fill2) fill2.style.width = pct + '%';
+        }
       });
-    });
+    }, 500);
   }
 
 
@@ -1506,8 +1612,8 @@ class BuildingPanel {
 
     // Layout
     var CX = W / 2, CY = H / 2;
-    var RING_R = [0, 160, 310, 460];   // rayons plus grands pour éviter les chevauchements
-    var NODE_R = 26;                   // nœuds plus grands
+    var RING_R = [0, 180, 340, 510];   // rayons augmentés pour zéro chevauchement
+    var NODE_R = 24;                   // taille des nœuds
 
     // Couleurs
     var BRANCH_COLOR = {};
@@ -1539,7 +1645,7 @@ class BuildingPanel {
           if (!nodeId) return;
           var r = RING_R[ring];
           // Spread angulaire : -2 à +2 slots * 0.22 rad (plus espacé)
-          var spread = (slot - 2) * 0.22;
+          var spread = (slot - 2) * 0.20;
           var a = angle + spread;
           nodePos[nodeId] = { x: CX + Math.cos(a)*r, y: CY + Math.sin(a)*r, branchId: branch.id, ring: ring, slot: slot };
         }
@@ -1600,20 +1706,24 @@ class BuildingPanel {
       cgrad.addColorStop(1, 'rgba(0,0,0,0)');
       ctx.fillStyle = cgrad; ctx.fillRect(0, 0, W, H);
 
-      // Runes animées (scintillement violet/orange)
-      var now = Date.now() / 1000;
+      // Runes animées — CYCLE_MS=3000 triangle wave, violet (160,60,240) + orange (255,140,40)
+      var panNow = performance.now();
+      var PAN_CYCLE_MS = 3000;
       ctx.save();
       runePositions.forEach(function(rn, ri) {
         var rs = toScreen(rn.x, rn.y);
-        var phase = ri / runePositions.length * Math.PI * 2;
-        var flicker = 0.5 + 0.5 * Math.sin(now * 0.9 + phase);
+        var phase = ri / runePositions.length;
+        var t = ((panNow / PAN_CYCLE_MS) + phase) % 1.0;
+        var pulse = t < 0.5 ? t * 2.0 : (1.0 - t) * 2.0; // triangle wave
         var isOrange = ri % 3 === 0;
-        var baseOp = rn.opacity;
-        var animOp = baseOp + flicker * baseOp * 2.5;
-        if (isOrange)
-          ctx.fillStyle = 'rgba(255,140,40,' + Math.min(animOp, 0.22) + ')';
-        else
-          ctx.fillStyle = 'rgba(180,80,255,' + Math.min(animOp, 0.18) + ')';
+        var op;
+        if (isOrange) {
+          op = 0.03 + pulse * 0.17;
+          ctx.fillStyle = 'rgba(255,140,40,' + op.toFixed(3) + ')';
+        } else {
+          op = 0.02 + pulse * 0.14;
+          ctx.fillStyle = 'rgba(160,60,240,' + op.toFixed(3) + ')';
+        }
         ctx.font = Math.round(rn.size * cam.scale) + 'px serif';
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.fillText(rn.ch, rs.x, rs.y);
@@ -1749,8 +1859,17 @@ class BuildingPanel {
         var fontSize = Math.round(r * 0.85);
         ctx.font = fontSize + 'px serif';
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.globalAlpha = (state === 'locked' && !unlocked) ? 0.2 : (state === 'locked' ? 0.4 : 1);
+        ctx.globalAlpha = (state === 'locked' && !unlocked) ? 0.15 : (state === 'locked' ? 0.35 : 1);
         ctx.fillText(nd.icon, ps.x, ps.y);
+        ctx.globalAlpha = 1;
+        // Name label (colored by branch)
+        var pname = (nd.name||nd.id||'');
+        if (pname.length > 10) pname = pname.slice(0,9)+'…';
+        ctx.font = Math.round(r*0.38) + 'px Cinzel,serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        ctx.fillStyle = state==='learned' ? color : state==='available' ? color+'aa' : (unlocked ? '#555' : '#333');
+        ctx.globalAlpha = state==='locked' ? 0.3 : 0.9;
+        ctx.fillText(pname, ps.x, ps.y + r + 4);
         ctx.globalAlpha = 1;
 
         // Badge "xN" pour les nœuds uncapped investis
@@ -1855,7 +1974,7 @@ class BuildingPanel {
       for (var nid in nodePos) {
         var pos = nodePos[nid];
         var dx  = wx - pos.x, dy = wy - pos.y;
-        if (dx*dx + dy*dy <= NODE_R*NODE_R*1.6) return nid;
+        if (dx*dx + dy*dy <= (NODE_R+6)*(NODE_R+6)*1.4) return nid;
       }
       return null;
     }
@@ -1972,7 +2091,7 @@ class BuildingPanel {
           var b   = pan.getAllBranches().find(function(br){ return br.id === nd.branch; });
           if (!b) continue;
           var r  = RING_R[nd.ring];
-          var sp = (nd.slot - 2) * 0.22;
+          var sp = (nd.slot - 2) * 0.20;
           var a  = b.angle + sp;
           pos.x = CX + Math.cos(a)*r; pos.y = CY + Math.sin(a)*r;
         }
