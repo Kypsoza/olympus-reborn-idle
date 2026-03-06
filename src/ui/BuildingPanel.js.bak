@@ -1471,70 +1471,21 @@ class BuildingPanel {
       return { x: (sx - CX - cam.x) / cam.scale + CX, y: (sy - CY - cam.y) / cam.scale + CY };
     }
 
-    // Dessine un hexagone centré sur (cx,cy) de rayon r
-    function drawHex(cx, cy, r) {
-      ctx.beginPath();
-      for (var i = 0; i < 6; i++) {
-        var ang = (Math.PI / 180) * (60 * i - 30);
-        var px = cx + r * Math.cos(ang), py = cy + r * Math.sin(ang);
-        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
-      }
-      ctx.closePath();
-    }
-
-    // Runes mythologiques (positions fixes dans l'espace monde)
-    var RUNES = ['ᚠ','ᚢ','ᚦ','ᚨ','ᚱ','ᚲ','ᚷ','ᚹ','ᚺ','ᚾ','ᛁ','ᛃ','ᛇ','ᛈ','ᛉ','ᛊ','ᛏ','ᛒ','ᛖ','ᛗ','ᛚ','ᛜ','ᛞ','ᛟ'];
-    var runePositions = [];
-    if (!window._pan_runes || window._pan_runes_W !== W) {
-      window._pan_runes_W = W;
-      window._pan_runes = [];
-      for (var ri = 0; ri < 28; ri++) {
-        var angle = (ri / 28) * Math.PI * 2 + Math.random() * 0.8;
-        var dist  = 80 + Math.random() * 440;
-        window._pan_runes.push({
-          x: CX + Math.cos(angle) * dist,
-          y: CY + Math.sin(angle) * dist,
-          ch: RUNES[ri % RUNES.length],
-          opacity: 0.04 + Math.random() * 0.07,
-          size: 18 + Math.random() * 22,
-        });
-      }
-    }
-    runePositions = window._pan_runes;
-
     function draw() {
       ctx.clearRect(0, 0, W, H);
 
-      // Fond sombre
+      // Fond étoilé
       ctx.fillStyle = '#07051a';
       ctx.fillRect(0, 0, W, H);
 
-      // Dégradé radial central (ambiance)
-      var sc0 = toScreen(CX, CY);
-      var cgrad = ctx.createRadialGradient(sc0.x, sc0.y, 0, sc0.x, sc0.y, 400 * cam.scale);
-      cgrad.addColorStop(0, 'rgba(60,20,100,0.18)');
-      cgrad.addColorStop(0.5, 'rgba(30,10,60,0.10)');
-      cgrad.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = cgrad; ctx.fillRect(0, 0, W, H);
-
-      // Runes mythologiques en arrière-plan
-      ctx.save();
-      runePositions.forEach(function(rn) {
-        var rs = toScreen(rn.x, rn.y);
-        ctx.font = Math.round(rn.size * cam.scale) + 'px serif';
-        ctx.fillStyle = 'rgba(180,140,255,' + rn.opacity + ')';
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText(rn.ch, rs.x, rs.y);
-      });
-      ctx.restore();
-
-      // Hexagones de guide (anneaux)
+      // Cercles de guide (anneaux)
       ctx.save();
       [1,2,3].forEach(function(ring) {
         var r = RING_R[ring] * cam.scale;
         var sc = toScreen(CX, CY);
-        drawHex(sc.x, sc.y, r);
-        ctx.strokeStyle = 'rgba(200,149,26,0.06)';
+        ctx.beginPath();
+        ctx.arc(sc.x, sc.y, r, 0, Math.PI*2);
+        ctx.strokeStyle = 'rgba(255,255,255,0.04)';
         ctx.lineWidth = 1;
         ctx.stroke();
       });
@@ -1598,16 +1549,16 @@ class BuildingPanel {
         // Glow pour les nœuds appris / disponibles
         if (state === 'learned') {
           ctx.save();
-          ctx.shadowColor = color; ctx.shadowBlur = 16 * cam.scale;
-          drawHex(ps.x, ps.y, r+4);
-          ctx.fillStyle = color + '18'; ctx.fill(); ctx.restore();
+          ctx.shadowColor = color; ctx.shadowBlur = 12 * cam.scale;
+          ctx.beginPath(); ctx.arc(ps.x, ps.y, r+3, 0, Math.PI*2);
+          ctx.fillStyle = color + '20'; ctx.fill(); ctx.restore();
         } else if (state === 'available') {
           ctx.save();
-          ctx.shadowColor = color; ctx.shadowBlur = 7 * cam.scale;
+          ctx.shadowColor = color; ctx.shadowBlur = 6 * cam.scale;
         }
 
-        // Hexagone principal
-        drawHex(ps.x, ps.y, r);
+        // Cercle principal
+        ctx.beginPath(); ctx.arc(ps.x, ps.y, r, 0, Math.PI*2);
         if (state === 'learned') {
           var grad = ctx.createRadialGradient(ps.x, ps.y, 0, ps.x, ps.y, r);
           grad.addColorStop(0, color + 'cc');
@@ -1620,8 +1571,8 @@ class BuildingPanel {
         }
         ctx.fill();
 
-        // Bordure hexagonale
-        drawHex(ps.x, ps.y, r);
+        // Bordure
+        ctx.beginPath(); ctx.arc(ps.x, ps.y, r, 0, Math.PI*2);
         if (state === 'learned') ctx.strokeStyle = color;
         else if (state === 'available') ctx.strokeStyle = color + 'aa';
         else ctx.strokeStyle = unlocked ? '#444' : '#222';
@@ -1650,16 +1601,15 @@ class BuildingPanel {
         }
       }
 
-      // Nœud central (hexagone)
+      // Nœud central
       var cs = toScreen(CX, CY);
       var cr = 30 * Math.min(cam.scale, 1.4);
       ctx.save();
-      ctx.shadowColor = '#ffd54f'; ctx.shadowBlur = 22;
-      drawHex(cs.x, cs.y, cr);
+      ctx.shadowColor = '#ffd54f'; ctx.shadowBlur = 20;
+      ctx.beginPath(); ctx.arc(cs.x, cs.y, cr, 0, Math.PI*2);
       var cg = ctx.createRadialGradient(cs.x, cs.y, 0, cs.x, cs.y, cr);
       cg.addColorStop(0, '#fff8dc'); cg.addColorStop(1, '#c8961a44');
       ctx.fillStyle = cg; ctx.fill();
-      drawHex(cs.x, cs.y, cr);
       ctx.strokeStyle = '#ffd54f'; ctx.lineWidth = 2; ctx.stroke();
       ctx.restore();
       ctx.font = Math.round(cr*0.8) + 'px serif';

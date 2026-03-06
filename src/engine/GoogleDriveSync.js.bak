@@ -106,22 +106,19 @@ const GoogleDriveSync = (() => {
       use_fedcm_for_prompt: true,
     });
 
-    // Si session précédente → tenter reconnexion silencieuse après init complète
+    // Si session précédente → tenter reconnexion silencieuse immédiatement
     if (localStorage.getItem(KEY_SIGNED_IN) === '1') {
       _userInfo = {
         name:    localStorage.getItem(KEY_NAME)  || 'Joueur',
         email:   localStorage.getItem(KEY_EMAIL) || '',
         picture: localStorage.getItem(KEY_PIC)   || '',
       };
-      // Attendre que GAPI+GIS soient prêts avant de demander le token
-      function _trySilentToken(attempt) {
-        if (_tokenClient && _gapiReady) {
+      // Demander le token Drive silencieusement (sans popup)
+      setTimeout(() => {
+        if (_tokenClient) {
           _tokenClient.requestAccessToken({ prompt: '' });
-        } else if (attempt < 20) {
-          setTimeout(() => _trySilentToken(attempt + 1), 300);
         }
-      }
-      setTimeout(() => _trySilentToken(0), 800);
+      }, 500);
     }
   }
 

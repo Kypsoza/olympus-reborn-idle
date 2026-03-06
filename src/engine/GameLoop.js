@@ -212,17 +212,29 @@ class GameLoop {
         // +100k toutes ressources Ère 1
         document.getElementById('dbg-add-res')?.addEventListener('click', () => {
           var rm = this.resources;
-          ['drachmes','bois','nourr','fer','habitants'].forEach(r => rm.add(r, 100000));
-          rm.add('ambroisie', 5000); rm.add('farine', 5000);
+          ['drachmes','bois','nourr','fer'].forEach(r => {
+            if (rm.resources[r]) rm.resources[r].value += 100000;
+          });
+          if (rm.resources['habitants']) rm.resources['habitants'].value += 100000;
+          if (rm.resources['ambroisie']) rm.resources['ambroisie'].value += 5000;
+          if (rm.resources['farine']) rm.resources['farine'].value += 5000;
           EventBus.emit('resources:updated', rm.getSnapshot());
+          if (this.hud && this.hud.update) this.hud.update(rm.getSnapshot());
           this.hud.setInfo('💰 +100k ressources Ère 1 ajoutées');
         });
 
         // +10k Éther
         document.getElementById('dbg-add-ether')?.addEventListener('click', () => {
-          this.resources.add('ether', 10000);
-          EventBus.emit('resources:updated', this.resources.getSnapshot());
-          this.hud.setInfo('✨ +10k Éther ajouté');
+          var rm = this.resources;
+          // Ether is a permanent resource — add directly
+          if (rm.resources && rm.resources.ether !== undefined) {
+            rm.resources.ether.value += 10000;
+          } else {
+            rm.add('ether', 10000);
+          }
+          EventBus.emit('resources:updated', rm.getSnapshot());
+          if (this.hud && this.hud.update) this.hud.update(rm.getSnapshot());
+          this.hud.setInfo('✨ +10k Éther ajouté (total: ' + Math.floor(rm.get ? rm.get('ether') : rm.resources.ether.value) + ')');
         });
 
         // +Ressources Ère 2
