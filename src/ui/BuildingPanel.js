@@ -330,7 +330,52 @@ class BuildingPanel {
         + '<feGaussianBlur stdDeviation="3" result="b"/>'
         + '<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
         + '</defs>';
-      s += '<rect width="' + VW + '" height="' + VH + '" fill="rgba(8,5,18,0.9)"/>';
+      // ── Fond mythologie grecque — moins sombre, ambiance marbre doré ──
+      s += '<defs>'
+        + '<linearGradient id="dtbg" x1="0%" y1="0%" x2="100%" y2="100%">'
+        + '<stop offset="0%"   stop-color="#2e1f08"/>'
+        + '<stop offset="40%"  stop-color="#251808"/>'
+        + '<stop offset="100%" stop-color="#1c1006"/>'
+        + '</linearGradient>'
+        + '<radialGradient id="dtglow" cx="50%" cy="50%" r="60%">'
+        + '<stop offset="0%"  stop-color="rgba(200,149,26,0.12)"/>'
+        + '<stop offset="100%" stop-color="rgba(200,149,26,0)"/>'
+        + '</radialGradient>'
+        + '</defs>';
+      s += '<rect width="' + VW + '" height="' + VH + '" fill="url(#dtbg)"/>';
+      s += '<rect width="' + VW + '" height="' + VH + '" fill="url(#dtglow)"/>';
+      // Veines de marbre
+      var MARBLE = [[0,VH*0.25,VW*0.3,VH*0.2,VW*0.7,VH*0.28,VW,VH*0.22],
+                    [0,VH*0.6,VW*0.4,VH*0.55,VW*0.6,VH*0.65,VW,VH*0.58],
+                    [VW*0.2,0,VW*0.22,VH*0.4,VW*0.18,VH*0.7,VW*0.21,VH]];
+      MARBLE.forEach(function(m) {
+        s += '<path d="M'+m[0]+','+m[1]+' C'+m[2]+','+m[3]+' '+m[4]+','+m[5]+' '+m[6]+','+m[7]+'"'
+          + ' fill="none" stroke="rgba(210,170,80,0.09)" stroke-width="1.5"/>';
+      });
+      // Bordure double méandre grec
+      s += '<rect x="3" y="3" width="'+(VW-6)+'" height="'+(VH-6)+'"'
+        + ' fill="none" stroke="rgba(200,149,26,0.35)" stroke-width="2" rx="3"/>';
+      s += '<rect x="7" y="7" width="'+(VW-14)+'" height="'+(VH-14)+'"'
+        + ' fill="none" stroke="rgba(200,149,26,0.15)" stroke-width="1" rx="2" stroke-dasharray="8,4"/>';
+      // Colonnes doriques gauche + droite
+      [0, VW-22].forEach(function(cx) {
+        s += '<rect x="'+cx+'" y="0" width="22" height="'+VH+'" fill="rgba(200,160,60,0.07)"/>';
+        s += '<rect x="'+(cx+2)+'" y="0" width="1" height="'+VH+'" fill="rgba(200,160,60,0.12)"/>';
+        s += '<rect x="'+(cx+20)+'" y="0" width="1" height="'+VH+'" fill="rgba(200,160,60,0.12)"/>';
+        for (var fy=0; fy<VH; fy+=40)
+          s += '<line x1="'+cx+'" y1="'+fy+'" x2="'+(cx+22)+'" y2="'+fy+'" stroke="rgba(200,160,60,0.06)" stroke-width="1"/>';
+      });
+      // Icones décoratifs mythologiques (amphore, temple, etc.)
+      var DECOS2 = ['🏺','🛡️','⚔️','🏛️','🦅','🫒','☀️','🌿'];
+      for (var di=0; di<10; di++) {
+        var ddx = 28 + (di*151.3)%(VW-56);
+        var ddy = 30 + (di*97.7)%(VH-50);
+        s += '<text x="'+ddx+'" y="'+ddy+'" font-size="26" text-anchor="middle"'
+          + ' opacity="0.10" style="pointer-events:none">'+DECOS2[di%DECOS2.length]+'</text>';
+      }
+      // Scène de frise (bas de l'image) — silhouettes
+      s += '<line x1="0" y1="'+(VH-28)+'" x2="'+VW+'" y2="'+(VH-28)+'"'
+        + ' stroke="rgba(200,149,26,0.20)" stroke-width="1"/>';
       s += buildRuneBg(VW, VH, 22);
 
       // Col separator line
@@ -386,6 +431,16 @@ class BuildingPanel {
         pts += 'Z';
 
         s += '<g class="dt-node' + (_dtSelected===id?' dt-selected':'') + '" data-id="' + id + '" style="cursor:pointer">';
+        // Selection ring (orange glow around selected node)
+        if (_dtSelected === id) {
+          var selPts = '';
+          for (var si2=0; si2<6; si2++) {
+            var sa2 = (Math.PI/180)*(60*si2-30);
+            selPts += (si2===0?'M':'L')+(pos.x+(R+9)*Math.cos(sa2)).toFixed(1)+','+(pos.y+(R+9)*Math.sin(sa2)).toFixed(1);
+          }
+          s += '<path d="' + selPts + 'Z" fill="rgba(240,200,64,0.15)"'
+            + ' stroke="#f0c840" stroke-width="3" filter="url(#dt-gd)"/>';
+        }
         // Glow for learned/available
         if (st !== 'locked') {
           s += '<path d="' + pts + '" fill="' + (st==='learned'?col:'rgba(200,160,60,0.2)') + '"'
@@ -619,7 +674,46 @@ class BuildingPanel {
          + '<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
          + '</defs>';
 
-      s += '<rect width="' + VW + '" height="' + VH + '" fill="url(#etbg)"/>';
+      // ── Fond mythologie grecque Éther — ciel nocturne étoilé, moins sombre ──
+      s += '<defs>'
+        + '<linearGradient id="etbg2" x1="0%" y1="0%" x2="60%" y2="100%">'
+        + '<stop offset="0%"   stop-color="#1a0c35"/>'
+        + '<stop offset="50%"  stop-color="#120828"/>'
+        + '<stop offset="100%" stop-color="#0a0520"/>'
+        + '</linearGradient>'
+        + '<radialGradient id="etstar" cx="50%" cy="30%" r="55%">'
+        + '<stop offset="0%"  stop-color="rgba(160,80,255,0.18)"/>'
+        + '<stop offset="100%" stop-color="rgba(80,20,160,0)"/>'
+        + '</radialGradient>'
+        + '</defs>';
+      s += '<rect width="' + VW + '" height="' + VH + '" fill="url(#etbg2)"/>';
+      s += '<rect width="' + VW + '" height="' + VH + '" fill="url(#etstar)"/>';
+      // Étoiles et constellations
+      for (var si=0; si<60; si++) {
+        var sx2 = 5+(si*137.5)%(VW-10), sy2 = 5+(si*73.1)%(VH-10);
+        var sr  = si%5===0 ? 2 : si%3===0 ? 1.5 : 1;
+        var sop = 0.3+((si*47)%100)/200;
+        s += '<circle cx="'+sx2+'" cy="'+sy2+'" r="'+sr+'" fill="rgba(255,255,255,'+sop.toFixed(2)+')"/>';
+      }
+      // Lignes de constellation (reliant quelques étoiles)
+      [[0,5],[5,14],[14,23],[23,32],[1,8],[8,17]].forEach(function(pair) {
+        var a={x:5+(pair[0]*137.5)%(VW-10),y:5+(pair[0]*73.1)%(VH-10)};
+        var b={x:5+(pair[1]*137.5)%(VW-10),y:5+(pair[1]*73.1)%(VH-10)};
+        if (Math.abs(a.x-b.x)<200 && Math.abs(a.y-b.y)<150)
+          s += '<line x1="'+a.x+'" y1="'+a.y+'" x2="'+b.x+'" y2="'+b.y+'" stroke="rgba(180,120,255,0.12)" stroke-width="1"/>';
+      });
+      // Bordure cosmique
+      s += '<rect x="3" y="3" width="'+(VW-6)+'" height="'+(VH-6)+'"'
+        + ' fill="none" stroke="rgba(160,80,255,0.35)" stroke-width="1.5" rx="3"/>';
+      s += '<rect x="7" y="7" width="'+(VW-14)+'" height="'+(VH-14)+'"'
+        + ' fill="none" stroke="rgba(160,80,255,0.12)" stroke-width="1" rx="2" stroke-dasharray="6,5"/>';
+      // Icônes mythologiques (cosmos)
+      var ET_DECOS = ['⭐','🌙','🔮','✨','🌊','🦅','⚡','🏛️','💫'];
+      for (var edi=0; edi<8; edi++) {
+        var edx = 25+(edi*161)%(VW-50), edy = 25+(edi*103)%(VH-50);
+        s += '<text x="'+edx+'" y="'+edy+'" font-size="24" text-anchor="middle"'
+          + ' opacity="0.12" style="pointer-events:none">'+ET_DECOS[edi%ET_DECOS.length]+'</text>';
+      }
 
       // Runes — animated via JS RAF (same CYCLE_MS=3000 as MapRenderer)
       var ET_RUNES = ['ᚠ','ᚢ','ᚦ','ᚨ','ᚱ','ᚲ','ᚷ','ᚹ','ᚺ','ᚾ','ᛁ','ᛃ','ᛇ','ᛈ','ᛉ','ᛊ','ᛏ','ᛒ','ᛖ','ᛗ','ᛚ','ᛜ','ᛞ','ᛟ'];
@@ -790,20 +884,24 @@ class BuildingPanel {
       ttBox.dataset.node = id;
     }
 
-    svgEl.addEventListener('click', function(e) {
-      var c = e.target.closest('[data-enode]'); if (!c) return;
-      var nid = c.dataset.enode;
-      _etSelected = nid;
-      showTooltip(nid);
-      // Refresh SVG to show selection
-      var newDiv = document.createElement('div');
-      newDiv.innerHTML = buildSVG();
-      var newSvg = newDiv.firstChild;
-      svgEl.parentNode.replaceChild(newSvg, svgEl);
-      svgEl = el.querySelector('#et-svg');
-      startEtRuneAnim(svgEl);
-      svgEl.addEventListener('click', arguments.callee);
-    });
+    function bindEtSvg(svg) {
+      svg.addEventListener('click', function onEtClick(e) {
+        var node = e.target.closest('[data-enode]'); if (!node) return;
+        var nid = node.dataset.enode;
+        _etSelected = nid;
+        showTooltip(nid);
+        // Rebuild SVG with selection ring visible
+        stopEtRuneAnim();
+        var newDiv = document.createElement('div');
+        newDiv.innerHTML = buildSVG();
+        svg.parentNode.replaceChild(newDiv.firstChild, svg);
+        svg = el.querySelector('#et-svg');
+        svgEl = svg;
+        startEtRuneAnim(svgEl);
+        bindEtSvg(svgEl);
+      });
+    }
+    bindEtSvg(svgEl);
 
     ttBox.addEventListener('click', function(e) {
       var btn = e.target.closest('[data-learnether]'); if (!btn) return;
@@ -1417,7 +1515,13 @@ class BuildingPanel {
         // Zone conquise : affiche production
         html +=
           '<div class="zn-prod">' +
-            Object.entries(def.zoneProduction).map(function(e){ return '▶ +' + e[1] + ' ' + e[0] + '/s'; }).join('  ') +
+            Object.entries(def.zoneProduction).map(function(e) {
+              var icon = (window.RES_ICONS && window.RES_ICONS[e[0]]) || '▶';
+              var name2 = (window.RES_NAMES && window.RES_NAMES[e[0]]) || e[0];
+              return '<span class="zn-prod-item"><span class="zn-prod-icon">' + icon + '</span>'
+                + '<span class="zn-prod-val">+' + e[1] + '</span>'
+                + '<span class="zn-prod-name">' + name2 + '/s</span></span>';
+            }).join('') +
           '</div>';
         if (state.residualCurse && !state.templeBuilt) {
           html += '<div class="zn-residual">⚠️ Malédiction résiduelle -10% — construisez un Temple</div>';
@@ -1443,7 +1547,10 @@ class BuildingPanel {
 
         // Bouton craft
         if (!state.craftStarted && !state.craftDone) {
-          var ingList = Object.entries(def.keyIngredients).map(function(e){ return e[1] + ' ' + e[0]; }).join(', ');
+          var ingList = Object.entries(def.keyIngredients).map(function(e) {
+            var icon = (window.RES_ICONS && window.RES_ICONS[e[0]]) || '';
+            return icon + ' ' + e[1] + ' ' + ((window.RES_NAMES && window.RES_NAMES[e[0]]) || e[0]);
+          }).join(', ');
           var canAfford = rm ? rm.canAfford(def.keyIngredients) : false;
           var slotsFull = crafting.length >= z.maxCraftSlots;
           html +=
@@ -1612,8 +1719,8 @@ class BuildingPanel {
 
     // Layout
     var CX = W / 2, CY = H / 2;
-    var RING_R = [0, 180, 340, 510];   // rayons augmentés pour zéro chevauchement
-    var NODE_R = 24;                   // taille des nœuds
+    var RING_R = [0, 180, 330, 490];   // ring1=180 ring2=330 ring3=490
+    var NODE_R = 22;                   // nœuds R=22
 
     // Couleurs
     var BRANCH_COLOR = {};
@@ -1644,8 +1751,16 @@ class BuildingPanel {
           }
           if (!nodeId) return;
           var r = RING_R[ring];
-          // Spread angulaire : -2 à +2 slots * 0.22 rad (plus espacé)
-          var spread = (slot - 2) * 0.20;
+          // Per-ring angular spread: ring1=3 slots(0,2,4 mapped), ring2=4, ring3=5
+          // RING_R=[180,340,510], NODE_R=22, sector=2π/8=0.785rad
+          // Clearances: r1:54px(>48) r2:63px r3:78px — no overlap guaranteed
+          var SPREAD_PER_RING = { 1: 0.30, 2: 0.19, 3: 0.16 };
+          var N_SLOTS_PER_RING = { 1: 3, 2: 4, 3: 5 };
+          var nSlots = N_SLOTS_PER_RING[ring] || 5;
+          var spreadStep = SPREAD_PER_RING[ring] || 0.18;
+          // Remap slot index to 0..nSlots-1
+          var remappedSlot = Math.min(slot, nSlots - 1);
+          var spread = (remappedSlot - (nSlots - 1) / 2) * spreadStep;
           var a = angle + spread;
           nodePos[nodeId] = { x: CX + Math.cos(a)*r, y: CY + Math.sin(a)*r, branchId: branch.id, ring: ring, slot: slot };
         }
@@ -1694,17 +1809,36 @@ class BuildingPanel {
     function draw() {
       ctx.clearRect(0, 0, W, H);
 
-      // Fond sombre
-      ctx.fillStyle = '#07051a';
+      // Fond mythologie grecque — moins sombre, temple + cosmos
+      var bgGrad = ctx.createLinearGradient(0, 0, W, H);
+      bgGrad.addColorStop(0,   '#1e1230');
+      bgGrad.addColorStop(0.5, '#160e26');
+      bgGrad.addColorStop(1,   '#0e0819');
+      ctx.fillStyle = bgGrad;
       ctx.fillRect(0, 0, W, H);
 
-      // Dégradé radial central (ambiance)
+      // Halo radial central doré (lumière du temple)
       var sc0 = toScreen(CX, CY);
-      var cgrad = ctx.createRadialGradient(sc0.x, sc0.y, 0, sc0.x, sc0.y, 400 * cam.scale);
-      cgrad.addColorStop(0, 'rgba(60,20,100,0.18)');
-      cgrad.addColorStop(0.5, 'rgba(30,10,60,0.10)');
-      cgrad.addColorStop(1, 'rgba(0,0,0,0)');
+      var cgrad = ctx.createRadialGradient(sc0.x, sc0.y, 0, sc0.x, sc0.y, 500 * cam.scale);
+      cgrad.addColorStop(0,   'rgba(200,149,26,0.14)');
+      cgrad.addColorStop(0.35,'rgba(120,60,200,0.08)');
+      cgrad.addColorStop(1,   'rgba(0,0,0,0)');
       ctx.fillStyle = cgrad; ctx.fillRect(0, 0, W, H);
+
+      // Étoiles de fond (statiques, en espace monde)
+      ctx.save();
+      var panStars = window._panStars || (function(){
+        var s=[]; for(var i=0;i<80;i++) s.push({
+          x:CX+(((i*137.5)%1)-0.5)*1200, y:CY+(((i*73.1)%1)-0.5)*1200,
+          r:i%5===0?1.5:i%3===0?1:0.7, op:0.25+((i*47)%100)/250
+        }); window._panStars=s; return s;
+      })();
+      panStars.forEach(function(s2){
+        var sp=toScreen(s2.x,s2.y);
+        ctx.beginPath(); ctx.arc(sp.x,sp.y,s2.r*cam.scale,0,Math.PI*2);
+        ctx.fillStyle='rgba(255,255,255,'+s2.op+')'; ctx.fill();
+      });
+      ctx.restore();
 
       // Runes animées — CYCLE_MS=3000 triangle wave, violet (160,60,240) + orange (255,140,40)
       var panNow = performance.now();
