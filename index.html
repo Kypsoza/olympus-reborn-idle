@@ -17,15 +17,15 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="css/main.css?v=0.9.2" />
-  <link rel="stylesheet" href="css/hud.css?v=0.9.2" />
-  <link rel="stylesheet" href="css/map.css?v=0.9.2" />
-  <link rel="stylesheet" href="css/ui.css?v=0.9.2" />
-  <link rel="stylesheet" href="css/animations.css?v=0.9.2" />
-  <link rel="stylesheet" href="css/bottom-panel.css?v=0.9.2" />
-  <link rel="stylesheet" href="css/buildings.css?v=0.9.2" />
-  <link rel="stylesheet" href="css/talent-panel.css?v=0.9.2" />
-  <link rel="stylesheet" href="css/help-panel.css?v=0.9.2" />
+  <link rel="stylesheet" href="css/main.css?v=0.9.3" />
+  <link rel="stylesheet" href="css/hud.css?v=0.9.3" />
+  <link rel="stylesheet" href="css/map.css?v=0.9.3" />
+  <link rel="stylesheet" href="css/ui.css?v=0.9.3" />
+  <link rel="stylesheet" href="css/animations.css?v=0.9.3" />
+  <link rel="stylesheet" href="css/bottom-panel.css?v=0.9.3" />
+  <link rel="stylesheet" href="css/buildings.css?v=0.9.3" />
+  <link rel="stylesheet" href="css/talent-panel.css?v=0.9.3" />
+  <link rel="stylesheet" href="css/help-panel.css?v=0.9.3" />
 </head>
 <body>
   <div id="era-screen-flash"></div>
@@ -174,252 +174,253 @@
   ════════════════════════════════════════════════════════ -->
   <div id="game-container" class="hidden">
 
-    <!-- HUD SUPÉRIEUR -->
-    <header id="hud-top">
-      <div id="hud-title">
-        <span class="hud-game-name">⚡ OLYMPUS REBORN</span>
-      </div>
-
-      <div id="resources-bar">
-        <!-- Drachmes -->
-        <div class="resource-item" id="res-drachmes" data-tooltip="Drachmes de Cuivre — Monnaie principale">
-          <div class="resource-icon">🪙</div>
-          <div class="resource-info">
-            <span class="resource-name">Drachmes</span>
-            <span class="resource-value" id="val-drachmes">0</span>
-            <span class="resource-rate" id="rate-drachmes">+0/s</span>
-          </div>
-        </div>
-        <!-- Bois -->
-        <div class="resource-item" id="res-bois" data-tooltip="Bois de Styx — Matériau de construction">
-          <div class="resource-icon">🪵</div>
-          <div class="resource-info">
-            <span class="resource-name">Bois de Styx</span>
-            <span class="resource-value" id="val-bois">0</span>
-            <span class="resource-rate" id="rate-bois">+0/s</span>
-          </div>
-        </div>
-        <!-- Nourriture -->
-        <div class="resource-item" id="res-nourr" data-tooltip="Ambroisie de Synthèse — Nourrit vos survivants">
-          <div class="resource-icon">🌾</div>
-          <div class="resource-info">
-            <span class="resource-name">Ambroisie</span>
-            <span class="resource-value" id="val-nourr">0</span>
-            <span class="resource-rate" id="rate-nourr">+0/s</span>
-          </div>
-        </div>
-        <!-- Fer -->
-        <div class="resource-item" id="res-fer" data-tooltip="Fer Céleste — Métal divin pour constructions avancées">
-          <div class="resource-icon">⚙️</div>
-          <div class="resource-info">
-            <span class="resource-name">Fer Céleste</span>
-            <span class="resource-value" id="val-fer">0</span>
-            <span class="resource-rate" id="rate-fer">+0/s</span>
-          </div>
-        </div>
-        <!-- Éther -->
-        <div class="resource-item resource-prestige" id="res-ether" data-tooltip="Éther — Monnaie permanente obtenue au Prestige. Dépensez-le dans l'arbre Éther (onglet ✨ Talents).">
-          <div class="resource-icon">✨</div>
-          <div class="resource-info">
-            <span class="resource-name">Éther</span>
-            <span class="resource-value" id="val-ether">0</span>
-            <span class="resource-rate" id="rate-ether" style="color:#c090ff"></span>
-          </div>
-        </div>
-        <!-- Habitants : géré dans le panel population en bas, pas ici -->
-        <!-- Foudre (Era 1+) -->
-        <div class="resource-item resource-era2" id="res-foudre" style="display:none" data-tooltip="Foudre — Alimente les bâtiments avancés">
-          <div class="resource-icon">⚡</div>
-          <div class="resource-info">
-            <span class="resource-name">Foudre</span>
-            <span class="resource-value" id="val-foudre">0</span>
-            <span class="resource-rate" id="rate-foudre"></span>
-          </div>
-        </div>
-        <!-- Nectar (Era 2) -->
-        <div class="resource-item resource-era2" id="res-nectar" style="display:none" data-tooltip="Nectar — Ressource des Vergers d'Apollon">
-          <div class="resource-icon">🍯</div>
-          <div class="resource-info">
-            <span class="resource-name">Nectar</span>
-            <span class="resource-value" id="val-nectar">0</span>
-            <span class="resource-rate" id="rate-nectar"></span>
-          </div>
-        </div>
-        <!-- Bronze (Era 2) -->
-        <div class="resource-item resource-era2" id="res-bronze" style="display:none" data-tooltip="Bronze — Atelier du Forgeron">
-          <div class="resource-icon">🟫</div>
-          <div class="resource-info">
-            <span class="resource-name">Bronze</span>
-            <span class="resource-value" id="val-bronze">0</span>
-            <span class="resource-rate" id="rate-bronze"></span>
-          </div>
-        </div>
-        <!-- Acier (Era 2) -->
-        <div class="resource-item resource-era2" id="res-acier" style="display:none" data-tooltip="Acier — Fonderie Céleste">
-          <div class="resource-icon">🔩</div>
-          <div class="resource-info">
-            <span class="resource-name">Acier</span>
-            <span class="resource-value" id="val-acier">0</span>
-            <span class="resource-rate" id="rate-acier"></span>
-          </div>
-        </div>
-        <!-- Farine (Era 2) -->
-        <div class="resource-item resource-era2" id="res-farine" style="display:none" data-tooltip="Farine Sacrée — Moulin à Grain">
-          <div class="resource-icon">🌾✨</div>
-          <div class="resource-info">
-            <span class="resource-name">Farine Sacrée</span>
-            <span class="resource-value" id="val-farine">0</span>
-            <span class="resource-rate" id="rate-farine"></span>
-          </div>
-        </div>
-        <!-- Orichalque (Era 3) -->
-        <div class="resource-item resource-era3" id="res-orichalque" style="display:none" data-tooltip="Orichalque — Métal légendaire, Era 3">
-          <div class="resource-icon">🌟</div>
-          <div class="resource-info">
-            <span class="resource-name">Orichalque</span>
-            <span class="resource-value" id="val-orichalque">0</span>
-            <span class="resource-rate" id="rate-orichalque"></span>
-          </div>
-        </div>
-        <!-- Metal Divin (Era 3) -->
-        <div class="resource-item resource-era3" id="res-metal_divin" style="display:none" data-tooltip="Métal Divin — Forge Divine, Era 3">
-          <div class="resource-icon">⚙️✨</div>
-          <div class="resource-info">
-            <span class="resource-name">Métal Divin</span>
-            <span class="resource-value" id="val-metal_divin">0</span>
-            <span class="resource-rate" id="rate-metal_divin"></span>
-          </div>
-        </div>
-        <!-- Amrita (Era 3) -->
-        <div class="resource-item resource-era3" id="res-amrita" style="display:none" data-tooltip="Amrita — Ressource transcendante, Era 3">
-          <div class="resource-icon">💎</div>
-          <div class="resource-info">
-            <span class="resource-name">Amrita</span>
-            <span class="resource-value" id="val-amrita">0</span>
-            <span class="resource-rate" id="rate-amrita"></span>
-          </div>
-        </div>
-        <!-- Ambroisie (Ère 2, Phase 5) -->
-        <div class="resource-item resource-era2" id="res-ambroisie" style="display:none" data-tooltip="Ambroisie — Nectar des dieux, produite par la Distillerie Sacrée">
-          <div class="resource-icon">🍯</div>
-          <div class="resource-info">
-            <span class="resource-name">Ambroisie</span>
-            <span class="resource-value" id="val-ambroisie">0</span>
-            <span class="resource-rate" id="rate-ambroisie"></span>
-          </div>
-        </div>
-        <!-- Population (déplacée du footer) -->
-        <div class="resource-item hud-pop-item" id="res-pop" data-tooltip="Population — Travailleurs / Capacité">
-          <div class="resource-icon">👥</div>
-          <div class="resource-info">
-            <span class="resource-name">Population</span>
-            <div class="hud-pop-row">
-              <span id="pop-workers">0</span><span class="hud-pop-sep"> / </span><span id="pop-total">0</span>
-            </div>
-            <div id="pop-bar-wrap"><div id="pop-bar"></div></div>
-          </div>
-          <span id="pop-alert" style="display:none" title="Logements pleins">⚠️</span>
-        </div>
-        <!-- Énergie HUD (ère 2+) -->
-        <div class="resource-item hud-nrj-item resource-era2" id="res-nrj-hud" style="display:none" data-tooltip="Énergie — Foudre des pylônes">
-          <div class="resource-icon">⚡</div>
-          <div class="resource-info">
-            <span class="resource-name">Énergie</span>
-            <span class="resource-value" id="val-nrj-hud">0</span>
-            <span class="resource-rate" id="rate-nrj-hud">+0/s</span>
-          </div>
+  <!-- ══════════════════════════════════════════════════════
+       BARRE HAUTE — Ressources (toute la largeur, scrollable)
+  ═══════════════════════════════════════════════════════ -->
+  <header id="hud-top">
+    <div id="resources-bar">
+      <!-- Drachmes -->
+      <div class="resource-item" id="res-drachmes" data-tooltip="Drachmes de Cuivre — Monnaie principale">
+        <span class="resource-icon">🪙</span>
+        <div class="resource-info">
+          <span class="resource-name">Drachmes</span>
+          <span class="resource-value" id="val-drachmes">0</span>
+          <span class="resource-rate" id="rate-drachmes">+0/s</span>
         </div>
       </div>
-
-      <div id="era-badge" style="display:none;font-family:Cinzel,serif;font-size:11px;color:#c8a840;padding:4px 10px;border:1px solid rgba(200,168,64,0.4);border-radius:8px;margin-right:8px;align-self:center;letter-spacing:1px;">⛩ Antiquité</div>
-    </header>
-
-    <!-- ZONE CARTE -->
-    <main id="map-container">
-      <canvas id="game-canvas"></canvas>
-
-      <!-- Bouton talents caché — utilisé par BuildingPanel pour le binding -->
-      <button id="btn-talents" style="display:none" aria-hidden="true"></button>
-
-      <!-- Drawer bas remplace le tooltip -->
-
-      <!-- Debug: reveal all (visible si ?debug dans l'URL) -->
-      <button id="btn-reveal-all" style="display:none;position:absolute;bottom:12px;left:12px;z-index:200;background:rgba(200,80,80,.85);border:1px solid #e05050;color:#fff;font-family:Cinzel,serif;font-size:12px;padding:8px 14px;border-radius:6px;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.5)">🗺 Tout Révéler</button>
-
-      <!-- Debug TEST PANEL (visible si ?debug dans l'URL) -->
-      <div id="debug-panel" style="display:none;position:fixed;top:70px;right:12px;z-index:900;background:rgba(10,6,22,0.96);border:1px solid rgba(200,80,80,0.55);border-radius:12px;padding:12px 14px;min-width:200px;box-shadow:0 4px 24px rgba(0,0,0,0.8);font-family:Cinzel,serif;">
-        <div style="font-size:12px;font-weight:700;color:#e05050;letter-spacing:1px;margin-bottom:10px;text-align:center">🧪 PANEL TEST</div>
-        <div style="display:flex;flex-direction:column;gap:6px;">
-          <button id="dbg-add-res" style="background:rgba(80,180,80,0.2);border:1px solid rgba(80,200,80,0.5);color:#80e080;padding:7px 10px;border-radius:6px;cursor:pointer;font-family:Cinzel,serif;font-size:12px;font-weight:700">💰 +100k Ressources</button>
-          <button id="dbg-add-ether" style="background:rgba(160,80,255,0.2);border:1px solid rgba(180,100,255,0.5);color:#c090ff;padding:7px 10px;border-radius:6px;cursor:pointer;font-family:Cinzel,serif;font-size:12px;font-weight:700">✨ +10k Éther</button>
-          <button id="dbg-add-era2" style="background:rgba(80,160,255,0.2);border:1px solid rgba(80,180,255,0.5);color:#80c0ff;padding:7px 10px;border-radius:6px;cursor:pointer;font-family:Cinzel,serif;font-size:12px;font-weight:700">🏛️ +Res Ère 2</button>
-          <button id="dbg-add-era3" style="background:rgba(255,160,40,0.2);border:1px solid rgba(255,180,60,0.5);color:#ffb840;padding:7px 10px;border-radius:6px;cursor:pointer;font-family:Cinzel,serif;font-size:12px;font-weight:700">⚡ +Res Ère 3</button>
-          <div style="border-top:1px solid rgba(255,255,255,0.08);margin:4px 0;padding-top:8px;">
-            <div style="font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:6px;text-align:center">Vitesse de clic</div>
-            <div style="display:flex;gap:5px;justify-content:center;flex-wrap:wrap;">
-              <button class="dbg-speed-btn dbg-speed-active" data-speed="1" style="background:rgba(200,160,60,0.25);border:1px solid rgba(200,160,60,0.6);color:#e8c040;padding:5px 8px;border-radius:5px;cursor:pointer;font-family:Cinzel,serif;font-size:11px;font-weight:700">x1</button>
-              <button class="dbg-speed-btn" data-speed="5" style="background:rgba(200,160,60,0.08);border:1px solid rgba(200,160,60,0.25);color:rgba(200,160,60,0.5);padding:5px 8px;border-radius:5px;cursor:pointer;font-family:Cinzel,serif;font-size:11px;font-weight:700">x5</button>
-              <button class="dbg-speed-btn" data-speed="10" style="background:rgba(200,160,60,0.08);border:1px solid rgba(200,160,60,0.25);color:rgba(200,160,60,0.5);padding:5px 8px;border-radius:5px;cursor:pointer;font-family:Cinzel,serif;font-size:11px;font-weight:700">x10</button>
-              <button class="dbg-speed-btn" data-speed="50" style="background:rgba(200,160,60,0.08);border:1px solid rgba(200,160,60,0.25);color:rgba(200,160,60,0.5);padding:5px 8px;border-radius:5px;cursor:pointer;font-family:Cinzel,serif;font-size:11px;font-weight:700">x50</button>
-            </div>
-            <div style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:6px;text-align:center" id="dbg-speed-label">1 clic = 1 action</div>
-          </div>
+      <!-- Bois -->
+      <div class="resource-item" id="res-bois" data-tooltip="Bois de Styx — Matériau de construction">
+        <span class="resource-icon">🪵</span>
+        <div class="resource-info">
+          <span class="resource-name">Bois</span>
+          <span class="resource-value" id="val-bois">0</span>
+          <span class="resource-rate" id="rate-bois">+0/s</span>
         </div>
       </div>
-
-      <!-- zoom-controls déplacés en overlay fixe -->
-
-      <!-- Info tick -->
-      <div id="tick-indicator">⚡ <span id="tick-count">0</span></div>
-    </main>
-
-    <!-- BARRE INFÉRIEURE -->
-    <footer id="hud-bottom">
-      <div id="info-panel">
-        <span id="info-text">Tap une case pour explorer...</span>
+      <!-- Nourriture -->
+      <div class="resource-item" id="res-nourr" data-tooltip="Ambroisie de Synthèse — Nourrit vos survivants">
+        <span class="resource-icon">🌾</span>
+        <div class="resource-info">
+          <span class="resource-name">Nourr.</span>
+          <span class="resource-value" id="val-nourr">0</span>
+          <span class="resource-rate" id="rate-nourr">+0/s</span>
+        </div>
       </div>
-      <!-- Indicateur Bonheur -->
-      <div id="happiness-indicator" title="Bonheur de la population">
-        <span id="happiness-icon">😊</span>
-        <div id="happiness-bar"><div id="happiness-bar-fill"></div></div>
-        <span id="happiness-value">50%</span>
+      <!-- Fer -->
+      <div class="resource-item" id="res-fer" data-tooltip="Fer Céleste — Métal divin">
+        <span class="resource-icon">⚙️</span>
+        <div class="resource-info">
+          <span class="resource-name">Fer</span>
+          <span class="resource-value" id="val-fer">0</span>
+          <span class="resource-rate" id="rate-fer">+0/s</span>
+        </div>
       </div>
-      <!-- Boutons footer mobile (Talents + Menu) -->
-      <div id="mob-footer-btns">
-        <button id="btn-talents-mob" title="Talents">🧠</button>
-        <button id="burger-btn-mob" title="Menu">☰</button>
+      <!-- Population -->
+      <div class="resource-item res-pop-item" id="res-pop" data-tooltip="Population — Travailleurs / Capacité">
+        <span class="resource-icon">👥</span>
+        <div class="resource-info">
+          <span class="resource-name">Pop.</span>
+          <div class="res-pop-row">
+            <span id="pop-workers">0</span><span class="res-pop-sep">/</span><span id="pop-total">0</span>
+          </div>
+          <div id="pop-bar-wrap"><div id="pop-bar"></div></div>
+        </div>
+        <span id="pop-alert" style="display:none" title="Logements pleins">⚠️</span>
       </div>
-    </footer>
-
-  <!-- BOUTONS FLOTTANTS fixes (position:fixed, hors du grid) -->
-  <div id="hud-actions">
-    <button class="hud-btn pc-only" id="btn-save" title="Sauvegarder">💾</button>
-    <button class="hud-btn pc-only" id="btn-help" title="Encyclopédie">?</button>
-    <button class="hud-btn" id="btn-talents-hud" title="Talents — Arbre de compétences">🧠</button>
-    <button class="hud-btn" id="burger-btn" title="Menu">☰</button>
-    <div id="score-renaissance">
-      <span class="score-label">Score de Renaissance</span>
-      <span class="score-value" id="val-score">0</span>
+      <!-- Éther (permanent) -->
+      <div class="resource-item resource-prestige" id="res-ether" data-tooltip="Éther — Monnaie permanente obtenue au Prestige">
+        <span class="resource-icon">✨</span>
+        <div class="resource-info">
+          <span class="resource-name">Éther</span>
+          <span class="resource-value" id="val-ether">0</span>
+          <span class="resource-rate" id="rate-ether" style="color:#c090ff"></span>
+        </div>
+      </div>
+      <!-- Foudre -->
+      <div class="resource-item resource-era2" id="res-foudre" style="display:none" data-tooltip="Foudre — Alimente les bâtiments avancés">
+        <span class="resource-icon">⚡</span>
+        <div class="resource-info">
+          <span class="resource-name">Foudre</span>
+          <span class="resource-value" id="val-foudre">0</span>
+          <span class="resource-rate" id="rate-foudre"></span>
+        </div>
+      </div>
+      <!-- Nectar -->
+      <div class="resource-item resource-era2" id="res-nectar" style="display:none" data-tooltip="Nectar — Vergers d'Apollon">
+        <span class="resource-icon">🍯</span>
+        <div class="resource-info">
+          <span class="resource-name">Nectar</span>
+          <span class="resource-value" id="val-nectar">0</span>
+          <span class="resource-rate" id="rate-nectar"></span>
+        </div>
+      </div>
+      <!-- Bronze -->
+      <div class="resource-item resource-era2" id="res-bronze" style="display:none" data-tooltip="Bronze — Atelier du Forgeron">
+        <span class="resource-icon">🟫</span>
+        <div class="resource-info">
+          <span class="resource-name">Bronze</span>
+          <span class="resource-value" id="val-bronze">0</span>
+          <span class="resource-rate" id="rate-bronze"></span>
+        </div>
+      </div>
+      <!-- Acier -->
+      <div class="resource-item resource-era2" id="res-acier" style="display:none" data-tooltip="Acier — Fonderie Céleste">
+        <span class="resource-icon">🔩</span>
+        <div class="resource-info">
+          <span class="resource-name">Acier</span>
+          <span class="resource-value" id="val-acier">0</span>
+          <span class="resource-rate" id="rate-acier"></span>
+        </div>
+      </div>
+      <!-- Farine Sacrée -->
+      <div class="resource-item resource-era2" id="res-farine" style="display:none" data-tooltip="Farine Sacrée — Moulin à Grain">
+        <span class="resource-icon">🌾✨</span>
+        <div class="resource-info">
+          <span class="resource-name">Farine</span>
+          <span class="resource-value" id="val-farine">0</span>
+          <span class="resource-rate" id="rate-farine"></span>
+        </div>
+      </div>
+      <!-- Ambroisie -->
+      <div class="resource-item resource-era2" id="res-ambroisie" style="display:none" data-tooltip="Ambroisie — Distillerie Sacrée">
+        <span class="resource-icon">🍯</span>
+        <div class="resource-info">
+          <span class="resource-name">Ambros.</span>
+          <span class="resource-value" id="val-ambroisie">0</span>
+          <span class="resource-rate" id="rate-ambroisie"></span>
+        </div>
+      </div>
+      <!-- Orichalque -->
+      <div class="resource-item resource-era3" id="res-orichalque" style="display:none" data-tooltip="Orichalque — Métal légendaire, Ère 3">
+        <span class="resource-icon">🌟</span>
+        <div class="resource-info">
+          <span class="resource-name">Orichalq.</span>
+          <span class="resource-value" id="val-orichalque">0</span>
+          <span class="resource-rate" id="rate-orichalque"></span>
+        </div>
+      </div>
+      <!-- Métal Divin -->
+      <div class="resource-item resource-era3" id="res-metal_divin" style="display:none" data-tooltip="Métal Divin — Forge Divine, Ère 3">
+        <span class="resource-icon">⚙️✨</span>
+        <div class="resource-info">
+          <span class="resource-name">Métal Div.</span>
+          <span class="resource-value" id="val-metal_divin">0</span>
+          <span class="resource-rate" id="rate-metal_divin"></span>
+        </div>
+      </div>
+      <!-- Amrita -->
+      <div class="resource-item resource-era3" id="res-amrita" style="display:none" data-tooltip="Amrita — Ressource transcendante, Ère 3">
+        <span class="resource-icon">💎</span>
+        <div class="resource-info">
+          <span class="resource-name">Amrita</span>
+          <span class="resource-value" id="val-amrita">0</span>
+          <span class="resource-rate" id="rate-amrita"></span>
+        </div>
+      </div>
+      <!-- Énergie HUD (ère 2+) -->
+      <div class="resource-item hud-nrj-item resource-era2" id="res-nrj-hud" style="display:none" data-tooltip="Énergie — Foudre des pylônes">
+        <span class="resource-icon">⚡</span>
+        <div class="resource-info">
+          <span class="resource-name">Énergie</span>
+          <span class="resource-value" id="val-nrj-hud">0</span>
+          <span class="resource-rate" id="rate-nrj-hud">+0/s</span>
+        </div>
+      </div>
+      <!-- Badge Ère -->
+      <div id="era-badge" style="display:none">⛩ Antiquité</div>
     </div>
-  </div>
+  </header>
 
-  <!-- Compteur conditions Prestige (visible quand >= 30 cases révélées) -->
-  <div id="prestige-conditions-bar" data-all-met="false"></div>
+  <!-- ══════════════════════════════════════════════════════
+       ZONE CARTE
+  ═══════════════════════════════════════════════════════ -->
+  <main id="map-container">
+    <canvas id="game-canvas"></canvas>
 
-  <!-- Badge Codex Olympien (visible après 1er prestige) -->
-  <div id="codex-hud-badge"></div>
+    <!-- Bouton talents caché (binding BuildingPanel) -->
+    <button id="btn-talents" style="display:none" aria-hidden="true"></button>
 
-  <!-- Barre de malédictions actives (Phase 8) -->
-  <div id="curse-hud-bar" style="display:none"></div>
+    <!-- Debug: reveal all -->
+    <button id="btn-reveal-all" style="display:none;position:absolute;bottom:12px;left:12px;z-index:200;background:rgba(200,80,80,.85);border:1px solid #e05050;color:#fff;font-family:Cinzel,serif;font-size:12px;padding:8px 14px;border-radius:6px;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.5)">🗺 Tout Révéler</button>
 
-  <!-- Zoom controls — séparé pour pouvoir être repositionné en mobile -->
+    <!-- Debug TEST PANEL (visible si ?debug dans l'URL) -->
+    <div id="debug-panel" style="display:none;position:fixed;top:70px;right:12px;z-index:900;background:rgba(10,6,22,0.96);border:1px solid rgba(200,80,80,0.55);border-radius:12px;padding:12px 14px;min-width:200px;box-shadow:0 4px 24px rgba(0,0,0,0.8);font-family:Cinzel,serif;">
+      <div style="font-size:12px;font-weight:700;color:#e05050;letter-spacing:1px;margin-bottom:10px;text-align:center">🧪 PANEL TEST</div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <button id="dbg-add-res" style="background:rgba(80,180,80,0.2);border:1px solid rgba(80,200,80,0.5);color:#80e080;padding:7px 10px;border-radius:6px;cursor:pointer;font-family:Cinzel,serif;font-size:12px;font-weight:700">💰 +100k Ressources</button>
+        <button id="dbg-add-ether" style="background:rgba(160,80,255,0.2);border:1px solid rgba(180,100,255,0.5);color:#c090ff;padding:7px 10px;border-radius:6px;cursor:pointer;font-family:Cinzel,serif;font-size:12px;font-weight:700">✨ +10k Éther</button>
+        <button id="dbg-add-era2" style="background:rgba(80,160,255,0.2);border:1px solid rgba(80,180,255,0.5);color:#80c0ff;padding:7px 10px;border-radius:6px;cursor:pointer;font-family:Cinzel,serif;font-size:12px;font-weight:700">🏛️ +Res Ère 2</button>
+        <button id="dbg-add-era3" style="background:rgba(255,160,40,0.2);border:1px solid rgba(255,180,60,0.5);color:#ffb840;padding:7px 10px;border-radius:6px;cursor:pointer;font-family:Cinzel,serif;font-size:12px;font-weight:700">⚡ +Res Ère 3</button>
+        <div style="border-top:1px solid rgba(255,255,255,0.08);margin:4px 0;padding-top:8px;">
+          <div style="font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:6px;text-align:center">Vitesse de clic</div>
+          <div style="display:flex;gap:5px;justify-content:center;flex-wrap:wrap;">
+            <button class="dbg-speed-btn" data-speed="1" style="background:rgba(200,160,60,0.25);border:1px solid rgba(200,160,60,0.6);color:#e8c040;padding:5px 8px;border-radius:5px;cursor:pointer;font-family:Cinzel,serif;font-size:11px;font-weight:700">x1</button>
+            <button class="dbg-speed-btn" data-speed="5" style="background:rgba(200,160,60,0.08);border:1px solid rgba(200,160,60,0.25);color:rgba(200,160,60,0.5);padding:5px 8px;border-radius:5px;cursor:pointer;font-family:Cinzel,serif;font-size:11px;font-weight:700">x5</button>
+            <button class="dbg-speed-btn" data-speed="10" style="background:rgba(200,160,60,0.08);border:1px solid rgba(200,160,60,0.25);color:rgba(200,160,60,0.5);padding:5px 8px;border-radius:5px;cursor:pointer;font-family:Cinzel,serif;font-size:11px;font-weight:700">x10</button>
+            <button class="dbg-speed-btn" data-speed="50" style="background:rgba(200,160,60,0.08);border:1px solid rgba(200,160,60,0.25);color:rgba(200,160,60,0.5);padding:5px 8px;border-radius:5px;cursor:pointer;font-family:Cinzel,serif;font-size:11px;font-weight:700">x50</button>
+          </div>
+          <div style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:6px;text-align:center" id="dbg-speed-label">1 clic = 1 action</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Info tick -->
+    <div id="tick-indicator">⚡ <span id="tick-count">0</span></div>
+  </main>
+
+  <!-- ══════════════════════════════════════════════════════
+       BARRE BASSE — Info | Bonheur | Boutons droite
+  ═══════════════════════════════════════════════════════ -->
+  <footer id="hud-bottom">
+
+    <!-- Texte info (gauche, flex-1) -->
+    <div id="info-panel">
+      <span id="info-text">Tap une case pour explorer...</span>
+    </div>
+
+    <!-- Bonheur population (centre) -->
+    <div id="happiness-indicator" title="Bonheur de la population">
+      <span id="happiness-icon">😊</span>
+      <div id="happiness-bar"><div id="happiness-bar-fill"></div></div>
+      <span id="happiness-value">50%</span>
+    </div>
+
+    <!-- Boutons droite : Aide + Talents + Menu -->
+    <div id="hud-right-btns">
+      <button class="hud-btn" id="btn-help" title="Encyclopédie — Wiki du jeu">📖</button>
+      <button class="hud-btn hud-btn-talents" id="btn-talents-hud" title="Talents — Arbre de compétences">🧠</button>
+      <button class="hud-btn hud-btn-burger" id="burger-btn" title="Menu">☰</button>
+    </div>
+
+  </footer>
+
+  <!-- ══════════════════════════════════════════════════════
+       ÉLÉMENTS FIXES (hors flux)
+  ═══════════════════════════════════════════════════════ -->
+
+  <!-- Zoom -->
   <div id="zoom-controls">
     <button class="hud-btn zoom-btn" id="btn-zoom-in"    title="Zoom +">＋</button>
     <button class="hud-btn zoom-btn" id="btn-zoom-reset" title="Vue par défaut">⊡</button>
     <button class="hud-btn zoom-btn" id="btn-zoom-out"   title="Zoom −">－</button>
   </div>
 
-  <!-- BURGER MENU -->
+  <!-- Score de renaissance -->
+  <div id="score-renaissance">
+    <span class="score-label">Renaissance</span>
+    <span class="score-value" id="val-score">0</span>
+  </div>
+
+  <!-- Conditions Prestige -->
+  <div id="prestige-conditions-bar" data-all-met="false"></div>
+
+  <!-- Badge Codex -->
+  <div id="codex-hud-badge"></div>
+
+  <!-- Malédictions actives -->
+  <div id="curse-hud-bar" style="display:none"></div>
+
+  <!-- BURGER MENU dropdown (PC) -->
   <div id="burger-menu">
     <div id="burger-google-profile" style="display:none">
       <div class="burger-profile-card">
@@ -429,7 +430,7 @@
           <div class="burger-user-email" id="burger-user-email">…</div>
         </div>
       </div>
-      <button class="burger-item burger-item-google" id="burger-signout-google">🔓 Se déconnecter de Google</button>
+      <button class="burger-item burger-item-google" id="burger-signout-google">🔓 Déconnecter Google</button>
       <div class="burger-divider"></div>
     </div>
     <button class="burger-item" id="burger-save">💾 Sauvegarder</button>
@@ -437,12 +438,10 @@
     <button class="burger-item burger-item-danger" id="burger-reset">🗑️ Réinitialiser</button>
   </div>
 
-  <!-- BOTTOM SHEET MOBILE (burger menu) -->
+  <!-- BOTTOM SHEET (menu mobile) -->
   <div id="mob-menu-overlay">
     <div id="mob-menu-sheet">
       <div class="mob-sheet-handle"></div>
-
-      <!-- Profil Google (si connecté) -->
       <div id="mob-sheet-profile-wrap" style="display:none">
         <div class="mob-sheet-profile">
           <img id="mob-sheet-pic" src="" class="mob-sheet-pic" alt="">
@@ -452,7 +451,6 @@
           </div>
         </div>
       </div>
-
       <button class="mob-sheet-item" id="mob-sheet-save">
         <span class="mob-sheet-item-icon">💾</span> Sauvegarder
       </button>
@@ -461,7 +459,7 @@
       </button>
       <div class="mob-sheet-divider"></div>
       <button class="mob-sheet-item" id="mob-sheet-signout" style="display:none">
-        <span class="mob-sheet-item-icon">🔓</span> Se déconnecter de Google
+        <span class="mob-sheet-item-icon">🔓</span> Déconnecter Google
       </button>
       <div class="mob-sheet-divider" id="mob-sheet-div-signout" style="display:none"></div>
       <button class="mob-sheet-item mob-sheet-item-danger" id="mob-sheet-reset">
@@ -470,34 +468,34 @@
     </div>
   </div>
 
-  </div><!-- fin #game-container -->
+</div><!-- fin #game-container -->
 
   <!-- ═══════════════════════════════════════════════════════
        SCRIPTS (ordre de chargement important)
   ════════════════════════════════════════════════════════ -->
-  <script src="src/utils/MathUtils.js?v=0.9.2"></script>
-  <script src="src/utils/HexUtils.js?v=0.9.2"></script>
-  <script src="src/utils/Compression.js?v=0.9.2"></script>
-  <script src="src/engine/EventBus.js?v=0.9.2"></script>
-  <script src="src/engine/SaveManager.js?v=0.9.2"></script>
-  <script src="src/map/HexCell.js?v=0.9.2"></script>
-  <script src="src/map/HexGrid.js?v=0.9.2"></script>
-  <script src="src/map/Camera.js?v=0.9.2"></script>
-  <script src="src/map/MapRenderer.js?v=0.9.2"></script>
-  <script src="src/systems/ResourceManager.js?v=0.9.2"></script>
-  <script src="src/systems/TalentManager.js?v=0.9.2"></script>
-  <script src="src/systems/ScoutManager.js?v=0.9.2"></script>
-  <script src="src/systems/ZoneManager.js?v=0.9.2"></script>
-  <script src="src/systems/PantheonManager.js?v=0.9.2"></script>
-  <script src="src/systems/CodexManager.js?v=0.9.2"></script>
-  <script src="src/systems/PrestigeManager.js?v=0.9.2"></script>
-  <script src="src/systems/BuildingManager.js?v=0.9.2"></script>
-  <script src="src/ui/HUD.js?v=0.9.2"></script>
-  <script src="src/ui/BuildingPanel.js?v=0.9.2"></script>
-  <script src="src/ui/HelpPanel.js?v=0.9.2"></script>
-  <script src="src/ui/OfflineModal.js?v=0.9.2"></script>
-  <script src="src/engine/GoogleDriveSync.js?v=0.9.2"></script>
-  <script src="src/engine/GameLoop.js?v=0.9.2"></script>
+  <script src="src/utils/MathUtils.js?v=0.9.3"></script>
+  <script src="src/utils/HexUtils.js?v=0.9.3"></script>
+  <script src="src/utils/Compression.js?v=0.9.3"></script>
+  <script src="src/engine/EventBus.js?v=0.9.3"></script>
+  <script src="src/engine/SaveManager.js?v=0.9.3"></script>
+  <script src="src/map/HexCell.js?v=0.9.3"></script>
+  <script src="src/map/HexGrid.js?v=0.9.3"></script>
+  <script src="src/map/Camera.js?v=0.9.3"></script>
+  <script src="src/map/MapRenderer.js?v=0.9.3"></script>
+  <script src="src/systems/ResourceManager.js?v=0.9.3"></script>
+  <script src="src/systems/TalentManager.js?v=0.9.3"></script>
+  <script src="src/systems/ScoutManager.js?v=0.9.3"></script>
+  <script src="src/systems/ZoneManager.js?v=0.9.3"></script>
+  <script src="src/systems/PantheonManager.js?v=0.9.3"></script>
+  <script src="src/systems/CodexManager.js?v=0.9.3"></script>
+  <script src="src/systems/PrestigeManager.js?v=0.9.3"></script>
+  <script src="src/systems/BuildingManager.js?v=0.9.3"></script>
+  <script src="src/ui/HUD.js?v=0.9.3"></script>
+  <script src="src/ui/BuildingPanel.js?v=0.9.3"></script>
+  <script src="src/ui/HelpPanel.js?v=0.9.3"></script>
+  <script src="src/ui/OfflineModal.js?v=0.9.3"></script>
+  <script src="src/engine/GoogleDriveSync.js?v=0.9.3"></script>
+  <script src="src/engine/GameLoop.js?v=0.9.3"></script>
 
   <script>
   /* ── Écran Titre + Google Drive Sync ───────────────────── */

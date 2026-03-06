@@ -122,8 +122,7 @@ class HelpPanel {
     var self = this;
     document.getElementById('help-close').addEventListener('click', function() { self.hide(); });
     document.getElementById('help-overlay').addEventListener('click', function(e) { if (e.target === self.overlay) self.hide(); });
-    var helpBtn = document.getElementById('btn-help');
-    if (helpBtn) helpBtn.addEventListener('click', function() { self.toggle(); });
+    // btn-help est bindé dans HUD.js via EventBus.emit('help:open') — on n'ajoute pas de double binding ici
     EventBus.on('help:open', function(d) { self.show(); if (d && d.tab) self._switchTab(d.tab, d.section); });
 
     document.getElementById('help-nav').addEventListener('click', function(e) {

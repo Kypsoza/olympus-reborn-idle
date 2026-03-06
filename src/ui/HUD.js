@@ -395,54 +395,51 @@ class HUD {
   }
 
   _bindButtons() {
-    // ── Burger menu PC (dropdown) ────────────────────────
+    // ── Burger : dropdown PC ou bottom-sheet selon taille ──
     var burgerBtn  = document.getElementById('burger-btn');
     var burgerMenu = document.getElementById('burger-menu');
-    if (burgerBtn && burgerMenu) {
-      burgerBtn.addEventListener('click', function(e) {
+    const overlay   = document.getElementById('mob-menu-overlay');
+    const sheet     = document.getElementById('mob-menu-sheet');
+    const openSheet  = () => { overlay?.classList.add('open'); sheet?.classList.add('open'); this._updateMobSheet(); };
+    const closeSheet = () => { overlay?.classList.remove('open'); sheet?.classList.remove('open'); };
+
+    if (burgerBtn) {
+      burgerBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        burgerMenu.classList.toggle('open');
-      });
-      document.addEventListener('click', function() {
-        burgerMenu.classList.remove('open');
-      });
-      document.getElementById('burger-save')?.addEventListener('click', function() {
-        EventBus.emit('save:request');
-        burgerMenu.classList.remove('open');
-      });
-      document.getElementById('burger-help')?.addEventListener('click', function() {
-        EventBus.emit('help:open');
-        burgerMenu.classList.remove('open');
-      });
-      document.getElementById('burger-reset')?.addEventListener('click', function() {
-        burgerMenu.classList.remove('open');
-        EventBus.emit('save:reset');
-      });
-      this._updateBurgerProfile();
-      document.getElementById('burger-signout-google')?.addEventListener('click', () => {
-        burgerMenu.classList.remove('open');
-        if (typeof GoogleDriveSync !== 'undefined' && GoogleDriveSync.isSignedIn()) {
-          GoogleDriveSync.signOut();
-          this._updateBurgerProfile();
-          this.setInfo('🔓 Déconnecté de Google.');
+        // Mobile (≤600px) → bottom sheet ; PC → dropdown
+        if (window.innerWidth <= 600) {
+          openSheet();
+        } else {
+          burgerMenu?.classList.toggle('open');
         }
       });
     }
 
-    // ── Bottom Sheet Mobile ──────────────────────────────
-    const overlay   = document.getElementById('mob-menu-overlay');
-    const sheet     = document.getElementById('mob-menu-sheet');
-    const openSheet  = () => { overlay?.classList.add('open'); sheet?.classList.add('open'); };
-    const closeSheet = () => { overlay?.classList.remove('open'); sheet?.classList.remove('open'); };
+    // Ferme dropdown si clic ailleurs
+    document.addEventListener('click', () => { burgerMenu?.classList.remove('open'); });
 
-    document.getElementById('burger-btn-mob')?.addEventListener('click', (e) => {
-      e.stopPropagation();
-      this._updateMobSheet();
-      openSheet();
+    // Items dropdown PC
+    document.getElementById('burger-save')?.addEventListener('click', () => {
+      EventBus.emit('save:request'); burgerMenu?.classList.remove('open');
     });
-    overlay?.addEventListener('click', (e) => {
-      if (e.target === overlay) closeSheet();
+    document.getElementById('burger-help')?.addEventListener('click', () => {
+      EventBus.emit('help:open'); burgerMenu?.classList.remove('open');
     });
+    document.getElementById('burger-reset')?.addEventListener('click', () => {
+      burgerMenu?.classList.remove('open'); EventBus.emit('save:reset');
+    });
+    document.getElementById('burger-signout-google')?.addEventListener('click', () => {
+      burgerMenu?.classList.remove('open');
+      if (typeof GoogleDriveSync !== 'undefined' && GoogleDriveSync.isSignedIn()) {
+        GoogleDriveSync.signOut();
+        this._updateBurgerProfile();
+        this.setInfo('🔓 Déconnecté de Google.');
+      }
+    });
+    this._updateBurgerProfile();
+
+    // Bottom sheet
+    overlay?.addEventListener('click', (e) => { if (e.target === overlay) closeSheet(); });
     document.getElementById('mob-sheet-save')?.addEventListener('click', () => {
       EventBus.emit('save:request'); closeSheet(); this.setInfo('💾 Partie sauvegardée !');
     });
@@ -459,32 +456,19 @@ class HUD {
       }
     });
 
-    // Bouton Talents footer mobile → déclenche le même btn-talents (BuildingPanel)
-    document.getElementById('btn-talents-mob')?.addEventListener('click', () => {
-      // Simuler un click sur btn-talents qui est bindé dans BuildingPanel
-      const realBtn = document.getElementById('btn-talents');
-      if (realBtn) {
-        realBtn.click();
-      } else {
-        // Fallback : émettre un event que BuildingPanel peut écouter
-        EventBus.emit('talents:toggle');
-      }
-    });
-
-    // Bouton Talents PC (dans hud-actions)
+    // ── Bouton Talents (unique, dans la barre basse) ──────
     document.getElementById('btn-talents-hud')?.addEventListener('click', () => {
       const realBtn = document.getElementById('btn-talents');
       if (realBtn) realBtn.click();
       else EventBus.emit('talents:toggle');
     });
 
-    // ── Boutons PC ───────────────────────────────────────
-    document.getElementById('btn-save')?.addEventListener('click', () => {
-      EventBus.emit('save:request'); this.setInfo('💾 Partie sauvegardée !');
-    });
+    // ── Bouton Encyclopédie (unique, dans la barre basse) ─
     document.getElementById('btn-help')?.addEventListener('click', () => {
       EventBus.emit('help:open');
     });
+
+    // ── Zoom ─────────────────────────────────────────────
     document.getElementById('btn-zoom-in')?.addEventListener('click', () => EventBus.emit('zoom:in'));
     document.getElementById('btn-zoom-out')?.addEventListener('click', () => EventBus.emit('zoom:out'));
     document.getElementById('btn-zoom-reset')?.addEventListener('click', () => EventBus.emit('zoom:reset'));
