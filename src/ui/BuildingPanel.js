@@ -547,9 +547,10 @@ class BuildingPanel {
     var COL_W = 200;
     var R     = 36;
     var SUB   = 50;
-    var NODE_Y = [100, 210, 320, 430];
+    // Center nodes vertically: header=40px, 4 rows with 110px gap, bottom padding=50px
+    var NODE_Y = [88, 198, 308, 418];
     var ncols  = b.cols.length;
-    var VW     = Math.max(ncols * COL_W * 2, 320);
+    var VW     = Math.max(ncols * COL_W * 2, 400);
     var VH     = 520;
 
     /* Positions */
@@ -665,7 +666,9 @@ class BuildingPanel {
     function buildSVG() {
       var s = '<svg id="dt-svg" xmlns="http://www.w3.org/2000/svg"'
         + ' width="' + VW + '" height="' + VH + '"'
-        + ' style="display:block;overflow:visible">';
+        + ' style="display:block;overflow:visible;background:transparent">';
+
+      // Filters only — no background rect (image shows through from CSS)
       s += '<defs>'
         + '<filter id="dt-gd" x="-80%" y="-80%" width="260%" height="260%">'
         + '<feGaussianBlur stdDeviation="6" result="b"/>'
@@ -674,68 +677,29 @@ class BuildingPanel {
         + '<feGaussianBlur stdDeviation="3" result="b"/>'
         + '<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
         + '</defs>';
-      // ── Fond dynamique par branche — thème mythologique unique ──
-      var BRANCH_BG = {
-        'production':    { grad: ['#1a2e0a','#142208','#0e1805'], accent: 'rgba(100,200,60,0.14)', decos: ['🌾','🪵','⚙️','🌿','🏺','⚱️','🌊','☀️'] },
-        'construction':  { grad: ['#2e1a08','#221408','#181005'], accent: 'rgba(200,140,60,0.14)', decos: ['🏛️','⚒️','🪨','🏺','🏗️','🗿','⚔️','🛡️'] },
-        'expansion':     { grad: ['#08162e','#081022','#060c18'], accent: 'rgba(60,130,220,0.14)', decos: ['🗺️','🧭','⚓','🌊','🦅','⛵','🔭','🌍'] },
-        'prestige_econ': { grad: ['#2e2308','#221a05','#181205'], accent: 'rgba(220,180,40,0.18)', decos: ['🪙','💰','🏆','👑','📜','⚖️','🏺','💎'] },
-        'social':        { grad: ['#28082e','#1e0622','#160418'], accent: 'rgba(180,80,220,0.14)', decos: ['🏛️','📚','🎭','🎨','🌹','💫','🦉','📿'] },
-        'divine_econ':   { grad: ['#1a0808','#120505','#0e0303'], accent: 'rgba(220,60,60,0.12)', decos: ['⚡','🔥','💀','👁️','🌙','⭐','🔱','🦅'] },
-      };
-      var bbg = BRANCH_BG[b.id] || BRANCH_BG['production'];
-      s += '<defs>'
-        + '<linearGradient id="dtbg" x1="0%" y1="0%" x2="100%" y2="100%">'
-        + '<stop offset="0%"   stop-color="' + bbg.grad[0] + '"/>'
-        + '<stop offset="50%"  stop-color="' + bbg.grad[1] + '"/>'
-        + '<stop offset="100%" stop-color="' + bbg.grad[2] + '"/>'
-        + '</linearGradient>'
-        + '<radialGradient id="dtglow" cx="50%" cy="50%" r="60%">'
-        + '<stop offset="0%"  stop-color="' + bbg.accent + '"/>'
-        + '<stop offset="100%" stop-color="rgba(0,0,0,0)"/>'
-        + '</radialGradient>'
-        + '</defs>';
-      s += '<rect width="' + VW + '" height="' + VH + '" fill="url(#dtbg)"/>';
-      s += '<rect width="' + VW + '" height="' + VH + '" fill="url(#dtglow)"/>';
-      // Veines de marbre / texture
-      var MARBLE = [[0,VH*0.25,VW*0.3,VH*0.2,VW*0.7,VH*0.28,VW,VH*0.22],
-                    [0,VH*0.6,VW*0.4,VH*0.55,VW*0.6,VH*0.65,VW,VH*0.58],
-                    [VW*0.2,0,VW*0.22,VH*0.4,VW*0.18,VH*0.7,VW*0.21,VH]];
-      MARBLE.forEach(function(m) {
-        s += '<path d="M'+m[0]+','+m[1]+' C'+m[2]+','+m[3]+' '+m[4]+','+m[5]+' '+m[6]+','+m[7]+'"'
-          + ' fill="none" stroke="rgba(210,170,80,0.08)" stroke-width="2"/>';
-      });
-      // Méandre grec double
-      s += '<rect x="3" y="3" width="'+(VW-6)+'" height="'+(VH-6)+'" fill="none" stroke="rgba(200,149,26,0.30)" stroke-width="2" rx="3"/>';
-      s += '<rect x="8" y="8" width="'+(VW-16)+'" height="'+(VH-16)+'" fill="none" stroke="rgba(200,149,26,0.12)" stroke-width="1" rx="2" stroke-dasharray="8,4"/>';
-      // Colonnes doriques
-      [0, VW-22].forEach(function(cx) {
-        s += '<rect x="'+cx+'" y="0" width="22" height="'+VH+'" fill="rgba(200,160,60,0.06)"/>';
-        s += '<rect x="'+(cx+2)+'" y="0" width="1" height="'+VH+'" fill="rgba(200,160,60,0.12)"/>';
-        s += '<rect x="'+(cx+20)+'" y="0" width="1" height="'+VH+'" fill="rgba(200,160,60,0.12)"/>';
-        for (var fy=0; fy<VH; fy+=40)
-          s += '<line x1="'+cx+'" y1="'+fy+'" x2="'+(cx+22)+'" y2="'+fy+'" stroke="rgba(200,160,60,0.05)" stroke-width="1"/>';
-      });
-      // Icones décoratifs de la branche
-      for (var di=0; di<10; di++) {
-        var ddx = 28 + (di*151.3)%(VW-56), ddy = 30 + (di*97.7)%(VH-50);
-        s += '<text x="'+ddx+'" y="'+ddy+'" font-size="26" text-anchor="middle" opacity="0.12" style="pointer-events:none">' + bbg.decos[di%bbg.decos.length] + '</text>';
-      }
-      // Frise bas
-      s += '<line x1="0" y1="'+(VH-28)+'" x2="'+VW+'" y2="'+(VH-28)+'" stroke="rgba(200,149,26,0.20)" stroke-width="1"/>';
-      s += buildRuneBg(VW, VH, 22);
 
-      // Col separator line
+      // Very subtle dark vignette to make text readable over image
+      s += '<rect width="' + VW + '" height="' + VH + '" fill="rgba(4,2,12,0.55)"/>';
+
+      // Thin golden méandre border frame (decorative only)
+      s += '<rect x="4" y="4" width="' + (VW-8) + '" height="' + (VH-8) + '"'
+        + ' fill="none" stroke="rgba(200,149,26,0.35)" stroke-width="1.5" rx="4"/>';
+
+      // Branch header centered at top
+      s += '<text x="' + (VW/2) + '" y="28" text-anchor="middle" font-family="Cinzel,serif" font-size="16"'
+        + ' font-weight="700" fill="' + b.color + '" letter-spacing="0.08em">'
+        + b.icon + ' ' + b.label + '</text>';
+
+      // Separator line under header
+      s += '<line x1="40" y1="40" x2="' + (VW-40) + '" y2="40"'
+        + ' stroke="rgba(200,149,26,0.20)" stroke-width="1"/>';
+
+      // Col separator line (between columns)
       if (ncols > 1) {
-        s += '<line x1="' + cxBase + '" y1="60" x2="' + cxBase + '" y2="' + (VH-20) + '"'
-          + ' stroke="rgba(200,149,26,0.12)" stroke-width="1" stroke-dasharray="4,6"/>';
+        s += '<line x1="' + cxBase + '" y1="52" x2="' + cxBase + '" y2="' + (VH-20) + '"'
+          + ' stroke="rgba(200,149,26,0.10)" stroke-width="1" stroke-dasharray="4,6"/>';
       }
       s += colLabelsSVG;
-
-      // Branch header
-      s += '<text x="' + (VW/2) + '" y="24" text-anchor="middle" font-family="Cinzel,serif" font-size="15"'
-        + ' font-weight="700" fill="' + b.color + '" letter-spacing="0.06em">'
-        + b.icon + ' ' + b.label + '</text>';
 
       // Edges
       EDGES.forEach(function(e) {
@@ -743,7 +707,7 @@ class BuildingPanel {
         if (!a || !bNode) return;
         var stA = getState(e[0]), stB = getState(e[1]);
         var edgeColor = stA === 'learned' && stB === 'learned' ? '#c8961a' :
-                        stA === 'learned' ? 'rgba(200,149,26,0.5)' : 'rgba(100,100,120,0.3)';
+                        stA === 'learned' ? 'rgba(200,149,26,0.5)' : 'rgba(120,120,150,0.25)';
         s += '<line x1="' + a.x + '" y1="' + a.y + '" x2="' + bNode.x + '" y2="' + bNode.y + '"'
           + ' stroke="' + edgeColor + '" stroke-width="2" stroke-dasharray="' +
           (stA === 'learned' ? 'none' : '5,5') + '"/>';
@@ -756,29 +720,25 @@ class BuildingPanel {
         if (!def) return;
         var st = getState(id);
         var col = pos.branchColor;
-        var fillInner = st === 'learned'   ? 'rgba(180,140,30,0.35)' :
-                        st === 'available' ? 'rgba(30,30,60,0.92)'   :
-                                             'rgba(15,12,30,0.85)';
+        var fillInner = st === 'learned'   ? 'rgba(180,140,30,0.45)' :
+                        st === 'available' ? 'rgba(20,16,50,0.88)'   :
+                                             'rgba(10,8,24,0.82)';
         var strokeCol = st === 'learned'   ? col :
-                        st === 'available' ? 'rgba(200,180,100,0.7)' :
-                                             'rgba(80,80,100,0.4)';
+                        st === 'available' ? 'rgba(210,185,110,0.75)' :
+                                             'rgba(80,80,110,0.35)';
         var strokeW   = st === 'available' ? 2.5 : 2;
         var textFill  = st === 'learned'   ? '#f0d880' :
                         st === 'available' ? '#d8c880'   :
-                                             'rgba(160,140,120,0.55)';
+                                             'rgba(150,130,110,0.5)';
 
-        // Hexagon path centered at (pos.x, pos.y) with radius R
         var pts = '';
         for (var i = 0; i < 6; i++) {
           var ang = (Math.PI / 180) * (60 * i - 30);
-          var px = pos.x + R * Math.cos(ang);
-          var py = pos.y + R * Math.sin(ang);
-          pts += (i === 0 ? 'M' : 'L') + px.toFixed(1) + ',' + py.toFixed(1);
+          pts += (i === 0 ? 'M' : 'L') + (pos.x + R * Math.cos(ang)).toFixed(1) + ',' + (pos.y + R * Math.sin(ang)).toFixed(1);
         }
         pts += 'Z';
 
         s += '<g class="dt-node' + (_dtSelected===id?' dt-selected':'') + '" data-id="' + id + '" style="cursor:pointer">';
-        // Selection ring (orange glow around selected node)
         if (_dtSelected === id) {
           var selPts = '';
           for (var si2=0; si2<6; si2++) {
@@ -788,24 +748,19 @@ class BuildingPanel {
           s += '<path d="' + selPts + 'Z" fill="rgba(240,200,64,0.15)"'
             + ' stroke="#f0c840" stroke-width="3" filter="url(#dt-gd)"/>';
         }
-        // Glow for learned/available
         if (st !== 'locked') {
           s += '<path d="' + pts + '" fill="' + (st==='learned'?col:'rgba(200,160,60,0.2)') + '"'
-            + ' opacity="0.18" filter="url(#dt-g' + (st==='learned'?'d':'a') + ')"/>';
+            + ' opacity="0.22" filter="url(#dt-g' + (st==='learned'?'d':'a') + ')"/>';
         }
-        // Main hex
         s += '<path d="' + pts + '" fill="' + fillInner + '"'
           + ' stroke="' + strokeCol + '" stroke-width="' + strokeW + '"/>';
-        // Check mark if learned
         if (st === 'learned') {
           s += '<text x="' + pos.x + '" y="' + (pos.y - R*0.55) + '"'
             + ' text-anchor="middle" font-size="11" fill="rgba(200,200,60,0.7)">✓</text>';
         }
-        // Icon
         s += '<text x="' + pos.x + '" y="' + (pos.y + 6) + '"'
           + ' text-anchor="middle" dominant-baseline="middle"'
           + ' font-size="22">' + (def.icon || '⭐') + '</text>';
-        // Name below hex
         var name = def.name || id;
         if (name.length > 14) name = name.slice(0, 13) + '…';
         s += '<text x="' + pos.x + '" y="' + (pos.y + R + 14) + '"'
@@ -2206,21 +2161,21 @@ class BuildingPanel {
     // ── Canvas dimensions ────────────────────────────────────────────────────
     var W=1600, H=1000;
     var CX=800, CY=500;
-    // Ellipse stretch: radial distances are multiplied by these per-axis
-    var EX=1.40, EY=0.78; // wider than tall
-    // Ring radii (before ellipse stretch)
-    var R1=190, R2=310, R3=420;
+    // Ellipse stretch
+    var EX=1.40, EY=0.78;
+    // Ring radii — increased to prevent overlap with spread=40°
+    var R1=220, R2=360, R3=490;
     var RING_RADII = [0, R1, R2, R3];
-    var NODE_R = 26; // hex radius
-    var SLOTS = { 1:5, 2:5, 3:5 }; // nodes per ring per branch
+    var NODE_R = 22; // hex radius (slightly smaller for spacing)
+    var SLOTS = { 1:5, 2:5, 3:5 };
+    var SPREAD = 40; // ±degrees around branch angle
 
     // ── Ellipse-mapped position for a node ───────────────────────────────────
     function nodePos(angleDeg, ring, slot) {
       var r = RING_RADII[ring] || R1;
-      // Slot offset: spread nodes across ±22° around branch angle
-      var slotCount = SLOTS[ring] || 3;
-      var spread = 22;
-      var slotAngle = angleDeg + (slot - (slotCount-1)/2) * (spread*2/(slotCount-1||1));
+      var n = SLOTS[ring] || 5;
+      var step = (SPREAD * 2) / (n - 1);
+      var slotAngle = angleDeg + (slot - (n-1)/2) * step;
       var rad = slotAngle * Math.PI / 180;
       return {
         x: CX + Math.cos(rad) * r * EX,
@@ -2489,8 +2444,12 @@ class BuildingPanel {
       // ── Branch god labels ─────────────────────────────────────────────────
       BRANCHES.forEach(function(b) {
         var rad=b.angle*Math.PI/180;
-        var lx = CX + Math.cos(rad)*(R3+72)*EX;
-        var ly = CY + Math.sin(rad)*(R3+72)*EY;
+        var labelDist = R3 + 52;
+        var lx = CX + Math.cos(rad)*labelDist*EX;
+        var ly = CY + Math.sin(rad)*labelDist*EY;
+        // Clamp inside canvas with safe margins
+        lx = Math.max(65, Math.min(W-65, lx));
+        ly = Math.max(30, Math.min(H-30, ly));
         var rgb = hexToRgb(b.color);
         var unlocked = pan.isBranchUnlocked ? pan.isBranchUnlocked(b.id) : true;
         var col = unlocked ? b.color : 'rgba(80,75,90,1)';

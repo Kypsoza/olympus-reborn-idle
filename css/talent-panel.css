@@ -418,22 +418,7 @@
   flex-shrink: 0;
 }
 
-/* Scroll wrapper for SVG */
-#dt-content {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-}
-#dt-scroll-wrap {
-  flex: 1;
-  overflow-x: auto;
-  overflow-y: auto;
-  padding: 8px 14px;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(200,149,26,0.3) transparent;
-}
+/* dt-content / dt-scroll-wrap → see image backgrounds section below */
 
 /* Tooltip branches Drachmes */
 #dt-tooltip {
@@ -792,18 +777,26 @@
    v0.9.88
 ══════════════════════════════════════════════════════════ */
 
-/* Wrapper contenu branche avec fond image */
+/* ── Drachmes branch backgrounds (new hi-res images) ── */
 #dt-content {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 6px;
 }
 
-/* Fond image par branche — injecté via data-branch sur #dt-content */
-#dt-content[data-branch="agriculture"]  { --tab-bg: url('../assets/tabs/agriculture.jpg'); }
-#dt-content[data-branch="sylviculture"] { --tab-bg: url('../assets/tabs/sylviculture.jpg'); }
-#dt-content[data-branch="metallurgie"]  { --tab-bg: url('../assets/tabs/métallurgie.jpg'); }
-#dt-content[data-branch="siderurgie"]   { --tab-bg: url('../assets/tabs/sidérurgie.jpg'); }
-#dt-content[data-branch="population"]   { --tab-bg: url('../assets/tabs/population.jpg'); }
-#dt-content[data-branch="ingenierie"]   { --tab-bg: url('../assets/tabs/ingénierie.jpg'); }
+/* Background image per branch */
+#dt-content[data-branch="agriculture"]   { --tab-bg: url('../assets/tabs/Agriculture.jpg'); }
+#dt-content[data-branch="sylviculture"]  { --tab-bg: url('../assets/tabs/Sylviculture.jpg'); }
+#dt-content[data-branch="metallurgie"]   { --tab-bg: url('../assets/tabs/Métallurgie.jpg'); }
+#dt-content[data-branch="siderurgie"]    { --tab-bg: url('../assets/tabs/Sidérurgie.jpg'); }
+#dt-content[data-branch="population"]    { --tab-bg: url('../assets/tabs/population.jpg'); }
+#dt-content[data-branch="ingenierie"]    { --tab-bg: url('../assets/tabs/Ingénierie.jpg'); }
+#dt-content[data-branch="cartographie"]  { --tab-bg: url('../assets/tabs/Cartographie.jpg'); }
+#dt-content[data-branch="prestige_codex"]{ --tab-bg: url('../assets/tabs/Héritage.jpg'); }
 
 #dt-content::before {
   content: '';
@@ -812,14 +805,29 @@
   background-image: var(--tab-bg, none);
   background-size: cover;
   background-position: center;
-  opacity: 0.12;
+  opacity: 0.45;
   pointer-events: none;
   z-index: 0;
   border-radius: 4px;
 }
+
+/* Scroll wrapper: centered, transparent — image shows from #dt-content::before */
 #dt-scroll-wrap {
   position: relative;
   z-index: 1;
+  flex: 1;
+  overflow: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(200,149,26,0.3) transparent;
+}
+/* SVG inside scroll wrapper: no background */
+#dt-scroll-wrap svg {
+  display: block;
+  background: transparent !important;
 }
 
 /* ══════════════════════════════════════════════════════════
