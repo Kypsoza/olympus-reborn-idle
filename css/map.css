@@ -1,0 +1,29 @@
+/* ═══════════════════════════════════════════════════════════
+   OLYMPUS REBORN IDLE — map.css
+════════════════════════════════════════════════════════════ */
+
+/* ── Zone carte ────────────────────────────────────────── */
+#map-container {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 50% 50%, #100d20 0%, #0a0812 100%);
+  cursor: grab;
+}
+#map-container:active { cursor: grabbing; }
+
+#game-canvas {
+  position: absolute;
+  top: 0; left: 0;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  touch-action: none; /* Camera.js gère tous les events tactiles */
+}
+
+/* ── Responsive mobile ─────────────────────────────────── */
+@media (max-width: 520px) {
+  #tick-indicator {
+    right: 60px;
+    font-size: 9px;
+  }
+}

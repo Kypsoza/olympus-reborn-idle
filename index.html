@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <!-- Détection touch : classe "is-touch" sur <html> pour tous appareils tactiles -->
+  <script>
+    (function() {
+      // maxTouchPoints > 1 = vrai appareil tactile (S24+ = 10, Pixel Fold = 10, PC = 0)
+      if (navigator.maxTouchPoints > 1 || 'ontouchstart' in window) {
+        document.documentElement.classList.add('is-touch');
+      }
+    })();
+  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Olympus Reborn Idle</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/main.css?v=0.9.81" />
+  <link rel="stylesheet" href="css/hud.css?v=0.9.81" />
+  <link rel="stylesheet" href="css/map.css?v=0.9.81" />
+  <link rel="stylesheet" href="css/ui.css?v=0.9.81" />
+  <link rel="stylesheet" href="css/animations.css?v=0.9.81" />
+  <link rel="stylesheet" href="css/bottom-panel.css?v=0.9.81" />
+  <link rel="stylesheet" href="css/buildings.css?v=0.9.81" />
+  <link rel="stylesheet" href="css/talent-panel.css?v=0.9.81" />
+  <link rel="stylesheet" href="css/help-panel.css?v=0.9.81" />
+</head>
+<body>
+  <div id="era-screen-flash"></div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       ÉCRAN DE CHARGEMENT
+  ════════════════════════════════════════════════════════ -->
+  <!-- ═══ ÉCRAN TITRE ══════════════════════════════════════ -->
+  <div id="title-screen">
+    <div class="ts-bg"></div>
+    <div class="ts-content">
+      <div class="ts-emblem">⚡</div>
+      <h1 class="ts-title">OLYMPUS REBORN</h1>
+      <p class="ts-sub">Bâtissez l'empire des dieux</p>
+
+      <div id="ts-auth-zone">
+
+        <!-- Chargement Google -->
+        <div id="ts-state-loading" class="ts-state">
+          <div class="ts-spinner"></div>
+          <p class="ts-state-text">Initialisation…</p>
+        </div>
+
+        <!-- Non connecté -->
+        <div id="ts-state-signout" class="ts-state" style="display:none">
+          <button class="ts-btn ts-btn-google" id="btn-google-signin">
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20" height="20" alt="">
+            Continuer avec Google
+          </button>
+          <div class="ts-divider"><span>ou</span></div>
+          <button class="ts-btn ts-btn-local" id="btn-local-new">⚡ Jouer sans compte</button>
+          <p class="ts-state-hint">Sans compte Google, la save reste uniquement dans ce navigateur.</p>
+        </div>
+
+        <!-- Connecté -->
+        <div id="ts-state-signin" class="ts-state" style="display:none">
+          <div class="ts-user-card">
+            <img id="ts-user-pic" src="" width="36" height="36" alt="" class="ts-user-pic">
+            <div class="ts-user-info">
+              <div class="ts-user-name" id="ts-user-name">…</div>
+              <div class="ts-user-email" id="ts-user-email">…</div>
+            </div>
+            <button class="ts-signout-btn" id="btn-signout" title="Se déconnecter">✕</button>
+          </div>
+          <div class="ts-save-status" id="ts-save-status">
+            <div class="ts-spinner-sm"></div> Recherche de sauvegarde…
+          </div>
+          <div class="ts-play-buttons" id="ts-play-buttons" style="display:none">
+            <button class="ts-btn ts-btn-new" id="btn-new-game">⚡ Nouvelle Partie</button>
+            <button class="ts-btn ts-btn-continue" id="btn-continue" disabled>🏛️ Continuer</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══ PHASE 9 — ÉCRAN SÉLECTION DE MODE ════════════════ -->
+  <div id="mode-select-screen" style="display:none">
+    <div class="ms-bg"></div>
+    <div class="ms-content">
+      <div class="ms-header">
+        <div class="ms-emblem">🏛️</div>
+        <h2 class="ms-title">Choisissez votre Destinée</h2>
+        <p class="ms-sub">Chaque mode offre une expérience unique</p>
+      </div>
+      <div class="ms-modes">
+
+        <!-- Mode A — Panthéon -->
+        <div class="ms-mode ms-mode-active" data-mode="pantheon" onclick="selectMode('pantheon')">
+          <div class="ms-mode-glyph">⚡</div>
+          <div class="ms-mode-badge">Mode par défaut</div>
+          <div class="ms-mode-name">Panthéon</div>
+          <div class="ms-mode-tagline">City-builder idle classique</div>
+          <div class="ms-mode-desc">
+            Bâtissez une civilisation grecque de l'Âge Archaïque à l'Âge Divin. 
+            3 Ères, 27 bâtiments, Prestige, Codex Olympien, Panthéon des Dieux et 6 Zones divines.
+          </div>
+          <div class="ms-mode-features">
+            <span>🏛️ 27 bâtiments</span>
+            <span>🔮 Prestige</span>
+            <span>📖 Codex</span>
+            <span>🗺️ 6 Zones</span>
+          </div>
+          <div class="ms-mode-select-btn">Sélectionner →</div>
+        </div>
+
+        <!-- Mode B — Théomachie -->
+        <div class="ms-mode ms-mode-locked" data-mode="theomachie" onclick="selectMode('theomachie')">
+          <div class="ms-mode-glyph">⚔️</div>
+          <div class="ms-mode-lock-badge">🔒 Bientôt disponible</div>
+          <div class="ms-mode-name">Théomachie</div>
+          <div class="ms-mode-tagline">La guerre des dieux</div>
+          <div class="ms-mode-desc">
+            Les 6 dieux s'affrontent pour la domination. Gérez les factions, 
+            évitez la Hubris et arbitrez les rivalités divines pour maintenir l'équilibre de l'Olympe.
+          </div>
+          <div class="ms-mode-features">
+            <span>⚔️ Factions</span>
+            <span>🌋 Hubris</span>
+            <span>🕊️ Arbitrage</span>
+            <span>💥 Attaques</span>
+          </div>
+          <div class="ms-mode-coming">En développement</div>
+        </div>
+
+        <!-- Mode C — Genèse Divine -->
+        <div class="ms-mode ms-mode-locked" data-mode="genese" onclick="selectMode('genese')">
+          <div class="ms-mode-glyph">🌅</div>
+          <div class="ms-mode-lock-badge">🔒 Bientôt disponible</div>
+          <div class="ms-mode-name">Genèse Divine</div>
+          <div class="ms-mode-tagline">6 Âges, une épopée</div>
+          <div class="ms-mode-desc">
+            Traversez 6 Âges mythologiques à travers les zones divines. 
+            Chaque prestige est une Nouvelle Ère avec des quêtes narratives uniques et des artefacts légendaires.
+          </div>
+          <div class="ms-mode-features">
+            <span>📜 Quêtes</span>
+            <span>🗝️ Artefacts</span>
+            <span>⏳ 6 Âges</span>
+            <span>📖 Mythologie</span>
+          </div>
+          <div class="ms-mode-coming">En développement</div>
+        </div>
+
+      </div>
+      <button class="ms-back-btn" id="ms-back-btn">← Retour</button>
+    </div>
+  </div>
+
+  <!-- ═══ ÉCRAN DE CHARGEMENT (après choix) ════════════════ -->
+  <div id="loading-screen" style="display:none">
+    <div class="loading-content">
+      <div class="loading-emblem">⚡</div>
+      <h1 class="loading-title">OLYMPUS REBORN</h1>
+      <div class="loading-bar-container">
+        <div class="loading-bar" id="loading-bar"></div>
+      </div>
+      <p class="loading-subtitle" id="loading-text">Éveil des dieux...</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       CONTENEUR PRINCIPAL DU JEU
+  ════════════════════════════════════════════════════════ -->
+  <div id="game-container" class="hidden">
+
+  <!-- ══════════════════════════════════════════════════════
+       BARRE HAUTE — Ressources (toute la largeur, scrollable)
+  ═══════════════════════════════════════════════════════ -->
+  <header id="hud-top">
+    <div id="resources-bar">
+      <!-- Drachmes -->
+      <div class="resource-item" id="res-drachmes" data-tooltip="Drachmes de Cuivre — Monnaie principale">
+        <span class="resource-icon">🪙</span>
+        <div class="resource-info">
+          <span class="resource-name">Drachmes</span>
+          <span class="resource-value" id="val-drachmes">0</span>
+          <span class="resource-rate" id="rate-drachmes">+0/s</span>
+        </div>
+      </div>
+      <!-- Bois -->
+      <div class="resource-item" id="res-bois" data-tooltip="Bois de Styx — Matériau de construction">
+        <span class="resource-icon">🪵</span>
+        <div class="resource-info">
+          <span class="resource-name">Bois</span>
+          <span class="resource-value" id="val-bois">0</span>
+          <span class="resource-rate" id="rate-bois">+0/s</span>
+        </div>
+      </div>
+      <!-- Nourriture -->
+      <div class="resource-item" id="res-nourr" data-tooltip="Ambroisie de Synthèse — Nourrit vos survivants">
+        <span class="resource-icon">🌾</span>
+        <div class="resource-info">
+          <span class="resource-name">Nourr.</span>
+          <span class="resource-value" id="val-nourr">0</span>
+          <span class="resource-rate" id="rate-nourr">+0/s</span>
+        </div>
+      </div>
+      <!-- Fer -->
+      <div class="resource-item" id="res-fer" data-tooltip="Fer Céleste — Métal divin">
+        <span class="resource-icon">⚙️</span>
+        <div class="resource-info">
+          <span class="resource-name">Fer</span>
+          <span class="resource-value" id="val-fer">0</span>
+          <span class="resource-rate" id="rate-fer">+0/s</span>
+        </div>
+      </div>
+      <!-- Population -->
+      <div class="resource-item res-pop-item" id="res-pop" data-tooltip="Population — Travailleurs / Capacité">
+        <span class="resource-icon">👥</span>
+        <div class="resource-info">
+          <span class="resource-name">Pop.</span>
+          <div class="res-pop-row">
+            <span id="pop-workers">0</span><span class="res-pop-sep">/</span><span id="pop-total">0</span>
+          </div>
+          <div id="pop-bar-wrap"><div id="pop-bar"></div></div>
+        </div>
+        <span id="pop-alert" style="display:none" title="Logements pleins">⚠️</span>
+      </div>
+      <!-- Éther (permanent) -->
+      <div class="resource-item resource-prestige" id="res-ether" data-tooltip="Éther — Monnaie permanente obtenue au Prestige">
+        <span class="resource-icon">✨</span>
+        <div class="resource-info">
+          <span class="resource-name">Éther</span>
+          <span class="resource-value" id="val-ether">0</span>
+          <span class="resource-rate" id="rate-ether" style="color:#c090ff"></span>
+        </div>
+      </div>
+      <!-- Foudre -->
+      <div class="resource-item resource-era2" id="res-foudre" style="display:none" data-tooltip="Foudre — Alimente les bâtiments avancés">
+        <span class="resource-icon">⚡</span>
+        <div class="resource-info">
+          <span class="resource-name">Foudre</span>
+          <span class="resource-value" id="val-foudre">0</span>
+          <span class="resource-rate" id="rate-foudre"></span>
+        </div>
+      </div>
+      <!-- Nectar -->
+      <div class="resource-item resource-era2" id="res-nectar" style="display:none" data-tooltip="Nectar — Vergers d'Apollon">
+        <span class="resource-icon">🍯</span>
+        <div class="resource-info">
+          <span class="resource-name">Nectar</span>
+          <span class="resource-value" id="val-nectar">0</span>
+          <span class="resource-rate" id="rate-nectar"></span>
+        </div>
+      </div>
+      <!-- Bronze -->
+      <div class="resource-item resource-era2" id="res-bronze" style="display:none" data-tooltip="Bronze — Atelier du Forgeron">
+        <span class="resource-icon">🟫</span>
+        <div class="resource-info">
+          <span class="resource-name">Bronze</span>
+          <span class="resource-value" id="val-bronze">0</span>
+          <span class="resource-rate" id="rate-bronze"></span>
+        </div>
+      </div>
+      <!-- Acier -->
+      <div class="resource-item resource-era2" id="res-acier" style="display:none" data-tooltip="Acier — Fonderie Céleste">
+        <span class="resource-icon">🔩</span>
+        <div class="resource-info">
+          <span class="resource-name">Acier</span>
+          <span class="resource-value" id="val-acier">0</span>
+          <span class="resource-rate" id="rate-acier"></span>
+        </div>
+      </div>
+      <!-- Farine Sacrée -->
+      <div class="resource-item resource-era2" id="res-farine" style="display:none" data-tooltip="Farine Sacrée — Moulin à Grain">
+        <span class="resource-icon">🌾✨</span>
+        <div class="resource-info">
+          <span class="resource-name">Farine</span>
+          <span class="resource-value" id="val-farine">0</span>
+          <span class="resource-rate" id="rate-farine"></span>
+        </div>
+      </div>
+      <!-- Ambroisie -->
+      <div class="resource-item resource-era2" id="res-ambroisie" style="display:none" data-tooltip="Ambroisie — Distillerie Sacrée">
+        <span class="resource-icon">🍯</span>
+        <div class="resource-info">
+          <span class="resource-name">Ambros.</span>
+          <span class="resource-value" id="val-ambroisie">0</span>
+          <span class="resource-rate" id="rate-ambroisie"></span>
+        </div>
+      </div>
+      <!-- Orichalque -->
+      <div class="resource-item resource-era3" id="res-orichalque" style="display:none" data-tooltip="Orichalque — Métal légendaire, Ère 3">
+        <span class="resource-icon">🌟</span>
+        <div class="resource-info">
+          <span class="resource-name">Orichalq.</span>
+          <span class="resource-value" id="val-orichalque">0</span>
+          <span class="resource-rate" id="rate-orichalque"></span>
+        </div>
+      </div>
+      <!-- Métal Divin -->
+      <div class="resource-item resource-era3" id="res-metal_divin" style="display:none" data-tooltip="Métal Divin — Forge Divine, Ère 3">
+        <span class="resource-icon">⚙️✨</span>
+        <div class="resource-info">
+          <span class="resource-name">Métal Div.</span>
+          <span class="resource-value" id="val-metal_divin">0</span>
+          <span class="resource-rate" id="rate-metal_divin"></span>
+        </div>
+      </div>
+      <!-- Amrita -->
+      <div class="resource-item resource-era3" id="res-amrita" style="display:none" data-tooltip="Amrita — Ressource transcendante, Ère 3">
+        <span class="resource-icon">💎</span>
+        <div class="resource-info">
+          <span class="resource-name">Amrita</span>
+          <span class="resource-value" id="val-amrita">0</span>
+          <span class="resource-rate" id="rate-amrita"></span>
+        </div>
+      </div>
+      <!-- Énergie HUD (ère 2+) -->
+      <div class="resource-item hud-nrj-item resource-era2" id="res-nrj-hud" style="display:none" data-tooltip="Énergie — Foudre des pylônes">
+        <span class="resource-icon">⚡</span>
+        <div class="resource-info">
+          <span class="resource-name">Énergie</span>
+          <span class="resource-value" id="val-nrj-hud">0</span>
+          <span class="resource-rate" id="rate-nrj-hud">+0/s</span>
+        </div>
+      </div>
+      <!-- Badge Ère -->
+      <div id="era-badge" style="display:none">⛩ Antiquité</div>
+    </div>
+  </header>
+
+  <!-- ══════════════════════════════════════════════════════
+       ZONE CARTE
+  ═══════════════════════════════════════════════════════ -->
+  <main id="map-container">
+    <canvas id="game-canvas"></canvas>
+
+    <!-- Bouton talents caché (binding BuildingPanel) -->
+    <button id="btn-talents" style="display:none" aria-hidden="true"></button>
+
+    <!-- Debug: reveal all -->
+    <button id="btn-reveal-all" style="display:none;position:absolute;bottom:12px;left:12px;z-index:200;background:rgba(200,80,80,.85);border:1px solid #e05050;color:#fff;font-family:Cinzel,serif;font-size:12px;padding:8px 14px;border-radius:6px;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.5)">🗺 Tout Révéler</button>
+
+    <!-- Debug TEST PANEL (visible si ?debug dans l'URL) -->
+    <div id="debug-panel" style="display:none;position:fixed;top:70px;right:12px;z-index:900;background:rgba(10,6,22,0.96);border:1px solid rgba(200,80,80,0.55);border-radius:12px;padding:12px 14px;min-width:200px;box-shadow:0 4px 24px rgba(0,0,0,0.8);font-family:Cinzel,serif;">
+      <div style="font-size:12px;font-weight:700;color:#e05050;letter-spacing:1px;margin-bottom:10px;text-align:center">🧪 PANEL TEST</div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <button id="dbg-add-res" style="background:rgba(80,180,80,0.2);border:1px solid rgba(80,200,80,0.5);color:#80e080;padding:7px 10px;border-radius:6px;cursor:pointer;font-family:Cinzel,serif;font-size:12px;font-weight:700">💰 +100k Ressources</button>
+        <button id="dbg-add-ether" style="background:rgba(160,80,255,0.2);border:1px solid rgba(180,100,255,0.5);color:#c090ff;padding:7px 10px;border-radius:6px;cursor:pointer;font-family:Cinzel,serif;font-size:12px;font-weight:700">✨ +10k Éther</button>
+        <button id="dbg-add-era2" style="background:rgba(80,160,255,0.2);border:1px solid rgba(80,180,255,0.5);color:#80c0ff;padding:7px 10px;border-radius:6px;cursor:pointer;font-family:Cinzel,serif;font-size:12px;font-weight:700">🏛️ +Res Ère 2</button>
+        <button id="dbg-add-era3" style="background:rgba(255,160,40,0.2);border:1px solid rgba(255,180,60,0.5);color:#ffb840;padding:7px 10px;border-radius:6px;cursor:pointer;font-family:Cinzel,serif;font-size:12px;font-weight:700">⚡ +Res Ère 3</button>
+        <div style="border-top:1px solid rgba(255,255,255,0.08);margin:4px 0;padding-top:8px;">
+          <div style="font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:6px;text-align:center">Vitesse de clic</div>
+          <div style="display:flex;gap:5px;justify-content:center;flex-wrap:wrap;">
+            <button class="dbg-speed-btn" data-speed="1" style="background:rgba(200,160,60,0.25);border:1px solid rgba(200,160,60,0.6);color:#e8c040;padding:5px 8px;border-radius:5px;cursor:pointer;font-family:Cinzel,serif;font-size:11px;font-weight:700">x1</button>
+            <button class="dbg-speed-btn" data-speed="5" style="background:rgba(200,160,60,0.08);border:1px solid rgba(200,160,60,0.25);color:rgba(200,160,60,0.5);padding:5px 8px;border-radius:5px;cursor:pointer;font-family:Cinzel,serif;font-size:11px;font-weight:700">x5</button>
+            <button class="dbg-speed-btn" data-speed="10" style="background:rgba(200,160,60,0.08);border:1px solid rgba(200,160,60,0.25);color:rgba(200,160,60,0.5);padding:5px 8px;border-radius:5px;cursor:pointer;font-family:Cinzel,serif;font-size:11px;font-weight:700">x10</button>
+            <button class="dbg-speed-btn" data-speed="50" style="background:rgba(200,160,60,0.08);border:1px solid rgba(200,160,60,0.25);color:rgba(200,160,60,0.5);padding:5px 8px;border-radius:5px;cursor:pointer;font-family:Cinzel,serif;font-size:11px;font-weight:700">x50</button>
+          </div>
+          <div style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:6px;text-align:center" id="dbg-speed-label">1 clic = 1 action</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Info tick -->
+    <div id="tick-indicator">⚡ <span id="tick-count">0</span></div>
+  </main>
+
+  <!-- ══════════════════════════════════════════════════════
+       BARRE BASSE — Info | Bonheur | Boutons droite
+  ═══════════════════════════════════════════════════════ -->
+  <footer id="hud-bottom">
+
+    <!-- Texte info (gauche, flex-1) -->
+    <div id="info-panel">
+      <span id="info-text">Tap une case pour explorer...</span>
+    </div>
+
+    <!-- Bonheur population (centre) -->
+    <div id="happiness-indicator" title="Bonheur de la population">
+      <span id="happiness-icon">😊</span>
+      <div id="happiness-bar"><div id="happiness-bar-fill"></div></div>
+      <span id="happiness-value">50%</span>
+    </div>
+
+    <!-- Boutons droite : Aide + Talents + Menu -->
+    <div id="hud-right-btns">
+      <button class="hud-btn" id="btn-help" title="Encyclopédie — Wiki du jeu">📖</button>
+      <button class="hud-btn hud-btn-talents" id="btn-talents-hud" title="Talents — Arbre de compétences">🧠</button>
+      <button class="hud-btn hud-btn-burger" id="burger-btn" title="Menu">☰</button>
+    </div>
+
+  </footer>
+
+  <!-- ══════════════════════════════════════════════════════
+       ÉLÉMENTS FIXES (hors flux)
+  ═══════════════════════════════════════════════════════ -->
+
+  <!-- Zoom -->
+  <div id="zoom-controls">
+    <button class="hud-btn zoom-btn" id="btn-zoom-in"    title="Zoom +">＋</button>
+    <button class="hud-btn zoom-btn" id="btn-zoom-reset" title="Vue par défaut">⊡</button>
+    <button class="hud-btn zoom-btn" id="btn-zoom-out"   title="Zoom −">－</button>
+  </div>
+
+  <!-- Score de renaissance -->
+  <div id="score-renaissance">
+    <span class="score-label">Renaissance</span>
+    <span class="score-value" id="val-score">0</span>
+  </div>
+
+  <!-- Conditions Prestige -->
+  <div id="prestige-conditions-bar" data-all-met="false"></div>
+
+  <!-- Badge Codex -->
+  <div id="codex-hud-badge"></div>
+
+  <!-- Malédictions actives -->
+  <div id="curse-hud-bar" style="display:none"></div>
+
+  <!-- BURGER MENU dropdown (PC) -->
+  <div id="burger-menu">
+    <div id="burger-google-profile" style="display:none">
+      <div class="burger-profile-card">
+        <img id="burger-user-pic" src="" width="28" height="28" class="burger-user-pic" alt="">
+        <div class="burger-user-text">
+          <div class="burger-user-name" id="burger-user-name">…</div>
+          <div class="burger-user-email" id="burger-user-email">…</div>
+        </div>
+      </div>
+      <button class="burger-item burger-item-google" id="burger-signout-google">🔓 Déconnecter Google</button>
+      <div class="burger-divider"></div>
+    </div>
+    <button class="burger-item" id="burger-save">💾 Sauvegarder</button>
+    <button class="burger-item" id="burger-help">📖 Encyclopédie</button>
+    <button class="burger-item burger-item-danger" id="burger-reset">🗑️ Réinitialiser</button>
+  </div>
+
+  <!-- BOTTOM SHEET (menu mobile) -->
+  <div id="mob-menu-overlay">
+    <div id="mob-menu-sheet">
+      <div class="mob-sheet-handle"></div>
+      <div id="mob-sheet-profile-wrap" style="display:none">
+        <div class="mob-sheet-profile">
+          <img id="mob-sheet-pic" src="" class="mob-sheet-pic" alt="">
+          <div>
+            <div class="mob-sheet-name"  id="mob-sheet-name">…</div>
+            <div class="mob-sheet-email" id="mob-sheet-email">…</div>
+          </div>
+        </div>
+      </div>
+      <button class="mob-sheet-item" id="mob-sheet-save">
+        <span class="mob-sheet-item-icon">💾</span> Sauvegarder
+      </button>
+      <button class="mob-sheet-item" id="mob-sheet-help">
+        <span class="mob-sheet-item-icon">📖</span> Encyclopédie
+      </button>
+      <div class="mob-sheet-divider"></div>
+      <button class="mob-sheet-item" id="mob-sheet-signout" style="display:none">
+        <span class="mob-sheet-item-icon">🔓</span> Déconnecter Google
+      </button>
+      <div class="mob-sheet-divider" id="mob-sheet-div-signout" style="display:none"></div>
+      <button class="mob-sheet-item mob-sheet-item-danger" id="mob-sheet-reset">
+        <span class="mob-sheet-item-icon">🗑️</span> Réinitialiser
+      </button>
+    </div>
+  </div>
+
+</div><!-- fin #game-container -->
+
+  <!-- ═══════════════════════════════════════════════════════
+       SCRIPTS (ordre de chargement important)
+  ════════════════════════════════════════════════════════ -->
+  <script src="src/utils/MathUtils.js?v=0.9.81"></script>
+  <script src="src/utils/HexUtils.js?v=0.9.81"></script>
+  <script src="src/utils/Compression.js?v=0.9.81"></script>
+  <script src="src/engine/EventBus.js?v=0.9.81"></script>
+  <script src="src/engine/SaveManager.js?v=0.9.81"></script>
+  <script src="src/map/HexCell.js?v=0.9.81"></script>
+  <script src="src/map/HexGrid.js?v=0.9.81"></script>
+  <script src="src/map/Camera.js?v=0.9.81"></script>
+  <script src="src/map/MapRenderer.js?v=0.9.81"></script>
+  <script src="src/systems/ResourceManager.js?v=0.9.81"></script>
+  <script src="src/systems/TalentManager.js?v=0.9.81"></script>
+  <script src="src/systems/ScoutManager.js?v=0.9.81"></script>
+  <script src="src/systems/ZoneManager.js?v=0.9.81"></script>
+  <script src="src/systems/PantheonManager.js?v=0.9.81"></script>
+  <script src="src/systems/CodexManager.js?v=0.9.81"></script>
+  <script src="src/systems/PrestigeManager.js?v=0.9.81"></script>
+  <script src="src/systems/BuildingManager.js?v=0.9.81"></script>
+  <script src="src/ui/HUD.js?v=0.9.81"></script>
+  <script src="src/ui/BuildingPanel.js?v=0.9.81"></script>
+  <script src="src/ui/HelpPanel.js?v=0.9.81"></script>
+  <script src="src/ui/OfflineModal.js?v=0.9.81"></script>
+  <script src="src/engine/GoogleDriveSync.js?v=0.9.81"></script>
+  <script src="src/engine/GameLoop.js?v=0.9.81"></script>
+
+  <script>
+  /* ── Écran Titre + Google Drive Sync ───────────────────── */
+  (function() {
+
+    // ── Helpers UI ──────────────────────────────────────────
+    function showState(id) {
+      ['ts-state-loading','ts-state-signout','ts-state-signin'].forEach(function(s) {
+        var el = document.getElementById(s);
+        if (el) el.style.display = (s === id) ? 'block' : 'none';
+      });
+    }
+
+    function setSaveStatus(html) {
+      var el = document.getElementById('ts-save-status');
+      if (el) el.innerHTML = html;
+    }
+
+    function showPlayButtons(hasDriveSave, hasLocalSave) {
+      var btns = document.getElementById('ts-play-buttons');
+      var btnCont = document.getElementById('btn-continue');
+      if (!btns || !btnCont) return;
+      btns.style.display = 'flex';
+      btnCont.disabled = !(hasDriveSave || hasLocalSave);
+    }
+
+    function fmtDate(iso) {
+      try {
+        var d = new Date(iso);
+        return d.toLocaleDateString('fr-FR') + ' à ' + d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+      } catch(e) { return iso; }
+    }
+
+    // ── Démarrer le jeu ─────────────────────────────────────
+    var _selectedMode = 'pantheon';
+
+    function showModeSelect(saveData) {
+      window._pendingLaunchData = saveData || null;
+      document.getElementById('title-screen').style.display = 'none';
+      document.getElementById('mode-select-screen').style.display = 'flex';
+    }
+
+    function selectMode(mode) {
+      if (mode !== 'pantheon') {
+        EventBus && EventBus.emit('ui:feedback', {text: 'Mode bientôt disponible !', x: window.innerWidth/2, y: 200, color: '#f0d060'});
+        return;
+      }
+      window._selectedMode = mode;
+      launchGame(window._pendingLaunchData);
+    }
+
+    window.selectMode = selectMode;
+
+    document.addEventListener('DOMContentLoaded', function() {
+      var backBtn = document.getElementById('ms-back-btn');
+      if (backBtn) backBtn.addEventListener('click', function() {
+        document.getElementById('mode-select-screen').style.display = 'none';
+        document.getElementById('title-screen').style.display = 'flex';
+      });
+    });
+
+    function launchGame(saveData) {
+      // saveData = encoded string à injecter dans localStorage, ou null
+      if (saveData) {
+        localStorage.setItem('olympus_reborn_save', saveData);
+      }
+      document.getElementById('title-screen').style.display = 'none';
+      document.getElementById('loading-screen').style.display = 'flex';
+      var loop = new GameLoop();
+      // Patch autosave pour synchroniser Drive
+      var origSave = loop._doSave ? loop._doSave.bind(loop) : null;
+      if (origSave) {
+        loop._doSave = function() {
+          origSave();
+          if (GoogleDriveSync.isSignedIn()) {
+            var raw = localStorage.getItem('olympus_reborn_save');
+            if (raw) GoogleDriveSync.saveToDrive(raw).catch(function(e){
+              console.warn('[GDriveSync] Autosave Drive échouée:', e);
+            });
+          }
+        };
+      }
+      loop.init();
+    }
+
+    // ── Logique après connexion Google ──────────────────────
+    async function onSignedIn() {
+      showState('ts-state-signin');
+
+      // Afficher infos utilisateur
+      var info = await GoogleDriveSync.getUserInfo();
+      if (info) {
+        var pic = document.getElementById('ts-user-pic');
+        var nm  = document.getElementById('ts-user-name');
+        var em  = document.getElementById('ts-user-email');
+        if (pic) { pic.src = info.picture || ''; pic.style.display = info.picture ? 'block' : 'none'; }
+        if (nm)  nm.textContent  = info.name  || 'Joueur';
+        if (em)  em.textContent  = info.email || '';
+      }
+
+      // Chercher save sur Drive
+      setSaveStatus('<div class="ts-spinner-sm"></div> Recherche de la sauvegarde sur Drive…');
+      var driveInfo = null;
+      var driveRaw  = null;
+      try {
+        var driveData = await GoogleDriveSync.loadFromDrive();
+        if (driveData) {
+          driveInfo = driveData;
+          driveRaw  = driveData.raw;
+        }
+      } catch(e) {
+        console.warn('[GDriveSync] Erreur lecture Drive:', e);
+      }
+
+      var hasLocal = SaveManager.hasSave();
+      var hasDrive = !!driveRaw;
+
+      // Status
+      if (hasDrive) {
+        setSaveStatus('☁️ Sauvegarde Drive trouvée — ' + fmtDate(driveInfo.modifiedTime));
+      } else if (hasLocal) {
+        setSaveStatus('💾 Sauvegarde locale uniquement');
+      } else {
+        setSaveStatus('Aucune sauvegarde trouvée');
+      }
+
+      showPlayButtons(hasDrive, hasLocal);
+
+      // Bouton Continuer
+      document.getElementById('btn-continue').addEventListener('click', function() {
+        if (hasDrive) {
+          launchGame(driveRaw);
+        } else {
+          launchGame(null); // charge localStorage existant
+        }
+      }, { once: true });
+
+      // Bouton Nouvelle Partie
+      document.getElementById('btn-new-game').addEventListener('click', function() {
+        var msg = (hasDrive || hasLocal)
+          ? 'Démarrer une nouvelle partie effacera la progression actuelle (Drive + locale). Continuer ?'
+          : null;
+        if (msg && !confirm(msg)) return;
+        SaveManager.clear();
+        launchGame(null);
+      }, { once: true });
+    }
+
+    // ── Mode local (sans Google) ─────────────────────────────
+    function setupLocalMode() {
+      var hasLocal = SaveManager.hasSave();
+      var btnLocal = document.getElementById('btn-local-new');
+      if (btnLocal) {
+        btnLocal.textContent = hasLocal ? '🏛️ Continuer (local)' : '⚡ Nouvelle Partie';
+        btnLocal.addEventListener('click', function() {
+          if (hasLocal && btnLocal.textContent.startsWith('🏛️')) {
+            launchGame(null);
+          } else {
+            if (hasLocal && !confirm('Nouvelle partie ? La progression locale sera perdue.')) return;
+            SaveManager.clear();
+            launchGame(null);
+          }
+        });
+      }
+      // Bouton nouvelle partie séparé si save existe
+      if (hasLocal) {
+        var extraBtn = document.createElement('button');
+        extraBtn.className = 'ts-btn ts-btn-local-new';
+        extraBtn.textContent = '⚡ Nouvelle Partie';
+        extraBtn.addEventListener('click', function() {
+          if (!confirm('Nouvelle partie ? La progression locale sera perdue.')) return;
+          SaveManager.clear(); launchGame(null);
+        });
+        var signoutZone = document.getElementById('ts-state-signout');
+        if (signoutZone) signoutZone.appendChild(extraBtn);
+      }
+    }
+
+    // ── Init ────────────────────────────────────────────────
+    showState('ts-state-loading');
+
+    GoogleDriveSync.onReady(function() {
+      showState('ts-state-signout');
+      // En mode local (file://) : cacher le bouton Google, afficher message
+      if (GoogleDriveSync.isLocalMode()) {
+        var btnG = document.getElementById('btn-google-signin');
+        var div  = document.querySelector('.ts-divider');
+        var hint = document.querySelector('.ts-state-hint');
+        if (btnG) btnG.style.display = 'none';
+        if (div)  div.style.display  = 'none';
+        if (hint) hint.textContent   = '⚠️ Ouvrez le jeu via un serveur web ou GitHub Pages pour activer la synchronisation Google Drive.';
+      }
+      setupLocalMode();
+    });
+
+    GoogleDriveSync.init().catch(function() {
+      // Google indisponible → mode local direct
+      showState('ts-state-signout');
+      setupLocalMode();
+    });
+
+    // Bouton connexion Google
+    document.getElementById('btn-google-signin').addEventListener('click', async function() {
+      this.disabled = true;
+      this.textContent = 'Connexion…';
+      try {
+        await GoogleDriveSync.signIn();
+        await onSignedIn();
+      } catch(e) {
+        this.disabled = false;
+        this.innerHTML = '<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20" height="20" alt=""> Continuer avec Google';
+        console.warn('[Title] Connexion annulée ou échouée:', e);
+      }
+    });
+
+    // Bouton déconnexion
+    document.getElementById('btn-signout').addEventListener('click', function() {
+      GoogleDriveSync.signOut();
+      showState('ts-state-signout');
+      setupLocalMode();
+    });
+
+  })();
+  </script>
+
+</body>
+</html>
