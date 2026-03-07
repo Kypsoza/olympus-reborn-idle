@@ -269,7 +269,7 @@
   position: fixed;
   left: 0; right: 0;
   bottom: var(--hud-bottom-h, 52px);
-  z-index: 200;
+  z-index: 210;
   pointer-events: none;
   display: flex;
   flex-direction: column;
@@ -340,10 +340,11 @@
   justify-content: center;
   align-items: stretch;
   gap: 2px;
-  padding: 4px 6px 3px;
-  background: rgba(8,5,18,0.97);
-  border-top: 1px solid rgba(200,149,26,0.18);
+  padding: 4px 6px calc(3px + env(safe-area-inset-bottom, 0px));
+  background: rgba(8,5,18,0.98);
+  border-top: 1px solid rgba(200,149,26,0.30);
   backdrop-filter: blur(8px);
+  box-shadow: 0 -2px 12px rgba(0,0,0,0.6);
 }
 
 .bb-tab {

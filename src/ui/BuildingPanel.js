@@ -272,23 +272,29 @@ class BuildingPanel {
     // ── Public API ────────────────────────────────────────
     this._buildBar = {
       bar: bar,
-      setCell: function(cell) {
+      setCell: function(cell, isNewCell) {
+        var prevCell = activeCell;
         activeCell = cell;
         bar.classList.add('bb-bar-visible');
-        // Auto-open first category that has available buildings
-        if (!openCatId) {
-          var available = cell ? BuildingManager.getBuildingsForTerrain(cell.type) : [];
+        // Only auto-open drawer when switching to a NEW cell
+        // If user closed the drawer (openCatId===null), respect that
+        if (isNewCell) {
+          // New cell: auto-open first relevant category
+          var available2 = cell ? BuildingManager.getBuildingsForTerrain(cell.type) : [];
           var firstCat = null;
           CATS.forEach(function(cat) {
             if (firstCat) return;
             if (cat.id==='road') return;
-            var hasSomething = available.some(function(def){ return !cat.ids.length || cat.ids.includes(def.id); });
+            var hasSomething = available2.some(function(def){ return !cat.ids.length || cat.ids.includes(def.id); });
             if (hasSomething) firstCat = cat.id;
           });
           if (firstCat) renderDrawer(firstCat);
-        } else {
+          else closeDrawer();
+        } else if (openCatId) {
+          // Same cell refresh: only refresh if drawer is open
           renderDrawer(openCatId);
         }
+        // If openCatId===null: drawer was closed by user — don't reopen
       },
       hide: function() {
         activeCell = null;
@@ -391,7 +397,7 @@ class BuildingPanel {
     else if (cell.type === CELL_TYPE.RUBBLE)       this._renderRubbleUI(cell, body);
     else if (cell.type === CELL_TYPE.TUNNEL)       this._renderTunnelUI(cell, body);
     else if (cell.building)                        this._renderBuildingUI(cell, body);
-    else                                           this._renderEmptyUI(cell, body);
+    else                                           this._renderEmptyUI(cell, body, true);
     this.drawer.classList.remove('bp-drawer-closed');
     this.drawer.classList.add('bp-drawer-open');
   }
@@ -484,6 +490,8 @@ class BuildingPanel {
       { id:'siderurgie',   label:'Sidérurgie',    icon:'⚙️' },
       { id:'population',   label:'Population',    icon:'👥' },
       { id:'ingenierie',   label:'Ingénierie',    icon:'🏛️' },
+      { id:'cartographie', label:'Cartographie',  icon:'🗺️' },
+      { id:'prestige_codex',label:'Héritage',     icon:'📜' },
     ];
 
     if (!self._drachtab) self._drachtab = 'agriculture';
@@ -500,7 +508,7 @@ class BuildingPanel {
     });
     tabBar += '</div>';
 
-    el.innerHTML = tabBar + '<div id="dt-content"></div>';
+    el.innerHTML = tabBar + '<div id="dt-content" data-branch="' + activeCat + '"></div>';
 
     // Listener sous-onglets
     el.querySelector('.dt-sub-tabs').addEventListener('click', function(e) {
@@ -518,6 +526,17 @@ class BuildingPanel {
   _renderDrachBranch(el, branchId) {
     var self = this;
 
+    // Cartographie and Héritage come from PantheonManager (PANTHEON_BRANCHES)
+    var PB = (typeof PANTHEON_BRANCHES !== 'undefined') ? PANTHEON_BRANCHES : (window.PANTHEON_BRANCHES || []);
+    var panBranch = PB.find(function(b){ return b.id===branchId; });
+    if (branchId === 'cartographie' || branchId === 'prestige_codex') {
+      if (panBranch) {
+        self._renderPantheonBranch(el, branchId, panBranch);
+        return;
+      }
+      el.innerHTML = '<div style="padding:24px;color:#888;text-align:center">Branche non chargée.</div>';
+      return;
+    }
     var branches = self.tm.getBranchData().filter(function(b) { return b.id === branchId; });
     if (!branches.length) {
       el.innerHTML = '<div style="padding:24px;color:#888;text-align:center">Branche inconnue.</div>';
@@ -886,7 +905,220 @@ class BuildingPanel {
   }
 
 
-  _renderEtherTree(el) {
+  // ── Renderer pour branches Panthéon dans l'onglet Drachmes ─────────────────
+  _renderPantheonBranch(el, branchId, branchDef) {
+    var self = this;
+    var pan  = self.pan;
+    var PN   = (typeof PANTHEON_NODES !== 'undefined') ? PANTHEON_NODES : (window.PANTHEON_NODES || {});
+
+    if (!pan || !Object.keys(PN).length) {
+      el.innerHTML = '<div style="padding:24px;color:#888;text-align:center">Données non chargées.</div>';
+      return;
+    }
+
+    var bc = branchDef.color || '#888';
+    function hexToRgb(hex) {
+      if (!hex||hex.length<7) return '128,128,128';
+      return parseInt(hex.slice(1,3),16)+','+parseInt(hex.slice(3,5),16)+','+parseInt(hex.slice(5,7),16);
+    }
+    var rgb = hexToRgb(bc);
+
+    // Collect nodes for this branch
+    var rings = { 1:[], 2:[], 3:[] };
+    Object.keys(PN).forEach(function(nid) {
+      var nd = PN[nid];
+      if (!nd || nd.branch !== branchId) return;
+      var r = nd.ring || 1;
+      if (!rings[r]) rings[r] = [];
+      rings[r].push({ id: nid, nd: nd });
+    });
+    // Sort by slot
+    [1,2,3].forEach(function(r) {
+      rings[r].sort(function(a,b){ return (a.nd.slot||0)-(b.nd.slot||0); });
+    });
+
+    var VW = 720, VH = 460;
+    var CX = VW/2, CY = 55;
+    var ROW_Y = { 1: 100, 2: 220, 3: 340 };
+    var NODE_R = 28;
+
+    function getState(nid) { return pan.getNodeState(nid); }
+    function hexPath(cx, cy, r) {
+      var pts = [];
+      for (var i=0; i<6; i++) {
+        var a = Math.PI/3*i - Math.PI/6;
+        pts.push((cx + r*Math.cos(a)).toFixed(1) + ',' + (cy + r*Math.sin(a)).toFixed(1));
+      }
+      return 'M'+pts.join('L')+'Z';
+    }
+    function nodeX(ring, idx, total) {
+      if (total <= 1) return CX;
+      var span = Math.min(total * 120, VW - 80);
+      return CX - span/2 + idx * (span/(total-1));
+    }
+
+    // Build positions
+    var positions = {};
+    [1,2,3].forEach(function(r) {
+      var nodes = rings[r];
+      nodes.forEach(function(item, i) {
+        positions[item.id] = { x: nodeX(r, i, nodes.length), y: ROW_Y[r] };
+      });
+    });
+
+    function buildSVG() {
+      var s = '<svg xmlns="http://www.w3.org/2000/svg" width="'+VW+'" height="'+VH+'"'
+            + ' style="display:block;overflow:visible">';
+      s += '<defs>'
+         + '<linearGradient id="pb-bg" x1="0%" y1="0%" x2="100%" y2="100%">'
+         + '<stop offset="0%" stop-color="rgba('+rgb+',0.08)"/>'
+         + '<stop offset="100%" stop-color="rgba(0,0,0,0)"/>'
+         + '</linearGradient>'
+         + '<filter id="pb-glow" x="-50%" y="-50%" width="200%" height="200%">'
+         + '<feGaussianBlur stdDeviation="6" result="b"/>'
+         + '<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>'
+         + '</filter></defs>';
+      s += '<rect width="'+VW+'" height="'+VH+'" fill="url(#pb-bg)"/>';
+
+      // Ring labels
+      var RING_LABELS = { 1:'Anneau I', 2:'Anneau II', 3:'Anneau III' };
+      [1,2,3].forEach(function(r) {
+        s += '<text x="14" y="'+(ROW_Y[r]+5)+'" font-family="Cinzel,serif" font-size="10"'
+           + ' fill="rgba('+rgb+',0.4)" letter-spacing="0.05em">'+RING_LABELS[r]+'</text>';
+        s += '<line x1="0" y1="'+(ROW_Y[r]-40)+'" x2="'+VW+'" y2="'+(ROW_Y[r]-40)+'"'
+           + ' stroke="rgba('+rgb+',0.08)" stroke-width="1"/>';
+      });
+
+      // Edges (requires links)
+      Object.keys(positions).forEach(function(nid) {
+        var nd = PN[nid];
+        if (!nd || !nd.requires) return;
+        nd.requires.forEach(function(req) {
+          var pa = positions[req], pb = positions[nid];
+          if (!pa || !pb) return;
+          var st1 = getState(req), st2 = getState(nid);
+          var active = st1==='learned' && st2==='learned';
+          var half   = st1==='learned' && st2!=='learned';
+          var col = active ? bc : half ? 'rgba('+rgb+',0.5)' : 'rgba(80,80,100,0.3)';
+          var sw  = active ? 2.5 : 1.5;
+          s += '<line x1="'+pa.x.toFixed(1)+'" y1="'+pa.y.toFixed(1)+'"'
+             + ' x2="'+pb.x.toFixed(1)+'" y2="'+pb.y.toFixed(1)+'"'
+             + ' stroke="'+col+'" stroke-width="'+sw+'" stroke-dasharray="'+(active?'none':'4,4')+'"/>';
+        });
+      });
+
+      // Nodes
+      Object.keys(positions).forEach(function(nid) {
+        var pos = positions[nid];
+        var nd  = PN[nid];
+        if (!nd) return;
+        var st = getState(nid);
+        var pts2 = pan.invested[nid] || 0;
+        var isLearned = st==='learned', isAvail = st==='available';
+        var fillCol = isLearned ? 'rgba('+rgb+',0.35)' : isAvail ? 'rgba(20,15,40,0.95)' : 'rgba(8,6,18,0.92)';
+        var strokeCol = isLearned ? bc : isAvail ? 'rgba(200,170,80,0.7)' : 'rgba(80,80,100,0.3)';
+        var strokeW = isLearned ? 2.5 : isAvail ? 2 : 1.2;
+        var hexOuter = hexPath(pos.x, pos.y, NODE_R+6);
+        var hexInner = hexPath(pos.x, pos.y, NODE_R);
+        var isSelected = (self._panBranchSel === nid);
+
+        s += '<g class="pb-node" data-nid="'+nid+'" style="cursor:pointer">';
+        if (isSelected) s += '<path d="'+hexPath(pos.x,pos.y,NODE_R+14)+'" fill="rgba('+rgb+',0.15)" stroke="'+bc+'" stroke-width="2" filter="url(#pb-glow)"/>';
+        if (isLearned) s += '<path d="'+hexOuter+'" fill="rgba('+rgb+',0.2)" filter="url(#pb-glow)"/>';
+        s += '<path d="'+hexInner+'" fill="'+fillCol+'" stroke="'+strokeCol+'" stroke-width="'+strokeW+'"/>';
+        if (isLearned) s += '<text x="'+pos.x+'" y="'+(pos.y-NODE_R*0.55).toFixed(1)+'" text-anchor="middle" font-size="10" fill="rgba(220,220,80,0.8)">✓</text>';
+        if (nd.uncapped && pts2>1) s += '<text x="'+(pos.x+NODE_R*0.7).toFixed(1)+'" y="'+(pos.y-NODE_R*0.55).toFixed(1)+'" text-anchor="middle" font-size="9" fill="#ffd54f">×'+pts2+'</text>';
+        s += '<text x="'+pos.x+'" y="'+(pos.y+8)+'" text-anchor="middle" dominant-baseline="middle" font-size="20">'+nd.icon+'</text>';
+        var lbl = nd.name || nid; if (lbl.length>13) lbl=lbl.slice(0,12)+'…';
+        var labelFill = isLearned ? '#f0e080' : isAvail ? 'rgba(220,200,150,0.85)' : 'rgba(120,110,100,0.5)';
+        s += '<text x="'+pos.x+'" y="'+(pos.y+NODE_R+13)+'" text-anchor="middle" font-family="Cinzel,serif" font-size="9.5" fill="'+labelFill+'">'+lbl+'</text>';
+        s += '</g>';
+      });
+      s += '</svg>';
+      return s;
+    }
+
+    function buildTooltip(nid) {
+      var nd = PN[nid]; if (!nd) return '';
+      var st = getState(nid), pts2 = pan.invested[nid]||0;
+      var can = pan.canLearn(nid);
+      var stColor = st==='learned'?'#60e060':st==='available'?'#f0c840':'#808080';
+      var stLabel = st==='learned'?'✅ Acquis':st==='available'?'🟡 Disponible':'🔒 Verrouillé';
+      var prereqHtml = '';
+      if (nd.requires && nd.requires.length) {
+        prereqHtml = '<div class="dt-tt-lock" style="font-size:11px">🔗 '
+          + nd.requires.map(function(r){ var ok=(pan.invested[r]||0)>0; var rn=PN[r]; return '<span style="color:'+(ok?'#60e080':'#e06060')+'">'+(rn?rn.name:r)+'</span>'; }).join(', ')
+          + '</div>';
+      }
+      var buyDisabled = (st==='learned' && !nd.uncapped) || !can.ok;
+      var buyLabel = nd.uncapped ? '✨ Acheter encore (×'+(pts2+1)+') — '+nd.cost+' Éther'
+                  : st==='learned' ? '✅ Déjà acquis'
+                  : can.ok ? '✨ Apprendre — '+nd.cost+' Éther'
+                  : '🔒 '+(can.reason||'Indisponible');
+      return '<div class="dt-tt-icon">'+nd.icon+'</div>'
+        + '<div class="dt-tt-name">'+nd.name+'</div>'
+        + '<div class="dt-tt-state" style="color:'+stColor+'">'+stLabel+'</div>'
+        + '<div class="dt-tt-desc">'+nd.desc+'</div>'
+        + '<div class="dt-tt-cost" style="font-size:11px">Coût : '+nd.cost+' ✨ Éther'+(nd.uncapped?' · ∞':''+(pts2>0?' · ×'+pts2:''))+'</div>'
+        + prereqHtml
+        + (st==='available' ? '<button data-learn="'+nid+'" class="dt-tt-buy"'+(buyDisabled?' disabled':'')+'>'+buyLabel+'</button>' : '');
+    }
+
+    var drachmes = self.rm ? Math.floor(self.rm.get('drachmes')) : 0;
+    var fmt = function(v){ return v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3?(v/1e3).toFixed(1)+'k':''+v; };
+    el.innerHTML =
+      '<div class="dt-drachmes-count">✨ '+fmt(self.rm ? Math.floor(self.rm.get('ether')) : 0)+' Éther disponible</div>'
+      + '<div id="dt-scroll-wrap"><div style="min-width:'+VW+'px">'+buildSVG()+'</div></div>'
+      + '<div id="dt-tooltip" class="dt-branch-tt" style="display:none"></div>';
+
+    var ttBox = document.getElementById('dt-tooltip');
+    var ttPinned = false;
+    var curNode = self._panBranchSel || null;
+    if (curNode) { ttBox.innerHTML = buildTooltip(curNode); ttBox.style.display = 'block'; ttPinned = true; }
+
+    function bindNodes() {
+      el.querySelectorAll('.pb-node').forEach(function(g) {
+        g.addEventListener('mouseenter', function() {
+          if (ttPinned) return;
+          ttBox.innerHTML = buildTooltip(g.dataset.nid);
+          ttBox.style.display = 'block';
+        });
+        g.addEventListener('mouseleave', function() {
+          if (ttPinned) return;
+          setTimeout(function(){ if (!ttBox.matches(':hover')) ttBox.style.display='none'; }, 120);
+        });
+        g.addEventListener('click', function(e) {
+          e.stopPropagation();
+          self._panBranchSel = g.dataset.nid;
+          ttPinned = true;
+          ttBox.innerHTML = buildTooltip(g.dataset.nid);
+          ttBox.style.display = 'block';
+          var sw = document.getElementById('dt-scroll-wrap');
+          if (sw) { sw.innerHTML='<div style="min-width:'+VW+'px">'+buildSVG()+'</div>'; bindNodes(); }
+        });
+      });
+    }
+    bindNodes();
+
+    document.addEventListener('click', function unpin(e) {
+      if (!ttBox.contains(e.target) && !e.target.closest('.pb-node')) {
+        ttPinned=false; ttBox.style.display='none'; self._panBranchSel=null;
+      }
+    });
+
+    ttBox.addEventListener('click', function(e) {
+      var btn = e.target.closest('[data-learn]'); if (!btn) return;
+      e.stopPropagation();
+      if (!pan.learn(btn.dataset.learn)) return;
+      var sw = document.getElementById('dt-scroll-wrap');
+      if (sw) { sw.innerHTML='<div style="min-width:'+VW+'px">'+buildSVG()+'</div>'; bindNodes(); }
+      if (self._panBranchSel) { ttBox.innerHTML=buildTooltip(self._panBranchSel); ttBox.style.display='block'; }
+      var hdr = el.querySelector('.dt-drachmes-count');
+      if (hdr) hdr.textContent='✨ '+fmt(self.rm?Math.floor(self.rm.get('ether')):0)+' Éther disponible';
+    });
+  }
+
+    _renderEtherTree(el) {
     var self = this;
     var etherOwned = self.rm ? Math.floor(self.rm.get('ether')) : 0;
 
@@ -1365,12 +1597,12 @@ class BuildingPanel {
     ], cell));
   }
 
-  _renderEmptyUI(cell, body) {
+  _renderEmptyUI(cell, body, isNewCell) {
     var self = this;
     body.innerHTML = '';
     body.onclick = null;
     // Build Bar handles empty cells — just bind cell to it
-    if (self._buildBar) self._buildBar.setCell(cell);
+    if (self._buildBar) self._buildBar.setCell(cell, isNewCell !== false);
   }
 
 
@@ -1941,7 +2173,7 @@ class BuildingPanel {
   }
 
 
-_renderPantheonTab(el) {
+  _renderPantheonTab(el) {
     var self = this;
     var pan  = this.pan;
     if (!pan) {
@@ -1949,7 +2181,7 @@ _renderPantheonTab(el) {
       return;
     }
 
-    var PN = (typeof PANTHEON_NODES !== 'undefined') ? PANTHEON_NODES : {};
+    var PN = (typeof PANTHEON_NODES !== 'undefined') ? PANTHEON_NODES : (window.PANTHEON_NODES || {});
     var etherOwned = self.rm ? Math.floor(self.rm.get('ether')) : 0;
     var fmtE = function(v){ return v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e4?(v/1e3).toFixed(1)+'k':String(Math.floor(v)); };
     var selNode = el._panSelNode || null;
@@ -1959,420 +2191,370 @@ _renderPantheonTab(el) {
       return parseInt(hex.slice(1,3),16)+','+parseInt(hex.slice(3,5),16)+','+parseInt(hex.slice(5,7),16);
     }
 
-    // ── BRANCH DEFINITIONS (equal 45° spacing → zero overlaps) ───────────────
-    // Original PantheonManager angles are NOT equal — we remap them here for layout only
-    var BRANCH_LAYOUT_ANGLES = {
-      'zeus':           0,    // right
-      'demeter':        45,   // upper-right
-      'cartographie':   90,   // up
-      'aphrodite':      135,  // upper-left
-      'artemis':        180,  // left
-      'hades':          225,  // lower-left
-      'prestige_codex': 270,  // down
-      'hephaïstos':     315,  // lower-right
-    };
-
-    // Branch-specific edge style (for lightning types)
-    var BRANCH_EDGE_STYLE = {
-      'zeus':           'lightning',   // zigzag électrique
-      'demeter':        'vine',        // courbe organique
-      'cartographie':   'dashed',      // pointillés route
-      'aphrodite':      'wavy',        // ondulé
-      'artemis':        'arrow',       // droit avec flèches
-      'hades':          'jagged',      // dentelé sombre
-      'prestige_codex': 'ornate',      // décoratif
-      'hephaïstos':     'chain',       // chaîne forgée
-    };
-
-    var branches = pan.getAllBranches();
+    // ── 6 branches divines seulement (cartographie et héritage → Drachmes) ──
+    var BRANCHES = [
+      { id:'zeus',       label:'Zeus',       icon:'⚡', color:'#ffd54f', angle:0   },
+      { id:'demeter',    label:'Déméter',    icon:'🌾', color:'#8bc34a', angle:60  },
+      { id:'aphrodite',  label:'Aphrodite',  icon:'💫', color:'#f48fb1', angle:120 },
+      { id:'artemis',    label:'Artémis',    icon:'🌙', color:'#4fc3f7', angle:180 },
+      { id:'hades',      label:'Hadès',      icon:'💀', color:'#9575cd', angle:240 },
+      { id:'hephaïstos', label:'Héphaïstos', icon:'🔨', color:'#ff7043', angle:300 },
+    ];
     var branchMap = {};
-    branches.forEach(function(b){ branchMap[b.id]=b; });
+    BRANCHES.forEach(function(b){ branchMap[b.id]=b; });
 
-    // ── Layout constants ─────────────────────────────────────────────────────
-    var CX=800, CY=540;
-    var RING_START=220, RING_STEP=75, SLOT_STEP=58;
-    var NODE_R=22;
-    var N_SLOTS={1:3,2:4,3:5};
-    var W=1600, H=1080;
+    // ── Canvas dimensions ────────────────────────────────────────────────────
+    var W=1600, H=1000;
+    var CX=800, CY=500;
+    // Ellipse stretch: radial distances are multiplied by these per-axis
+    var EX=1.40, EY=0.78; // wider than tall
+    // Ring radii (before ellipse stretch)
+    var R1=190, R2=310, R3=420;
+    var RING_RADII = [0, R1, R2, R3];
+    var NODE_R = 26; // hex radius
+    var SLOTS = { 1:5, 2:5, 3:5 }; // nodes per ring per branch
 
-    function nodePos(branchId, ring, slot) {
-      var angleDeg = BRANCH_LAYOUT_ANGLES[branchId]||0;
-      var angle    = angleDeg * Math.PI/180;
-      var r   = RING_START + (ring-1)*RING_STEP;
-      var ns  = N_SLOTS[ring]||5;
-      var rux = Math.cos(angle), ruy = Math.sin(angle);
-      var pux = -ruy,            puy =  rux;
-      var lat = (slot-(ns-1)/2)*SLOT_STEP;
-      return { x: CX + rux*r + pux*lat, y: CY + ruy*r + puy*lat };
+    // ── Ellipse-mapped position for a node ───────────────────────────────────
+    function nodePos(angleDeg, ring, slot) {
+      var r = RING_RADII[ring] || R1;
+      // Slot offset: spread nodes across ±22° around branch angle
+      var slotCount = SLOTS[ring] || 3;
+      var spread = 22;
+      var slotAngle = angleDeg + (slot - (slotCount-1)/2) * (spread*2/(slotCount-1||1));
+      var rad = slotAngle * Math.PI / 180;
+      return {
+        x: CX + Math.cos(rad) * r * EX,
+        y: CY + Math.sin(rad) * r * EY
+      };
     }
 
-    // Precompute all node positions keyed by node ID (match to slot via sorted order)
-    var nodePositions = {};
+    // ── Gather nodes by branch ───────────────────────────────────────────────
+    var nodesByBranch = {};
+    BRANCHES.forEach(function(b){ nodesByBranch[b.id] = {1:[],2:[],3:[]}; });
     Object.keys(PN).forEach(function(nid) {
       var nd = PN[nid];
-      if (!BRANCH_LAYOUT_ANGLES.hasOwnProperty(nd.branch)) return;
-      var bNodes = Object.keys(PN)
-        .filter(function(k){ return PN[k].branch===nd.branch && PN[k].ring===nd.ring; })
-        .sort(function(a,b2){ return PN[a].slot-PN[b2].slot; });
-      var si = bNodes.indexOf(nid);
-      if (si<0) si=nd.slot;
-      nodePositions[nid] = nodePos(nd.branch, nd.ring, si);
+      if (!nd) return;
+      if (!nodesByBranch[nd.branch]) return; // skip cartographie/héritage
+      var ring = nd.ring || 1;
+      if (!nodesByBranch[nd.branch][ring]) nodesByBranch[nd.branch][ring] = [];
+      nodesByBranch[nd.branch][ring].push(nid);
     });
 
-    // ── DOM Setup ─────────────────────────────────────────────────────────────
+    // ── Compute node positions ───────────────────────────────────────────────
+    var nodePositions = {}; // nid → {x, y}
+    BRANCHES.forEach(function(b) {
+      [1,2,3].forEach(function(ring) {
+        var nodes = nodesByBranch[b.id][ring] || [];
+        nodes.forEach(function(nid, si) {
+          nodePositions[nid] = nodePos(b.angle, ring, si);
+        });
+      });
+    });
+
+    // ── Edge style per branch ────────────────────────────────────────────────
+    function makeEdge(nid1, nid2, branchId, state1, state2) {
+      var p1 = nodePositions[nid1], p2 = nodePositions[nid2];
+      if (!p1 || !p2) return '';
+      var b = branchMap[branchId] || { color:'#888' };
+      var active = (state1==='learned' && state2==='learned');
+      var halfway = (state1==='learned' && state2!=='learned');
+      var opacity = active?'0.9':halfway?'0.45':'0.18';
+      var x1=p1.x, y1=p1.y, x2=p2.x, y2=p2.y;
+      var dx=x2-x1, dy=y2-y1;
+      var col = active ? b.color : halfway ? b.color : 'rgba(120,120,140,1)';
+      var sw = active?2.8:halfway?1.8:1.2;
+
+      // Branch-specific style
+      if (branchId==='zeus') {
+        // Pure jagged lightning
+        var pts=[[x1,y1]], n=8;
+        var rng=function(s){return(Math.sin(s*127.1+3.7)*0.5+0.5)*2-1;};
+        var nx=-dy/Math.hypot(dx,dy), ny=dx/Math.hypot(dx,dy);
+        for(var i=1;i<n;i++){
+          var t=i/n, amp=(i%2===0?14:-14)*(0.5+Math.abs(rng(i)));
+          pts.push([x1+t*dx+amp*nx, y1+t*dy+amp*ny]);
+        }
+        pts.push([x2,y2]);
+        var d='M'+pts.map(function(p){return p[0].toFixed(1)+','+p[1].toFixed(1);}).join('L');
+        return '<path d="'+d+'" fill="none" stroke="'+col+'" stroke-width="'+sw+'" opacity="'+opacity+'" stroke-linecap="round"/>';
+      }
+      if (branchId==='demeter') {
+        // Organic vine — cubic bezier with branch points
+        var len=Math.hypot(dx,dy);
+        var nx2=-dy/len, ny2=dx/len;
+        var cp1x=x1+dx*0.3+nx2*28, cp1y=y1+dy*0.3+ny2*28;
+        var cp2x=x1+dx*0.7-nx2*28, cp2y=y1+dy*0.7-ny2*28;
+        var main='M'+x1.toFixed(1)+','+y1.toFixed(1)+' C'+cp1x.toFixed(1)+','+cp1y.toFixed(1)+' '+cp2x.toFixed(1)+','+cp2y.toFixed(1)+' '+x2.toFixed(1)+','+y2.toFixed(1);
+        // Second thinner brin
+        var cp3x=x1+dx*0.35+nx2*14, cp3y=y1+dy*0.35+ny2*14;
+        var cp4x=x1+dx*0.65-nx2*14, cp4y=y1+dy*0.65-ny2*14;
+        var brin2='M'+(x1+nx2*10).toFixed(1)+','+(y1+ny2*10).toFixed(1)+' C'+cp3x.toFixed(1)+','+cp3y.toFixed(1)+' '+cp4x.toFixed(1)+','+cp4y.toFixed(1)+' '+(x2+nx2*10).toFixed(1)+','+(y2+ny2*10).toFixed(1);
+        return '<path d="'+main+'" fill="none" stroke="'+col+'" stroke-width="'+(sw*1.2)+'" opacity="'+opacity+'"/>'
+             + '<path d="'+brin2+'" fill="none" stroke="'+col+'" stroke-width="'+(sw*0.6)+'" opacity="'+(parseFloat(opacity)*0.6)+'" />';
+      }
+      if (branchId==='hephaïstos') {
+        // Chains — thick segments with gaps
+        return '<path d="M'+x1.toFixed(1)+','+y1.toFixed(1)+'L'+x2.toFixed(1)+','+y2.toFixed(1)+'" fill="none" stroke="'+col+'" stroke-width="'+(sw*1.3)+'" opacity="'+opacity+'" stroke-dasharray="10,6" stroke-linecap="round"/>';
+      }
+      if (branchId==='aphrodite') {
+        // Silk ribbons — sinusoid
+        var len2=Math.hypot(dx,dy), nx3=-dy/len2, ny3=dx/len2;
+        var Nw=12, pts2=[[x1,y1]];
+        for(var iw=0;iw<Nw;iw++){
+          var tw=(iw+1)/(Nw+1), ww=Math.sin(tw*Math.PI*3)*18;
+          pts2.push([x1+tw*dx+ww*nx3, y1+tw*dy+ww*ny3]);
+        }
+        pts2.push([x2,y2]);
+        var d2='M'+pts2.map(function(p){return p[0].toFixed(1)+','+p[1].toFixed(1);}).join('L');
+        return '<path d="'+d2+'" fill="none" stroke="'+col+'" stroke-width="'+sw+'" opacity="'+opacity+'" stroke-linecap="round"/>'
+             + '<path d="'+d2+'" fill="none" stroke="'+col+'" stroke-width="'+(sw*0.4)+'" opacity="0.5" stroke-dasharray="none"/>';
+      }
+      if (branchId==='hades') {
+        // Dark veins — irregular with random drift
+        var len3=Math.hypot(dx,dy), nx4=-dy/len3, ny4=dx/len3;
+        var rng2=function(s){return Math.sin(s*231.7+5.1)*0.5;};
+        var pts3=[[x1,y1]], n3=10;
+        for(var ij=1;ij<n3;ij++){
+          var tj=ij/n3, jj=(ij%2===0?1:-1)*(8+Math.abs(rng2(ij))*14);
+          pts3.push([x1+tj*dx+jj*nx4, y1+tj*dy+jj*ny4]);
+        }
+        pts3.push([x2,y2]);
+        var d3='M'+pts3.map(function(p){return p[0].toFixed(1)+','+p[1].toFixed(1);}).join('L');
+        return '<path d="'+d3+'" fill="none" stroke="'+col+'" stroke-width="'+sw+'" opacity="'+opacity+'"/>';
+      }
+      if (branchId==='artemis') {
+        // Straight spectral arrows
+        return '<path d="M'+x1.toFixed(1)+','+y1.toFixed(1)+'L'+x2.toFixed(1)+','+y2.toFixed(1)+'" fill="none" stroke="'+col+'" stroke-width="'+sw+'" opacity="'+opacity+'" stroke-dasharray="12,5" stroke-linecap="butt"/>';
+      }
+      // Default
+      return '<path d="M'+x1.toFixed(1)+','+y1.toFixed(1)+'L'+x2.toFixed(1)+','+y2.toFixed(1)+'" fill="none" stroke="'+col+'" stroke-width="'+sw+'" opacity="'+opacity+'"/>';
+    }
+
+    // ── Build SVG ────────────────────────────────────────────────────────────
+    function buildSVG() {
+      var s = '<svg id="pnt-svg" xmlns="http://www.w3.org/2000/svg"'
+            + ' viewBox="0 0 '+W+' '+H+'"'
+            + ' style="width:100%;height:100%;display:block;cursor:grab;user-select:none">';
+
+      // Filters
+      s += '<defs>'
+         + '<filter id="glow-s" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
+         + '<filter id="glow-m" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="9" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
+         + '<filter id="glow-l" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="18" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
+         + '<radialGradient id="bg-grad" cx="50%" cy="50%" r="60%">'
+         +   '<stop offset="0%" stop-color="#100824"/>'
+         +   '<stop offset="100%" stop-color="#04020e"/>'
+         + '</radialGradient>'
+         + '</defs>';
+
+      // Background
+      s += '<rect width="'+W+'" height="'+H+'" fill="url(#bg-grad)"/>';
+
+      // Subtle star field
+      var STARS=[[120,80],[350,40],[650,90],[950,30],[1280,65],[1480,110],[80,200],[1550,300],[70,450],[1520,500],[90,750],[300,940],[700,970],[1100,960],[1450,880],[1530,700],[200,880],[450,20],[1200,80],[900,950]];
+      STARS.forEach(function(st){
+        var r=0.5+((st[0]*13+st[1]*7)%10)*0.15;
+        s+='<circle cx="'+st[0]+'" cy="'+st[1]+'" r="'+r.toFixed(1)+'" fill="rgba(255,255,255,'+(0.15+r*0.1)+')" />';
+      });
+
+      // Ellipse guide rings (subtle)
+      [R1,R2,R3].forEach(function(r){
+        s+='<ellipse cx="'+CX+'" cy="'+CY+'" rx="'+(r*EX).toFixed(0)+'" ry="'+(r*EY).toFixed(0)+'"'
+          +' fill="none" stroke="rgba(200,149,26,0.07)" stroke-width="1" stroke-dasharray="4,8"/>';
+      });
+
+      // Sector dividers (faint lines from center to edge)
+      BRANCHES.forEach(function(b){
+        var rad=b.angle*Math.PI/180;
+        var ex=CX+Math.cos(rad)*(R3+60)*EX, ey=CY+Math.sin(rad)*(R3+60)*EY;
+        var rgb=hexToRgb(b.color);
+        s+='<line x1="'+CX+'" y1="'+CY+'" x2="'+ex.toFixed(1)+'" y2="'+ey.toFixed(1)+'"'
+          +' stroke="rgba('+rgb+',0.09)" stroke-width="1" stroke-dasharray="6,10"/>';
+      });
+
+      // Center node
+      s+='<circle cx="'+CX+'" cy="'+CY+'" r="38" fill="rgba(30,20,60,0.95)" stroke="rgba(200,180,80,0.8)" stroke-width="2.5" filter="url(#glow-m)"/>';
+      s+='<text x="'+CX+'" y="'+(CY+9)+'" text-anchor="middle" font-size="30">⚡</text>';
+
+      // ── Edges ──────────────────────────────────────────────────────────────
+      BRANCHES.forEach(function(b) {
+        var nodes = nodesByBranch[b.id];
+        var rad = b.angle * Math.PI / 180;
+
+        // Center → ring1 nodes (direct from center edge)
+        (nodes[1]||[]).forEach(function(nid) {
+          var pos = nodePositions[nid];
+          if (!pos) return;
+          var st = pan.getNodeState(nid);
+          // Start from center circle edge
+          var ex = CX + Math.cos(rad) * 38;
+          var ey = CY + Math.sin(rad) * 38;
+          s += makeEdgeDirect(ex, ey, pos.x, pos.y, b.id, 'available', st);
+        });
+
+        // ring1 → ring2 (via requires)
+        (nodes[2]||[]).forEach(function(nid) {
+          var nd = PN[nid]; if (!nd || !nd.requires) return;
+          nd.requires.forEach(function(req) {
+            var pa = nodePositions[req], pb = nodePositions[nid];
+            if (!pa || !pb) return;
+            s += makeEdgeDirect(pa.x, pa.y, pb.x, pb.y, b.id,
+              pan.getNodeState(req), pan.getNodeState(nid));
+          });
+        });
+
+        // ring2 → ring3 (via requires)
+        (nodes[3]||[]).forEach(function(nid) {
+          var nd = PN[nid]; if (!nd || !nd.requires) return;
+          nd.requires.forEach(function(req) {
+            var pa = nodePositions[req], pb = nodePositions[nid];
+            if (!pa || !pb) return;
+            s += makeEdgeDirect(pa.x, pa.y, pb.x, pb.y, b.id,
+              pan.getNodeState(req), pan.getNodeState(nid));
+          });
+        });
+      });
+
+      // ── Nodes ──────────────────────────────────────────────────────────────
+      Object.keys(nodePositions).forEach(function(nid) {
+        var nd = PN[nid];
+        if (!nd) return;
+        var b = branchMap[nd.branch];
+        if (!b) return;
+        var pos = nodePositions[nid];
+        var state = pan.getNodeState(nid);
+        var pts2 = pan.invested[nid] || 0;
+        var bc = b.color;
+        var rgb = hexToRgb(bc);
+        var isSelected = (selNode === nid);
+        var isLearned = (state === 'learned');
+        var isAvailable = (state === 'available');
+
+        // Hex path
+        function hexP(cx, cy, r) {
+          var pts=[];
+          for(var i=0;i<6;i++){
+            var a=Math.PI/3*i-Math.PI/6;
+            pts.push((cx+r*Math.cos(a)).toFixed(1)+','+(cy+r*Math.sin(a)).toFixed(1));
+          }
+          return 'M'+pts.join('L')+'Z';
+        }
+
+        var outer = hexP(pos.x, pos.y, NODE_R+6);
+        var inner = hexP(pos.x, pos.y, NODE_R);
+
+        s += '<g data-nid="'+nid+'" style="cursor:pointer">';
+
+        if (isSelected) {
+          // Pulsing selection ring
+          s += '<path d="'+hexP(pos.x,pos.y,NODE_R+14)+'" fill="rgba('+rgb+',0.15)" stroke="'+bc+'" stroke-width="2.5" filter="url(#glow-m)"/>';
+        }
+        if (isLearned) {
+          // Glow halo
+          s += '<path d="'+outer+'" fill="rgba('+rgb+',0.25)" stroke="none" filter="url(#glow-m)"/>';
+        }
+        if (isAvailable && !isLearned) {
+          s += '<path d="'+outer+'" fill="rgba('+rgb+',0.06)" stroke="none" filter="url(#glow-s)"/>';
+        }
+
+        // Main hex fill
+        var fillCol = isLearned   ? 'rgba('+rgb+',0.35)'
+                    : isAvailable ? 'rgba(20,15,40,0.95)'
+                    :               'rgba(8,6,18,0.95)';
+        var strokeCol = isLearned   ? bc
+                      : isAvailable ? 'rgba(200,170,80,0.7)'
+                      :               'rgba(80,80,100,0.3)';
+        var strokeW = isLearned?2.5:isAvailable?2:1.2;
+
+        s += '<path d="'+inner+'" fill="'+fillCol+'" stroke="'+strokeCol+'" stroke-width="'+strokeW+'"/>';
+
+        // Check mark for learned
+        if (isLearned) {
+          s += '<text x="'+pos.x+'" y="'+(pos.y-NODE_R*0.55).toFixed(1)+'" text-anchor="middle" font-size="10" fill="rgba(220,220,80,0.8)">✓</text>';
+        }
+        // Uncapped level badge
+        if (nd.uncapped && pts2>1) {
+          s += '<text x="'+(pos.x+NODE_R*0.7).toFixed(1)+'" y="'+(pos.y-NODE_R*0.6).toFixed(1)+'" text-anchor="middle" font-size="9" fill="#ffd54f" font-family="Cinzel,serif">×'+pts2+'</text>';
+        }
+        // Icon
+        s += '<text x="'+pos.x.toFixed(1)+'" y="'+(pos.y+9).toFixed(1)+'" text-anchor="middle" dominant-baseline="middle" font-size="'+( isLearned?24:22)+'">'+nd.icon+'</text>';
+        // Name label below
+        var lbl = nd.name||nid; if(lbl.length>12) lbl=lbl.slice(0,11)+'…';
+        var labelFill = isLearned?'#f0e080':isAvailable?'rgba(220,200,150,0.85)':'rgba(120,110,100,0.5)';
+        s += '<text x="'+pos.x.toFixed(1)+'" y="'+(pos.y+NODE_R+13).toFixed(1)+'" text-anchor="middle" font-family="Cinzel,serif" font-size="9.5" fill="'+labelFill+'">'+lbl+'</text>';
+
+        s += '</g>';
+      });
+
+      // ── Branch god labels ─────────────────────────────────────────────────
+      BRANCHES.forEach(function(b) {
+        var rad=b.angle*Math.PI/180;
+        var lx = CX + Math.cos(rad)*(R3+72)*EX;
+        var ly = CY + Math.sin(rad)*(R3+72)*EY;
+        var rgb = hexToRgb(b.color);
+        var unlocked = pan.isBranchUnlocked ? pan.isBranchUnlocked(b.id) : true;
+        var col = unlocked ? b.color : 'rgba(80,75,90,1)';
+
+        if (unlocked) {
+          // Pill background
+          s += '<rect x="'+(lx-40).toFixed(1)+'" y="'+(ly-18).toFixed(1)+'" width="80" height="28" rx="14"'
+             + ' fill="rgba('+rgb+',0.18)" stroke="rgba('+rgb+',0.65)" stroke-width="1.5"/>';
+        }
+        // God icon above pill
+        s += '<text x="'+lx.toFixed(1)+'" y="'+(ly-24).toFixed(1)+'" text-anchor="middle" font-size="18" opacity="'+(unlocked?'1':'0.3')+'">'+b.icon+'</text>';
+        // God name
+        s += '<text x="'+lx.toFixed(1)+'" y="'+(ly-1).toFixed(1)+'" text-anchor="middle"'
+           + ' font-family="Cinzel,serif" font-size="'+(unlocked?'14':'11')+'" font-weight="900"'
+           + ' fill="'+col+'" opacity="'+(unlocked?'1':'0.35')+'">'+b.label+'</text>';
+      });
+
+      s += '</svg>';
+      return s;
+    }
+
+    // Helper: direct edge between two absolute positions
+    function makeEdgeDirect(x1,y1,x2,y2,branchId,st1,st2) {
+      var b=branchMap[branchId]||{color:'#888'};
+      var active=(st1==='learned'&&st2==='learned');
+      var half=(st1==='learned'&&st2!=='learned');
+      var op=active?'0.85':half?'0.4':'0.16';
+      var col=active?b.color:half?b.color:'rgba(100,100,120,1)';
+      var sw=active?2.5:half?1.5:1;
+      return '<path d="M'+x1.toFixed(1)+','+y1.toFixed(1)+'L'+x2.toFixed(1)+','+y2.toFixed(1)+'" fill="none" stroke="'+col+'" stroke-width="'+sw+'" opacity="'+op+'"/>';
+    }
+
+    // ── DOM Setup ────────────────────────────────────────────────────────────
     el.innerHTML = '<div class="pnt-wrap" id="pnt-wrap"></div>';
     var wrap = el.querySelector('#pnt-wrap');
     wrap.innerHTML =
-      '<div class="pnt-header">' +
-        '<span class="pnt-title">⚡ Panthéon des Dieux</span>' +
-        '<span class="pnt-ether" id="pnt-ether">✨ ' + fmtE(etherOwned) + ' Éther</span>' +
-      '</div>' +
-      '<div class="pnt-main">' +
-        '<div class="pnt-canvas-box" id="pnt-canvas-box"></div>' +
-        '<div class="pnt-side" id="pnt-side"><div class="pnt-hint">← Clique sur un talent</div></div>' +
-      '</div>';
+      '<div class="pnt-header">'
+      + '<span class="pnt-title">⚡ Panthéon des Dieux</span>'
+      + '<span class="pnt-ether" id="pnt-ether">✨ '+fmtE(etherOwned)+' Éther</span>'
+      + '</div>'
+      + '<div class="pnt-body">'
+      +   '<div class="pnt-canvas-box" id="pnt-canvas-box"></div>'
+      +   '<div class="pnt-side" id="pnt-side"><div class="pnt-hint">← Clique sur un talent</div></div>'
+      + '</div>';
 
     var canvasBox = wrap.querySelector('#pnt-canvas-box');
     var sideEl    = wrap.querySelector('#pnt-side');
 
-    // ── Hex path ─────────────────────────────────────────────────────────────
-    function hexPath(cx, cy, r) {
-      var pts=[];
-      for(var i=0;i<6;i++){var a=Math.PI/180*(60*i-30);pts.push((cx+r*Math.cos(a)).toFixed(1)+','+(cy+r*Math.sin(a)).toFixed(1));}
-      return 'M'+pts.join('L')+'Z';
-    }
-
-    // ── Lightning path (deterministic pseudo-random) ──────────────────────────
-    // makePath: returns {d, strokeW, strokeDash, color} for an edge
-    function makePath(x1, y1, x2, y2, style, seed, branchColor) {
-      var dx=x2-x1, dy=y2-y1, L=Math.sqrt(dx*dx+dy*dy);
-      if (L<1) return {d:'M'+x1+','+y1, strokeW:1.5, strokeDash:'none', color:branchColor||'#888'};
-      var nx=-dy/L, ny=dx/L;
-      var s=seed|0;
-      function rnd(){ s=(s*1664525+1013904223)&0xFFFFFFFF; return (s>>>0)/4294967296; }
-      function pts2path(arr){ return 'M'+arr.map(function(p){return p[0].toFixed(1)+','+p[1].toFixed(1);}).join('L'); }
-
-      if (style==='lightning') {
-        // Zeus — éclairs crépitants, multiples segments agressifs
-        var N=10; var pts=[[x1,y1]];
-        for(var i=1;i<N;i++){
-          var t=i/N, j=(rnd()-0.5)*2*28*(1-Math.pow(Math.abs(t-0.5)*1.8,2));
-          pts.push([x1+t*dx+j*nx, y1+t*dy+j*ny]);
-        }
-        pts.push([x2,y2]);
-        return {d:pts2path(pts), strokeW:2.2, strokeDash:'none', color:'#ffe066'};
-      }
-
-      if (style==='vine') {
-        // Déméter — racines tortueuses, plusieurs brins emmêlés vert émeraude
-        // Brin principal: courbe cubique avec forte déviation
-        var cp1x=x1+dx*0.3+(rnd()-0.5)*44, cp1y=y1+dy*0.3+(rnd()-0.5)*44;
-        var cp2x=x1+dx*0.7+(rnd()-0.5)*38, cp2y=y1+dy*0.7+(rnd()-0.5)*38;
-        var main='M'+x1.toFixed(1)+','+y1.toFixed(1)
-            +' C'+cp1x.toFixed(1)+','+cp1y.toFixed(1)
-            +' '+cp2x.toFixed(1)+','+cp2y.toFixed(1)
-            +' '+x2.toFixed(1)+','+y2.toFixed(1);
-        // Second brin décalé
-        var cp3x=x1+dx*0.35+(rnd()-0.5)*30+10, cp3y=y1+dy*0.35+(rnd()-0.5)*30+10;
-        var cp4x=x1+dx*0.65+(rnd()-0.5)*22-10, cp4y=y1+dy*0.65+(rnd()-0.5)*22-10;
-        var brin2='M'+(x1+nx*6).toFixed(1)+','+(y1+ny*6).toFixed(1)
-            +' C'+cp3x.toFixed(1)+','+cp3y.toFixed(1)
-            +' '+cp4x.toFixed(1)+','+cp4y.toFixed(1)
-            +' '+(x2+nx*6).toFixed(1)+','+(y2+ny*6).toFixed(1);
-        // Return combined path
-        return {d:main+' '+brin2, strokeW:1.8, strokeDash:'none', color:'#2de05a'};
-      }
-
-      if (style==='chain') {
-        // Héphaïstos — chaînes incandescentes, maillons en tirets épais
-        // Double path: chain links as thick dashes + thin inner
-        var pts=[[x1,y1]];
-        var Nc=10;
-        for(var ic=1;ic<Nc;ic++){
-          var tc=ic/Nc, jc=(ic%2===0?8:-8)*(0.7+rnd()*0.6);
-          pts.push([x1+tc*dx+jc*nx, y1+tc*dy+jc*ny]);
-        }
-        pts.push([x2,y2]);
-        return {d:pts2path(pts), strokeW:3.0, strokeDash:'8,5', color:'#ff7030'};
-      }
-
-      if (style==='wavy') {
-        // Aphrodite — rubans de soie chatoyants, multiple brins rose poudré
-        var Nw=12; var ampW=20;
-        var pts1=[[x1,y1]], pts2b=[[x1+nx*8,y1+ny*8]], pts3b=[[x1-nx*8,y1-ny*8]];
-        for(var iw=1;iw<Nw;iw++){
-          var tw=iw/Nw;
-          var ww=Math.sin(tw*Math.PI*4)*ampW;
-          pts1.push([x1+tw*dx+ww*nx, y1+tw*dy+ww*ny]);
-          pts2b.push([x1+tw*dx+(ww+10)*nx, y1+tw*dy+(ww+10)*ny]);
-          pts3b.push([x1+tw*dx+(ww-10)*nx, y1+tw*dy+(ww-10)*ny]);
-        }
-        pts1.push([x2,y2]); pts2b.push([x2+nx*8,y2+ny*8]); pts3b.push([x2-nx*8,y2-ny*8]);
-        var d=pts2path(pts1)+' '+pts2path(pts2b)+' '+pts2path(pts3b);
-        return {d:d, strokeW:1.5, strokeDash:'none', color:'#ffb0d8'};
-      }
-
-      if (style==='jagged') {
-        // Hadès — veines sombres de saphir et d'ombre violette
-        var Nj=11; var pts=[[x1,y1]];
-        for(var ij=1;ij<Nj;ij++){
-          var tj=ij/Nj;
-          var jj=(ij%2===0?1:-1)*(6+rnd()*18);
-          var dr=(rnd()-0.5)*7; // aléatoire supplémentaire
-          pts.push([x1+tj*dx+jj*nx+dr*ny, y1+tj*dy+jj*ny-dr*nx]);
-        }
-        pts.push([x2,y2]);
-        // Second vein slightly offset
-        var pts2v=[[x1+nx*5,y1+ny*5]];
-        for(var ij2=1;ij2<Nj;ij2++){
-          var tj2=ij2/Nj, jj2=(ij2%2===0?1:-1)*(4+rnd()*12);
-          pts2v.push([x1+tj2*dx+jj2*nx+5, y1+tj2*dy+jj2*ny+5]);
-        }
-        pts2v.push([x2+nx*5,y2+ny*5]);
-        return {d:pts2path(pts)+' '+pts2path(pts2v), strokeW:1.7, strokeDash:'none', color:'#8855ee'};
-      }
-
-      if (style==='arrow') {
-        // Artémis — flèches spectrales argentées, fines et droites
-        // Fine ligne + petits tirets espacés (évoque une flèche en vol)
-        return {d:'M'+x1.toFixed(1)+','+y1.toFixed(1)+'L'+x2.toFixed(1)+','+y2.toFixed(1),
-                strokeW:1.8, strokeDash:'10,5', color:'#d0e8ff'};
-      }
-
-      // Default wobble (cartographie, prestige_codex, ornate)
-      var N5=5; var pts5=[[x1,y1]];
-      for(var i5=1;i5<N5;i5++){var t5=i5/N5,j5=(rnd()-0.5)*10;pts5.push([x1+t5*dx+j5*nx,y1+t5*dy+j5*ny]);}
-      pts5.push([x2,y2]);
-      return {d:pts2path(pts5), strokeW:1.5, strokeDash:'none', color:branchColor||'#888'};
-    }
-
-    // ── Build SVG ─────────────────────────────────────────────────────────────
-    function buildSVG() {
-      var s = '';
-
-      // ── Defs ──────────────────────────────────────────────
-      s += '<defs>';
-      s += '<linearGradient id="pnt-bggrad" x1="0%" y1="0%" x2="100%" y2="100%">'
-         + '<stop offset="0%" stop-color="#12092a"/>'
-         + '<stop offset="50%" stop-color="#0b0618"/>'
-         + '<stop offset="100%" stop-color="#070412"/>'
-         + '</linearGradient>';
-      // Per-branch glow filter
-      branches.forEach(function(b) {
-        var fid = 'glow-'+b.id.replace(/[^a-z0-9]/g,'');
-        s += '<filter id="'+fid+'" x="-60%" y="-60%" width="220%" height="220%">'
-           + '<feGaussianBlur stdDeviation="4" result="blur"/>'
-           + '<feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>'
-           + '</filter>';
-      });
-      s += '<filter id="glow-sel" x="-80%" y="-80%" width="260%" height="260%">'
-         + '<feGaussianBlur stdDeviation="7" result="b"/>'
-         + '<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>'
-         + '</filter>';
-      s += '</defs>';
-
-      // Background
-      s += '<rect width="'+W+'" height="'+H+'" fill="url(#pnt-bggrad)"/>';
-
-      // Stars
-      for(var si=0;si<160;si++){
-        var sx=5+(si*137.5)%(W-10), sy=5+(si*73.1)%(H-10);
-        var sr=si%7===0?2:si%3===0?1.2:0.7, op=0.18+((si*47)%100)/320;
-        s+='<circle cx="'+sx.toFixed(1)+'" cy="'+sy.toFixed(1)+'" r="'+sr+'" fill="rgba(255,255,255,'+op.toFixed(2)+')" />';
-      }
-
-      // ── Branch sector backgrounds ────────────────────────────────────────
-      // For each branch: filled arc sector to delimit the zone
-      var SECTOR_R_INNER = 70;   // inner radius of sector
-      var SECTOR_R_OUTER = RING_START + 2*RING_STEP + NODE_R + 40; // ring3 + margin
-
-      branches.forEach(function(b) {
-        var unlocked = pan.isBranchUnlocked(b.id);
-        var angleDeg = BRANCH_LAYOUT_ANGLES[b.id];
-        if (angleDeg===undefined) return;
-        var bc  = b.color||'#888';
-        var rgb = hexToRgb(bc);
-        var sectorHalfAngle = (45/2) * Math.PI/180; // half of 45° sector
-        var a0 = angleDeg*Math.PI/180 - sectorHalfAngle;
-        var a1 = angleDeg*Math.PI/180 + sectorHalfAngle;
-
-        // Sector path: pie slice from inner to outer radius
-        var ix0=CX+Math.cos(a0)*SECTOR_R_INNER, iy0=CY+Math.sin(a0)*SECTOR_R_INNER;
-        var ix1=CX+Math.cos(a1)*SECTOR_R_INNER, iy1=CY+Math.sin(a1)*SECTOR_R_INNER;
-        var ox0=CX+Math.cos(a0)*SECTOR_R_OUTER, oy0=CY+Math.sin(a0)*SECTOR_R_OUTER;
-        var ox1=CX+Math.cos(a1)*SECTOR_R_OUTER, oy1=CY+Math.sin(a1)*SECTOR_R_OUTER;
-
-        var fillOp = unlocked ? '0.07' : '0.025';
-        var strokeOp= unlocked ? '0.30' : '0.10';
-        // Filled sector
-        s += '<path d="M'+ix0.toFixed(1)+','+iy0.toFixed(1)
-           + ' A'+SECTOR_R_INNER+','+SECTOR_R_INNER+' 0 0,1 '+ix1.toFixed(1)+','+iy1.toFixed(1)
-           + ' L'+ox1.toFixed(1)+','+oy1.toFixed(1)
-           + ' A'+SECTOR_R_OUTER+','+SECTOR_R_OUTER+' 0 0,0 '+ox0.toFixed(1)+','+oy0.toFixed(1)
-           + ' Z"'
-           + ' fill="rgba('+rgb+','+fillOp+')" stroke="rgba('+rgb+','+strokeOp+')" stroke-width="1"/>';
-
-        // Branch label at tip of sector — clean, no double-text artifact
-        var labelR = SECTOR_R_OUTER + 50;
-        var labelAngle = angleDeg*Math.PI/180;
-        var lx=CX+Math.cos(labelAngle)*labelR, ly=CY+Math.sin(labelAngle)*labelR;
-        var nameColor = unlocked ? bc : '#504858';
-        var rgb2 = hexToRgb(bc);
-
-        if (unlocked) {
-          // Unique filter per branch for glow — no blur bleed onto text
-          var glowId = 'glow-lbl-'+b.id.replace(/[^a-z0-9]/g,'');
-          // (filters already in defs — use branch glow filter)
-          // Aura pill: colored rectangle behind label only
-          var pillW=72, pillH=28;
-          s += '<rect x="'+(lx-pillW/2).toFixed(1)+'" y="'+(ly-20).toFixed(1)+'"'
-             + ' width="'+pillW+'" height="'+pillH+'" rx="14"'
-             + ' fill="rgba('+rgb2+',0.20)" stroke="rgba('+rgb2+',0.70)" stroke-width="1.5"/>';
-        }
-        // Icon (above pill)
-        s += '<text x="'+lx.toFixed(1)+'" y="'+(ly-26).toFixed(1)+'" text-anchor="middle"'
-           + ' font-size="18" opacity="'+(unlocked?'1':'0.35')+'">'+b.icon+'</text>';
-        // God name — single clean text, no blur layer
-        s += '<text x="'+lx.toFixed(1)+'" y="'+(ly-3).toFixed(1)+'" text-anchor="middle"'
-           + ' font-family="Cinzel,serif" font-size="'+(unlocked?'15':'12')+'" font-weight="900"'
-           + ' fill="'+nameColor+'" opacity="'+(unlocked?'1':'0.40')+'">'+b.label+'</text>';
-        // Sector divider lines
-        s += '<line x1="'+(CX+Math.cos(a0)*SECTOR_R_INNER).toFixed(1)+'" y1="'+(CY+Math.sin(a0)*SECTOR_R_INNER).toFixed(1)+'"'
-           + ' x2="'+(CX+Math.cos(a0)*SECTOR_R_OUTER).toFixed(1)+'" y2="'+(CY+Math.sin(a0)*SECTOR_R_OUTER).toFixed(1)+'"'
-           + ' stroke="rgba('+rgb+',0.20)" stroke-width="1" stroke-dasharray="4,5"/>';
-      });
-
-      // Ellipse transform group — all tree content stretched to ellipse shape
-      // SX=1.45 (wider), SY=0.82 (shorter) applied around center CX,CY
-      s += '<g transform="translate('+CX+','+CY+') scale(1.45,0.82) translate(-'+CX+',-'+CY+')">';
-
-      // Ring guide circles
-      [RING_START, RING_START+RING_STEP, RING_START+2*RING_STEP].forEach(function(r2) {
-        s += '<circle cx="'+CX+'" cy="'+CY+'" r="'+r2+'" fill="none" stroke="rgba(200,149,26,0.05)" stroke-width="1" stroke-dasharray="3,7"/>';
-      });
-
-      // Center node
-      s += '<circle cx="'+CX+'" cy="'+CY+'" r="32" fill="rgba(14,9,28,0.95)" stroke="rgba(240,200,64,0.85)" stroke-width="2.5"/>';
-      s += '<text x="'+CX+'" y="'+(CY+9)+'" text-anchor="middle" font-size="24" style="pointer-events:none">⚡</text>';
-
-      // ── Edges per branch ─────────────────────────────────────────────────
-      branches.forEach(function(b) {
-        var edgeStyle = BRANCH_EDGE_STYLE[b.id]||'default';
-        var bc  = b.color||'#888';
-        var unlocked = pan.isBranchUnlocked(b.id);
-        var edgeOp  = unlocked ? 0.70 : 0.18;
-        var edgeW   = unlocked ? 1.6  : 0.7;
-
-        var bNodes = Object.keys(PN)
-          .filter(function(k){ return PN[k].branch===b.id && nodePositions[k]; })
-          .sort(function(a2,b2){ var na=PN[a2],nb=PN[b2]; return na.ring!==nb.ring?na.ring-nb.ring:na.slot-nb.slot; });
-
-        var byRing = {1:[],2:[],3:[]};
-        bNodes.forEach(function(k){ (byRing[PN[k].ring]||[]).push(k); });
-
-        // Center → ring1: one edge per ring1 node
-        byRing[1].forEach(function(k,ki) {
-          var p=nodePositions[k];
-          var dxe=p.x-CX, dye=p.y-CY, Le=Math.sqrt(dxe*dxe+dye*dye);
-          var t0=33/Le, t1=1-(NODE_R+3)/Le;
-          var sx2=CX+dxe*t0, sy2=CY+dye*t0, ex=CX+dxe*t1, ey=CY+dye*t1;
-          var seed=(b.id.charCodeAt(0)*100+ki*31)|0;
-          var ep=makePath(sx2,sy2,ex,ey,edgeStyle,seed,bc);
-          s+='<path d="'+ep.d+'" fill="none" stroke="'+ep.color+'" stroke-width="'+(edgeW*ep.strokeW/1.5)+'"'
-            +' stroke-dasharray="'+(ep.strokeDash==='none'?'':ep.strokeDash)+'" opacity="'+edgeOp+'"/>';
-        });
-
-        // Ring n → ring n+1 (connect each dst node to closest src node)
-        [1,2].forEach(function(r2) {
-          var src=byRing[r2], dst=byRing[r2+1];
-          if (!src.length||!dst.length) return;
-          dst.forEach(function(dk,di) {
-            var dp=nodePositions[dk];
-            var best=src[0], bestDist=Infinity;
-            src.forEach(function(sk){ var sp=nodePositions[sk]; var d=Math.hypot(sp.x-dp.x,sp.y-dp.y); if(d<bestDist){bestDist=d;best=sk;} });
-            var sp=nodePositions[best];
-            // Shorten to avoid hexagon overlap
-            var dx2=dp.x-sp.x, dy2=dp.y-sp.y, L2=Math.sqrt(dx2*dx2+dy2*dy2);
-            var t0_2=(NODE_R+3)/L2, t1_2=1-(NODE_R+3)/L2;
-            var sx3=sp.x+dx2*t0_2, sy3=sp.y+dy2*t0_2, ex3=sp.x+dx2*t1_2, ey3=sp.y+dy2*t1_2;
-            var seed2=(b.id.charCodeAt(0)*200+di*53+r2*17)|0;
-            var ep2=makePath(sx3,sy3,ex3,ey3,edgeStyle,seed2,bc);
-            s+='<path d="'+ep2.d+'" fill="none" stroke="'+ep2.color+'" stroke-width="'+(edgeW*0.85)+'" opacity="'+(edgeOp*0.85)+'"/>';
-          });
-        });
-
-        // ── Draw nodes ─────────────────────────────────────────────────────
-        bNodes.forEach(function(k) {
-          var p   = nodePositions[k];
-          if (!p) return;
-          var nd  = PN[k];
-          var state    = pan.getNodeState(k);
-          var pts2     = pan.invested[k]||0;
-          var learned  = state==='learned';
-          var available= state==='available';
-          var isSel    = k===selNode;
-          var nodeColor = unlocked ? bc : '#444455';
-          var rgb2      = unlocked ? hexToRgb(bc) : '68,68,85';
-          var fillOp2   = learned?'0.32':available?'0.14':'0.07';
-          var strokeOp2 = learned?'1.0':available?'0.80':'0.30';
-          var strokeW2  = isSel?3.5:learned?2.5:1.8;
-          var filterId2 = 'glow-'+b.id.replace(/[^a-z0-9]/g,'');
-
-          // Selection ring (outer)
-          if (isSel) {
-            s += '<path d="'+hexPath(p.x,p.y,NODE_R+10)+'" fill="rgba(240,200,64,0.10)" stroke="#f0c840" stroke-width="2" filter="url(#glow-sel)"/>';
-          }
-          // Glow halo for learned/available
-          if (learned) {
-            s += '<path d="'+hexPath(p.x,p.y,NODE_R+5)+'" fill="rgba('+rgb2+',0.18)" stroke="none"/>';
-          }
-          // Main hex
-          s += '<path class="pnt-node" data-nid="'+k+'"'
-             + ' d="'+hexPath(p.x,p.y,NODE_R)+'"'
-             + ' fill="rgba('+rgb2+','+fillOp2+')"'
-             + ' stroke="'+nodeColor+'" stroke-opacity="'+strokeOp2+'" stroke-width="'+strokeW2+'"'
-             + ' style="cursor:pointer"'
-             + (learned&&!isSel?' filter="url(#'+filterId2+')"':'')
-             + '/>';
-          // Icon (NOT interactive — pointer-events:none on text)
-          s += '<text x="'+p.x.toFixed(1)+'" y="'+(p.y+8)+'" text-anchor="middle"'
-             + ' font-size="'+(unlocked?'16':'13')+'" opacity="'+(unlocked?'0.95':'0.30')+'"'
-             + ' style="pointer-events:none">'+nd.icon+'</text>';
-          // Stack count badge
-          if (pts2>1) {
-            s += '<text x="'+(p.x+NODE_R).toFixed(1)+'" y="'+(p.y-NODE_R+4).toFixed(1)+'"'
-               + ' text-anchor="middle" font-size="9" fill="'+bc+'" font-weight="700"'
-               + ' style="pointer-events:none">×'+pts2+'</text>';
-          }
-        });
-      });
-
-      s += '</g>'; // end ellipse transform
-
-      return '<svg id="pnt-svg" xmlns="http://www.w3.org/2000/svg"'
-           + ' viewBox="0 0 '+W+' '+H+'"'
-           + ' style="width:100%;height:100%;display:block;cursor:grab;user-select:none">'
-           + s + '</svg>';
-    }
-
-    // ── Inject SVG ───────────────────────────────────────────────────────────
+    // ── Inject SVG ────────────────────────────────────────────────────────────
     canvasBox.innerHTML = buildSVG();
     var svgEl = canvasBox.querySelector('#pnt-svg');
 
-    // ── Pan / Zoom (constrained) ──────────────────────────────────────────────
+    // ── Pan / Zoom ────────────────────────────────────────────────────────────
     var vb = { x:0, y:0, scale:1 };
-    var MIN_SCALE=0.55, MAX_SCALE=2.8;
+    var MIN_SCALE=0.45, MAX_SCALE=2.8;
     var drag2 = { active:false, sx:0, sy:0, vx:0, vy:0, moved:false };
     var touchPts = {};
 
     function clampVB() {
       var cw=canvasBox.clientWidth||900, ch=canvasBox.clientHeight||580;
       var vw=W/vb.scale, vh=H/vb.scale;
-      // Never show outside SVG
-      vb.x=Math.max(0, Math.min(vb.x, Math.max(0, W-vw)));
-      vb.y=Math.max(0, Math.min(vb.y, Math.max(0, H-vh)));
+      vb.x=Math.max(0, Math.min(vb.x, Math.max(0,W-vw)));
+      vb.y=Math.max(0, Math.min(vb.y, Math.max(0,H-vh)));
     }
-
     function applyVB() {
       clampVB();
       var cw=canvasBox.clientWidth||900, ch=canvasBox.clientHeight||580;
@@ -2380,15 +2562,13 @@ _renderPantheonTab(el) {
       if (!svgEl) return;
       svgEl.setAttribute('viewBox', vb.x.toFixed(1)+' '+vb.y.toFixed(1)+' '+vw.toFixed(1)+' '+vh.toFixed(1));
     }
-
-    // Initial view: fit entire SVG in canvas
     setTimeout(function(){
       if (!canvasBox) return;
       var cw=canvasBox.clientWidth, ch=canvasBox.clientHeight;
       if (!cw||!ch) return;
-      vb.scale = Math.min(cw/W, ch/H) * 0.98;
-      vb.x = 0; vb.y = 0;
-      MIN_SCALE = vb.scale * 0.95;  // can't zoom out past initial fit
+      vb.scale = Math.min(cw/W, ch/H) * 0.97;
+      vb.x=0; vb.y=0;
+      MIN_SCALE = vb.scale * 0.92;
       applyVB();
     }, 40);
 
@@ -2402,30 +2582,26 @@ _renderPantheonTab(el) {
         var ns=Math.max(MIN_SCALE,Math.min(MAX_SCALE,vb.scale*delta));
         vb.x=mx-(mx-vb.x)*(vb.scale/ns);
         vb.y=my-(my-vb.y)*(vb.scale/ns);
-        vb.scale=ns;
-        applyVB();
+        vb.scale=ns; applyVB();
       },{passive:false});
-
       svg.addEventListener('mousedown',function(e){
-        if(e.button!==0)return;
+        if(e.button!==0) return;
         drag2={active:true,sx:e.clientX,sy:e.clientY,vx:vb.x,vy:vb.y,moved:false};
         svg.style.cursor='grabbing';
       });
-
       window.addEventListener('mousemove',function(e){
-        if(!drag2.active)return;
+        if(!drag2.active) return;
         var dx=e.clientX-drag2.sx, dy=e.clientY-drag2.sy;
         if(Math.hypot(dx,dy)>4) drag2.moved=true;
         var rect=canvasBox.getBoundingClientRect();
-        if(!rect.width||!rect.height)return;
+        if(!rect.width||!rect.height) return;
         vb.x=drag2.vx-dx*(W/rect.width/vb.scale);
         vb.y=drag2.vy-dy*(H/rect.height/vb.scale);
         applyVB();
       });
       window.addEventListener('mouseup',function(){
-        if(drag2.active){drag2.active=false; if(svgEl)svgEl.style.cursor='grab';}
+        if(drag2.active){drag2.active=false; if(svgEl) svgEl.style.cursor='grab';}
       });
-
       svg.addEventListener('touchstart',function(e){
         e.preventDefault();
         Array.from(e.changedTouches).forEach(function(t){touchPts[t.identifier]={x:t.clientX,y:t.clientY};});
@@ -2434,7 +2610,6 @@ _renderPantheonTab(el) {
           drag2={active:true,sx:t.clientX,sy:t.clientY,vx:vb.x,vy:vb.y,moved:false};
         }
       },{passive:false});
-
       svg.addEventListener('touchmove',function(e){
         e.preventDefault();
         var ids=Object.keys(touchPts);
@@ -2461,7 +2636,6 @@ _renderPantheonTab(el) {
           }
         }
       },{passive:false});
-
       svg.addEventListener('touchend',function(e){
         Array.from(e.changedTouches).forEach(function(t){delete touchPts[t.identifier];});
         if(!drag2.moved&&e.changedTouches.length===1){
@@ -2470,8 +2644,7 @@ _renderPantheonTab(el) {
         }
         drag2.active=false;
       },{passive:false});
-
-      svg.addEventListener('click',handleClick);
+      svg.addEventListener('click', handleClick);
     }
 
     function handleClick(e) {
@@ -2484,7 +2657,6 @@ _renderPantheonTab(el) {
       if (!nid) return;
       selNode = nid;
       el._panSelNode = nid;
-      // Rebuild SVG with new selection
       canvasBox.innerHTML = buildSVG();
       svgEl = canvasBox.querySelector('#pnt-svg');
       bindEvents(svgEl);
@@ -2494,23 +2666,29 @@ _renderPantheonTab(el) {
 
     bindEvents(svgEl);
 
-    // ── Detail panel ─────────────────────────────────────────────────────────
+    // ── Detail panel ──────────────────────────────────────────────────────────
     function renderDetail(nodeId) {
       var nd=PN[nodeId];
-      if(!nd){sideEl.innerHTML='<div class="pnt-hint">← Clique sur un talent</div>';return;}
+      if(!nd){sideEl.innerHTML='<div class="pnt-hint">← Clique sur un talent</div>'; return;}
       var b=branchMap[nd.branch];
       var bc=b?b.color:'#888', rgb=hexToRgb(bc);
-      var state=pan.getNodeState(nodeId), pts=pan.invested[nodeId]||0;
-      var check=pan.canLearn(nodeId), unlocked=pan.isBranchUnlocked(nd.branch);
+      var state=pan.getNodeState(nodeId), pts2=pan.invested[nodeId]||0;
+      var check=pan.canLearn(nodeId), unlocked=pan.isBranchUnlocked ? pan.isBranchUnlocked(nd.branch) : true;
       var stateLabel=state==='learned'?'✅ Acquis':state==='available'?'🟡 Disponible':'🔒 Verrouillé';
       var stateColor=state==='learned'?'#60e060':state==='available'?'#f0c840':'#808080';
       var prereqHtml='';
       if(nd.requires&&nd.requires.length>0){
         prereqHtml='<div class="pnt-d-prereq">🔗 Prérequis : '+
-          nd.requires.map(function(rId){var rn=PN[rId];var ok=(pan.invested[rId]||0)>0;return '<span style="color:'+(ok?'#60e060':'#e06060')+'">'+(rn?rn.name:rId)+'</span>';}).join(', ')+'</div>';
+          nd.requires.map(function(rId){
+            var rn=PN[rId]; var ok=(pan.invested[rId]||0)>0;
+            return '<span style="color:'+(ok?'#60e060':'#e06060')+'">'+(rn?rn.name:rId)+'</span>';
+          }).join(', ')+'</div>';
       }
       var buyDisabled=(state==='learned'&&!nd.uncapped)||!check.ok;
-      var buyLabel=state==='learned'&&!nd.uncapped?'✅ Déjà acquis':!unlocked?'🔒 Branche verrouillée':nd.uncapped?'✨ ×'+nd.cost+' Éther — acquérir encore'+(pts>0?' (×'+pts+')':''):check.ok?'✨ Apprendre — '+nd.cost+' Éther':'🔒 '+(check.reason||'Indisponible');
+      var buyLabel=nd.uncapped?'✨ Acheter encore (×'+(pts2+1)+') — '+nd.cost+' Éther'
+                  :state==='learned'?'✅ Déjà acquis'
+                  :check.ok?'✨ Apprendre — '+nd.cost+' Éther'
+                  :'🔒 '+(check.reason||'Indisponible');
       sideEl.innerHTML=
         '<div class="pnt-d-wrap" style="--bc:'+bc+';--rgb:'+rgb+'">'
         +'<div class="pnt-d-head">'
@@ -2520,19 +2698,19 @@ _renderPantheonTab(el) {
           +'</svg>'
           +'<div class="pnt-d-info">'
             +'<div class="pnt-d-name">'+nd.name+'</div>'
-            +'<div class="pnt-d-branch" style="color:'+bc+'">'+( b?b.icon+' '+b.label:'')+'</div>'
-            +'<div class="pnt-d-ring">Anneau '+nd.ring+(nd.uncapped?' · ∞':'')+' · '+nd.cost+' ✨</div>'
+            +'<div class="pnt-d-branch" style="color:'+bc+'">'+(b?b.icon+' '+b.label:'')+'</div>'
+            +'<div class="pnt-d-ring">Anneau '+nd.ring+(nd.uncapped?' · ∞ (×'+pts2+' acquis)':'')+' · '+nd.cost+' ✨</div>'
           +'</div>'
         +'</div>'
-        +'<div class="pnt-d-state" style="color:'+stateColor+'">'+stateLabel+(pts>1?' (×'+pts+')':state==='learned'&&pts===1?' (×1)':'')+'</div>'
+        +'<div class="pnt-d-state" style="color:'+stateColor+'">'+stateLabel+'</div>'
         +'<div class="pnt-d-desc">'+nd.desc+'</div>'
         +prereqHtml
-        +'<button class="pnt-d-buy'+(buyDisabled?' disabled':'')+'" data-buy-node="'+nodeId+'"'+(buyDisabled?' disabled':'')+'>'+buyLabel+'</button>'
+        +'<button class="pnt-d-buy'+(buyDisabled?' disabled':'')+'\" data-buy-node="'+nodeId+'"'+(buyDisabled?' disabled':'')+'>'+buyLabel+'</button>'
         +'</div>';
 
       var buyBtn=sideEl.querySelector('[data-buy-node]');
       if(buyBtn) buyBtn.onclick=function(e){
-        if(this.disabled)return;
+        if(this.disabled) return;
         var nid2=this.dataset.buyNode;
         if(pan.learn(nid2,e.clientX,e.clientY)){
           var etEl=document.getElementById('pnt-ether');
@@ -2547,6 +2725,7 @@ _renderPantheonTab(el) {
 
     if (selNode) renderDetail(selNode);
   }
+
 
 
 

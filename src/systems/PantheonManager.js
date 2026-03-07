@@ -475,6 +475,12 @@ const PANTHEON_NODES = {
     effect:{ type:'gameEnd', value:2 }, requires:['zeus_r3_1','zeus_r3_2','zeus_r3_3'] },
 };
 
+// ── Expose globals for cross-script access ──────────────
+if (typeof window !== 'undefined') {
+  window.PANTHEON_NODES    = PANTHEON_NODES;
+  window.PANTHEON_BRANCHES = PANTHEON_BRANCHES;
+}
+
 // ── PantheonManager ─────────────────────────────────────────
 class PantheonManager {
   constructor(resources, codexManager) {
