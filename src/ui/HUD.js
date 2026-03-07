@@ -193,11 +193,12 @@ class HUD {
 
     // Bonheur
     const happiness = this.rm.happinessScore || 50;
-    const happEl = document.getElementById('happiness-bar-fill');
     const happVal = document.getElementById('happiness-value');
-    if (happEl) happEl.style.width = happiness + '%';
-    if (happVal) happVal.textContent = Math.round(happiness) + '%';
     const happIcon = document.getElementById('happiness-icon');
+    if (happVal) {
+      happVal.textContent = Math.round(happiness) + '%';
+      happVal.style.color = happiness >= 75 ? '#60e878' : happiness >= 40 ? '#f0d060' : '#e05050';
+    }
     if (happIcon) {
       happIcon.textContent = happiness >= 75 ? '😊' : happiness >= 40 ? '😐' : '😟';
     }
@@ -323,8 +324,10 @@ class HUD {
       const happEl = document.getElementById('happiness-bar-fill');
       const happVal = document.getElementById('happiness-value');
       const happIcon = document.getElementById('happiness-icon');
-      if (happEl) happEl.style.width = score + '%';
-      if (happVal) happVal.textContent = Math.round(score) + '%';
+      if (happVal) {
+        happVal.textContent = Math.round(score) + '%';
+        happVal.style.color = score >= 75 ? '#60e878' : score >= 40 ? '#f0d060' : '#e05050';
+      }
       if (happIcon) happIcon.textContent = score >= 75 ? '😊' : score >= 40 ? '😐' : '😟';
     });
     EventBus.on('road:placed',   () => this._refreshScore());

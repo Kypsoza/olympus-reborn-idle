@@ -8,11 +8,300 @@ class BuildingPanel {
     this._lockedBuildingId = null; // Mode verrou construction
     this.currentCell = null;
     this._createDrawer();
+    this._createBuildBar();
     this._createTalentPanel();
     this._bindEvents();
   }
 
   // ── Drawer principal ────────────────────────────────────
+
+  // ══════════════════════════════════════════════════════════
+  //  BUILD BAR — Dock 7 catégories + tiroir surgissant
+  // ══════════════════════════════════════════════════════════
+  _createBuildBar() {
+    var self = this;
+
+    // ── Catégories ────────────────────────────────────────
+    var CATS = [
+      { id:'nature',   icon:'🌿', label:'Nature',       ids:['ferme','moulin','grenier','verger','ruche','oliveraie','camp_bucherons','scierie','charbonnerie'] },
+      { id:'extract',  icon:'⛏️', label:'Extraction',   ids:['mine_fer','fonderie','carriere'] },
+      { id:'transform',icon:'⚙️', label:'Transfo',      ids:['moulin','atelier','forge','manufacture','fonderie','alambic','atelier_divin','forge_divine','autel_fusion'] },
+      { id:'housing',  icon:'🛖', label:'Logements',    ids:['maison','taverne','temple','marche','agora'] },
+      { id:'energy',   icon:'⚡', label:'Énergie',      ids:['pylone','noeud_olympien'] },
+      { id:'explore',  icon:'🗺️', label:'Exploration',  ids:['tour_guet','sanctuaire','temple_hermes'] },
+      { id:'wonders',  icon:'🏛️', label:'Merveilles',   ids:['agora','forteresse','senat','palais'] },
+      { id:'road',     icon:'🛤️', label:'Routes',       ids:[] },
+    ];
+
+    // ── Outer bar DOM ─────────────────────────────────────
+    var bar = document.createElement('div');
+    bar.id = 'bb-bar';
+    bar.innerHTML =
+      '<div id="bb-drawer" class="bb-drawer-closed"></div>' +
+      '<div id="bb-dock"></div>';
+    document.body.appendChild(bar);
+
+    var dock      = bar.querySelector('#bb-dock');
+    var drawerEl  = bar.querySelector('#bb-drawer');
+    var activeCell= null;
+    var openCatId = null;
+
+    // ── Hexagone SVG helper ───────────────────────────────
+    function hexSVG() {
+      return '<svg viewBox="0 0 100 114" xmlns="http://www.w3.org/2000/svg">' +
+        '<polygon class="hex-poly-fill" points="50,2 96,27 96,87 50,112 4,87 4,27"/>' +
+        '<polygon class="hex-poly-stroke" points="50,2 96,27 96,87 50,112 4,87 4,27"/>' +
+        '</svg>';
+    }
+
+    // ── Render dock tabs ──────────────────────────────────
+    dock.innerHTML = '';
+    CATS.forEach(function(cat) {
+      var btn = document.createElement('button');
+      btn.className = 'bb-tab';
+      btn.dataset.cat = cat.id;
+      btn.innerHTML = '<span class="bb-tab-icon">' + cat.icon + '</span><span class="bb-tab-label">' + cat.label + '</span>';
+      dock.appendChild(btn);
+    });
+
+    // ── Build tooltip DOM ─────────────────────────────────
+    var tt = document.getElementById('bld-tooltip');
+    if (!tt) {
+      tt = document.createElement('div');
+      tt.id = 'bld-tooltip';
+      document.body.appendChild(tt);
+    }
+
+    function buildTTContent(def, check) {
+      var prodLines = '';
+      if (def.baseProdPerField)   prodLines += '<div class="btt-prod">🌾 +' + def.baseProdPerField + '/champ/s</div>';
+      if (def.baseProdPerSupport) prodLines += '<div class="btt-prod">🪵 +' + def.baseProdPerSupport + '/forêt/s</div>';
+      if (def.produces) Object.entries(def.produces).forEach(function(e){ prodLines += '<div class="btt-prod">' + (RES_ICONS[e[0]]||e[0]) + ' +' + e[1] + '/s</div>'; });
+      if (def.consumes) Object.entries(def.consumes).forEach(function(e){ prodLines += '<div class="btt-consume">' + (RES_ICONS[e[0]]||e[0]) + ' −' + e[1] + '/s</div>'; });
+      var costChips = Object.entries(def.buildCost).map(function(e){
+        var has = self.rm.get(e[0]) >= e[1];
+        return '<span class="btt-cost-item ' + (has?'btt-cost-ok':'btt-cost-ko') + '">' + (RES_ICONS[e[0]]||e[0]) + ' ' + self._fmt(e[1]) + '</span>';
+      }).join('');
+      var state = check.ok
+        ? '<div class="btt-state ok">✅ Constructible</div>'
+        : '<div class="btt-state ko">🔒 ' + check.reason + '</div>';
+      return '<div class="btt-head"><span class="btt-icon">' + def.glyph + '</span>' +
+        '<div class="btt-title"><span class="btt-name">' + def.name + '</span></div></div>' +
+        '<div class="btt-desc">' + def.description + '</div>' +
+        '<div class="btt-section">Coût</div><div class="btt-costs">' + costChips + '</div>' +
+        (prodLines ? '<div class="btt-section">Production</div><div class="btt-prods">' + prodLines + '</div>' : '') +
+        state + '<button class="btt-close">✕</button>';
+    }
+    function showTT(hexEl, def, check) {
+      tt.innerHTML = buildTTContent(def, check);
+      tt.classList.add('visible');
+      tt.style.pointerEvents = 'none';
+      var closeBtn = tt.querySelector('.btt-close');
+      if (closeBtn) { closeBtn.addEventListener('click', function(e){ e.stopPropagation(); tt.dataset.pinned=''; tt.className=''; }); }
+      var r=hexEl.getBoundingClientRect(), tw=255, th=tt.offsetHeight||160;
+      if (window.innerWidth > 600) {
+        var tx=r.left-tw-12, ty=r.top-th+r.height/2;
+        if (tx<8) tx=r.right+12;
+        if (ty<8) ty=8;
+        if (ty+th>window.innerHeight-8) ty=window.innerHeight-th-8;
+        tt.style.left=tx+'px'; tt.style.top=ty+'px'; tt.style.bottom='auto';
+      } else { tt.style.left=''; tt.style.top=''; }
+    }
+    function hideTT() { if (!tt.dataset.pinned) tt.className=''; }
+
+    // ── Render drawer content ─────────────────────────────
+    function renderDrawer(catId) {
+      if (!activeCell) return;
+      var cat = CATS.find(function(c){ return c.id===catId; });
+      if (!cat) return;
+      openCatId = catId;
+
+      drawerEl.className = 'bb-drawer-open';
+      drawerEl.innerHTML = '<button class="bb-drawer-close" id="bb-close">✕</button>';
+
+      var available = BuildingManager.getBuildingsForTerrain(activeCell.type);
+      var transforms = BuildingManager.getTerrainTransforms(activeCell.type);
+      var hasRoadAction = (activeCell.type === CELL_TYPE.PLAIN || activeCell.type === CELL_TYPE.FIELD ||
+                           activeCell.type === CELL_TYPE.GROVE || activeCell.hasRoad);
+      var frag = document.createDocumentFragment();
+
+      // Road category
+      if (catId === 'road') {
+        var roadEl = document.createElement('div');
+        if (hasRoadAction) {
+          if (activeCell.hasRoad) {
+            var rr = self.bm.canRemoveRoad(activeCell);
+            roadEl.className = 'hex-btn hex-action hex-danger' + (rr.ok?'':' hex-locked');
+            roadEl.dataset.bbAction = 'road-remove';
+            roadEl.innerHTML = '<div class="hex-bg">' + hexSVG() + '</div><span class="hex-icon">🗑️</span><span class="hex-label">Démolir Route</span>';
+          } else {
+            var rc = self.bm.canPlaceRoad(activeCell);
+            roadEl.className = 'hex-btn hex-action' + (rc.ok?' hex-ok':' hex-locked');
+            roadEl.dataset.bbAction = 'road';
+            roadEl.innerHTML = '<div class="hex-bg">' + hexSVG() + '</div><span class="hex-icon">🛤️</span><span class="hex-label">Route</span><span class="hex-cost' + (rc.ok?'':' short') + '">30🪙 10🪵</span>';
+          }
+          frag.appendChild(roadEl);
+        }
+        // Transforms
+        transforms.forEach(function(tr) {
+          var ok = self.rm.canAfford(tr.cost);
+          var trEl = document.createElement('div');
+          trEl.className = 'hex-btn hex-action' + (ok?' hex-ok':' hex-locked');
+          trEl.dataset.bbTransform = tr.targetType;
+          var firstCost = Object.entries(tr.cost)[0];
+          var trCost = firstCost ? ((RES_ICONS[firstCost[0]]||firstCost[0]) + ' ' + self._fmt(firstCost[1])) : '';
+          trEl.innerHTML = '<div class="hex-bg">' + hexSVG() + '</div><span class="hex-icon">' + tr.glyph + '</span><span class="hex-label">' + tr.label + '</span>' + (trCost ? '<span class="hex-cost' + (ok?'':' short') + '">' + trCost + '</span>' : '');
+          frag.appendChild(trEl);
+        });
+      } else {
+        // Buildings filtered by category ids (allow all if cat.ids is null)
+        available.forEach(function(def) {
+          if (!def) return;
+          // Filter: if cat has explicit ids, skip buildings not in the list
+          // Also show building if no ids defined (catch-all)
+          var inCat = !cat.ids.length || cat.ids.includes(def.id);
+          if (!inCat) return;
+          var check = self.bm.canBuild(activeCell, def.id);
+          var eraLocked = def.era && def.era > 1 && self.tm && self.tm.getUnlockedEra() < def.era;
+          var hexEl = document.createElement('div');
+          var cls = 'hex-btn';
+          if (!check.ok) cls += ' hex-locked';
+          if (check.ok) cls += ' hex-ok';
+          if (eraLocked) cls += ' hex-era-locked';
+          hexEl.className = cls;
+          hexEl.dataset.bbId = def.id;
+          var firstCostEntry = Object.entries(def.buildCost)[0];
+          var costStr = firstCostEntry
+            ? ((RES_ICONS[firstCostEntry[0]]||firstCostEntry[0]) + ' ' + self._fmt(firstCostEntry[1]) + (Object.keys(def.buildCost).length > 1 ? '…' : ''))
+            : '';
+          var hasAllCosts = Object.entries(def.buildCost).every(function(e){ return self.rm.get(e[0]) >= e[1]; });
+          hexEl.innerHTML =
+            '<div class="hex-bg">' + hexSVG() + '</div>' +
+            (window.innerWidth <= 600 ? '<button class="hex-info-btn" data-info="' + def.id + '">i</button>' : '') +
+            (def.era > 1 ? '<span class="hex-era era-' + def.era + '">Ère ' + def.era + '</span>' : '') +
+            '<span class="hex-icon">' + def.glyph + '</span>' +
+            '<span class="hex-label">' + def.name + '</span>' +
+            (costStr ? '<span class="hex-cost' + (hasAllCosts ? '' : ' short') + '">' + costStr + '</span>' : '');
+          if (window.innerWidth > 600) {
+            var _def2 = def;
+            hexEl.addEventListener('mouseenter', function(){ showTT(hexEl, _def2, self.bm.canBuild(activeCell, _def2.id)); });
+            hexEl.addEventListener('mouseleave', function(){ if (!tt.dataset.pinned) hideTT(); });
+          }
+          frag.appendChild(hexEl);
+        });
+      }
+
+      drawerEl.appendChild(frag);
+
+      // Close button
+      document.getElementById('bb-close').onclick = function() { closeDrawer(); };
+
+      // ── Click: build immediately on activeCell ──────────
+      drawerEl.onclick = function(e) {
+        if (!activeCell) return;
+
+        // Close
+        var closeBtn = e.target.closest('#bb-close');
+        if (closeBtn) { closeDrawer(); return; }
+
+        // Info button (mobile)
+        var infoBtn = e.target.closest('.hex-info-btn');
+        if (infoBtn) {
+          e.stopPropagation();
+          var id = infoBtn.dataset.info;
+          var defObj = (typeof BUILDINGS !== 'undefined') ? BUILDINGS[id] : null;
+          if (!defObj) return;
+          var checkObj = self.bm.canBuild(activeCell, id);
+          var parentHex = infoBtn.closest('.hex-btn');
+          if (tt.dataset.pinned === id) { tt.dataset.pinned=''; tt.className=''; }
+          else { showTT(parentHex, defObj, checkObj); tt.dataset.pinned=id; tt.classList.add('pinned'); tt.style.pointerEvents='auto'; }
+          return;
+        }
+
+        if (tt.dataset.pinned) { tt.dataset.pinned=''; tt.className=''; }
+
+        var hexEl = e.target.closest('.hex-btn');
+        if (!hexEl || hexEl.classList.contains('hex-locked')) return;
+
+        var now2 = Date.now();
+        if (self._lastBuildAt && now2 - self._lastBuildAt < 350) return;
+        self._lastBuildAt = now2;
+
+        // Build
+        if (hexEl.dataset.bbId) {
+          self.bm.build(activeCell, hexEl.dataset.bbId, 0, 0);
+          // Refresh drawer (costs may have changed)
+          renderDrawer(catId);
+          return;
+        }
+        // Road
+        var act = hexEl.dataset.bbAction;
+        if (act === 'road')        { self.bm.placeRoad(activeCell, 0, 0); renderDrawer(catId); }
+        else if (act === 'road-remove') { self.bm.removeRoad(activeCell, 0, 0); renderDrawer(catId); }
+        // Transform
+        if (hexEl.dataset.bbTransform) { self.bm.transformTerrain(activeCell, hexEl.dataset.bbTransform, 0, 0); closeDrawer(); }
+      };
+
+      // Highlight active tab
+      dock.querySelectorAll('.bb-tab').forEach(function(t){
+        t.classList.toggle('bb-tab-active', t.dataset.cat === catId);
+      });
+    }
+
+    function closeDrawer() {
+      drawerEl.className = 'bb-drawer-closed';
+      drawerEl.innerHTML = '';
+      openCatId = null;
+      dock.querySelectorAll('.bb-tab').forEach(function(t){ t.classList.remove('bb-tab-active'); });
+    }
+
+    // ── Dock click ────────────────────────────────────────
+    dock.onclick = function(e) {
+      var tab = e.target.closest('.bb-tab');
+      if (!tab) return;
+      var catId = tab.dataset.cat;
+      if (openCatId === catId) { closeDrawer(); return; }
+      renderDrawer(catId);
+    };
+
+    // ── Prevent events leaking to map ────────────────────
+    bar.addEventListener('touchstart', function(e){ e.stopPropagation(); }, { passive: false });
+    bar.addEventListener('touchend',   function(e){ e.stopPropagation(); }, { passive: false });
+    bar.addEventListener('mousedown',  function(e){ e.stopPropagation(); });
+
+    // ── Public API ────────────────────────────────────────
+    this._buildBar = {
+      bar: bar,
+      setCell: function(cell) {
+        activeCell = cell;
+        bar.classList.add('bb-bar-visible');
+        // Auto-open first category that has available buildings
+        if (!openCatId) {
+          var available = cell ? BuildingManager.getBuildingsForTerrain(cell.type) : [];
+          var firstCat = null;
+          CATS.forEach(function(cat) {
+            if (firstCat) return;
+            if (cat.id==='road') return;
+            var hasSomething = available.some(function(def){ return !cat.ids.length || cat.ids.includes(def.id); });
+            if (hasSomething) firstCat = cat.id;
+          });
+          if (firstCat) renderDrawer(firstCat);
+        } else {
+          renderDrawer(openCatId);
+        }
+      },
+      hide: function() {
+        activeCell = null;
+        closeDrawer();
+        bar.classList.remove('bb-bar-visible');
+      },
+      refresh: function() {
+        if (activeCell && openCatId) renderDrawer(openCatId);
+      }
+    };
+  }
+
+
   _createDrawer() {
     this.drawer = document.createElement('div');
     this.drawer.id = 'bp-drawer';
@@ -111,6 +400,7 @@ class BuildingPanel {
     this.drawer.classList.remove('bp-drawer-open');
     this.drawer.classList.add('bp-drawer-closed');
     this.currentCell = null;
+    if (this._buildBar) this._buildBar.hide();
     EventBus.emit('scout:deselect', {});
   }
 
@@ -1077,300 +1367,12 @@ class BuildingPanel {
 
   _renderEmptyUI(cell, body) {
     var self = this;
-
-    /* ── Catégories de bâtiments SimCity-style ─────────────── */
-    var BUILDING_CATEGORIES = [
-      { id:'all',         label:'Tout',        icon:'🏛️', ids: null },
-      { id:'farm',        label:'Agriculture',  icon:'🌾', ids: ['ferme','moulin','grenier','verger','ruche','oliveraie'] },
-      { id:'wood',        label:'Bois',         icon:'🌲', ids: ['camp_bucherons','scierie','charbonnerie'] },
-      { id:'mine',        label:'Mine',         icon:'⛏️', ids: ['mine_fer','fonderie','forge','atelier'] },
-      { id:'pop',         label:'Population',   icon:'👥', ids: ['maison','taverne','temple','marche'] },
-      { id:'prod',        label:'Production',   icon:'⚙️', ids: ['manufacture','arsenal','atelier_divin'] },
-      { id:'road',        label:'Routes',       icon:'🛤️', ids: [] },
-    ];
-    if (!self._activeBldCat) self._activeBldCat = 'all';
-    var _activeBldCat = self._activeBldCat;
-
-    /* ── SVG hexagone helper ──────────────────────────────── */
-    function hexSVG() {
-      // Flat-top hexagone — points calculés pour 68×78 (ratio utilisé)
-      return '<svg viewBox="0 0 100 114" xmlns="http://www.w3.org/2000/svg">' +
-        '<polygon class="hex-poly-fill" points="50,2 96,27 96,87 50,112 4,87 4,27"/>' +
-        '<polygon class="hex-poly-stroke" points="50,2 96,27 96,87 50,112 4,87 4,27"/>' +
-        '</svg>';
-    }
-
-    /* ── Tooltip DOM ─────────────────────────────────────── */
-    var tt = document.getElementById('bld-tooltip');
-    if (!tt) {
-      tt = document.createElement('div');
-      tt.id = 'bld-tooltip';
-      document.body.appendChild(tt);
-    }
-    tt.className = '';
-
-    /* ── Contenu tooltip ────────────────────────────────── */
-    function buildTTContent(def, check) {
-      var prodLines = '';
-      if (def.baseProdPerField)   prodLines += '<div class="btt-prod">🌾 +' + def.baseProdPerField + '/champ/s</div>';
-      if (def.baseProdPerSupport) prodLines += '<div class="btt-prod">🪵 +' + def.baseProdPerSupport + '/forêt/s</div>';
-      if (def.produces) Object.entries(def.produces).forEach(function(e){ prodLines += '<div class="btt-prod">' + (RES_ICONS[e[0]]||e[0]) + ' +' + e[1] + '/s</div>'; });
-      if (def.consumes) Object.entries(def.consumes).forEach(function(e){ prodLines += '<div class="btt-consume">' + (RES_ICONS[e[0]]||e[0]) + ' −' + e[1] + '/s</div>'; });
-      var workers = def.consumesWorkers ? '<div class="btt-workers">👷 ' + def.consumesWorkers + ' travailleurs requis</div>' : '';
-      var eraBadge = def.era > 1 ? '<span class="btt-era era-' + def.era + '">Ère ' + def.era + '</span>' : '';
-      var costChips = Object.entries(def.buildCost).map(function(e){
-        var has = self.rm.get(e[0]) >= e[1];
-        return '<span class="btt-cost-item ' + (has?'btt-cost-ok':'btt-cost-ko') + '">' + (RES_ICONS[e[0]]||e[0]) + ' ' + self._fmt(e[1]) + '</span>';
-      }).join('');
-      var state = check.ok
-        ? '<div class="btt-state ok">✅ Constructible</div>'
-        : '<div class="btt-state ko">🔒 ' + check.reason + '</div>';
-      return '<div class="btt-head"><span class="btt-icon">' + def.glyph + '</span>' +
-        '<div class="btt-title"><span class="btt-name">' + def.name + '</span>' + eraBadge + '</div></div>' +
-        '<div class="btt-desc">' + def.description + '</div>' +
-        '<div class="btt-section">Coût</div><div class="btt-costs">' + costChips + '</div>' +
-        (prodLines ? '<div class="btt-section">Production</div><div class="btt-prods">' + prodLines + '</div>' : '') +
-        workers + state +
-        '<button class="btt-close">✕</button>';
-    }
-
-    function showTT(hexEl, def, check) {
-      tt.innerHTML = buildTTContent(def, check);
-      tt.classList.add('visible');
-      tt.style.pointerEvents = 'none';
-      // Liaison du bouton fermeture (mobile)
-      var closeBtn = tt.querySelector('.btt-close');
-      if (closeBtn) {
-        closeBtn.addEventListener('click', function(e){
-          e.stopPropagation();
-          tt.dataset.pinned = '';
-          tt.className = '';
-        });
-      }
-      // Positionnement PC : à gauche de l'hexagone, ou au-dessus
-      var r  = hexEl.getBoundingClientRect();
-      var tw = 255; var th = tt.offsetHeight || 160;
-      var isMob = window.innerWidth <= 600;
-      if (!isMob) {
-        var tx = r.left - tw - 12;
-        var ty = r.top - th + r.height / 2;
-        if (tx < 8) { tx = r.right + 12; }
-        if (ty < 8) ty = 8;
-        if (ty + th > window.innerHeight - 8) ty = window.innerHeight - th - 8;
-        tt.style.left = tx + 'px'; tt.style.top = ty + 'px';
-        tt.style.bottom = 'auto';
-      } else {
-        tt.style.left = ''; tt.style.top = '';
-      }
-    }
-    function hideTT() {
-      if (tt.dataset.pinned) return;
-      tt.className = '';
-    }
-
-    /* ── Actions disponibles ────────────────────────────── */
-    var available = BuildingManager.getBuildingsForTerrain(cell.type);
-    var transforms = BuildingManager.getTerrainTransforms(cell.type);
-    var hasRoadAction = (cell.type === CELL_TYPE.PLAIN || cell.type === CELL_TYPE.FIELD ||
-                         cell.type === CELL_TYPE.GROVE || cell.hasRoad);
-
-    /* ── Rendu : liste d'hexagones ─────────────────────── */
-    // Note: building/road/transform rendering is done in filterAndRenderHex below
-    var frag = { childNodes: [] }; // placeholder, not used anymore
-
-    /* ── Barre de catégories SimCity-style ─────────────── */
-    var catBar = document.createElement('div');
-    catBar.id = 'bp-cat-bar';
-    catBar.className = 'bp-cat-bar';
-    BUILDING_CATEGORIES.forEach(function(cat) {
-      var btn = document.createElement('button');
-      btn.className = 'bp-cat-btn' + (_activeBldCat === cat.id ? ' active' : '');
-      btn.dataset.cat = cat.id;
-      btn.innerHTML = '<span class="bp-cat-icon">' + cat.icon + '</span><span class="bp-cat-label">' + cat.label + '</span>';
-      catBar.appendChild(btn);
-    });
-
-    /* ── Container scrollable pour les hex ─────────────── */
-    var hexWrap = document.createElement('div');
-    hexWrap.id = 'bp-hex-wrap';
-    hexWrap.className = 'bp-hex-wrap';
-
-    function filterAndRenderHex(catId) {
-      hexWrap.innerHTML = '';
-      var catDef = BUILDING_CATEGORIES.find(function(c2){ return c2.id === catId; });
-      var showRoad = catId === 'all' || catId === 'road';
-      var showTransform = catId === 'all';
-
-      // Clone children from frag (already built)
-      frag.childNodes.forEach ? null : null; // frag was already appended - rebuild inline
-      var filteredFrag = document.createDocumentFragment();
-
-      // Buildings
-      available.forEach(function(def) {
-        if (!def) return;
-        if (catDef && catDef.ids && !catDef.ids.includes(def.id)) return;
-        var check = self.bm.canBuild(cell, def.id);
-        var eraLocked = def.era && def.era > 1 && self.tm && self.tm.getUnlockedEra() < def.era;
-        var hexEl = document.createElement('div');
-        var cls = 'hex-btn';
-        if (!check.ok) cls += ' hex-locked';
-        if (check.ok) cls += ' hex-ok';
-        if (eraLocked) cls += ' hex-era-locked';
-        hexEl.className = cls;
-        hexEl.dataset.id = def.id;
-        var firstCostEntry = Object.entries(def.buildCost)[0];
-        var costStr = firstCostEntry
-          ? ((RES_ICONS[firstCostEntry[0]]||firstCostEntry[0]) + ' ' + self._fmt(firstCostEntry[1]) + (Object.keys(def.buildCost).length > 1 ? '…' : ''))
-          : '';
-        var hasAllCosts = Object.entries(def.buildCost).every(function(e){ return self.rm.get(e[0]) >= e[1]; });
-        var isLocked = (self._lockedBuildingId === def.id);
-        hexEl.innerHTML =
-          '<div class="hex-bg">' + hexSVG() + '</div>' +
-          (window.innerWidth <= 600 ? '<button class="hex-info-btn" data-info="' + def.id + '">i</button>' : '') +
-          (def.era > 1 ? '<span class="hex-era era-' + def.era + '">Ère ' + def.era + '</span>' : '') +
-          '<button class="hex-pin-btn' + (isLocked ? ' pinned' : '') + '" data-pin="' + def.id + '" title="Verrouiller ce bâtiment">📌</button>' +
-          '<span class="hex-icon">' + def.glyph + '</span>' +
-          '<span class="hex-label">' + def.name + '</span>' +
-          (costStr ? '<span class="hex-cost' + (hasAllCosts ? '' : ' short') + '">' + costStr + '</span>' : '');
-        if (isLocked) hexEl.classList.add('hex-locked-mode');
-        if (window.innerWidth > 600) {
-          var _def2 = def;
-          hexEl.addEventListener('mouseenter', function(){ showTT(hexEl, _def2, self.bm.canBuild(cell, _def2.id)); });
-          hexEl.addEventListener('mouseleave', function(){ if (!tt.dataset.pinned) hideTT(); });
-        }
-        filteredFrag.appendChild(hexEl);
-      });
-
-      // Separator
-      if (showRoad && (hasRoadAction || transforms.length > 0)) {
-        var sep2 = document.createElement('div');
-        sep2.className = 'hex-separator';
-        filteredFrag.appendChild(sep2);
-      }
-
-      // Road
-      if (showRoad && hasRoadAction) {
-        var roadEl2 = document.createElement('div');
-        var rc2 = self.bm.canPlaceRoad(cell);
-        if (cell.hasRoad) {
-          var rr2 = self.bm.canRemoveRoad(cell);
-          roadEl2.className = 'hex-btn hex-action hex-danger' + (rr2.ok ? '' : ' hex-locked');
-          roadEl2.dataset.action = 'road-remove';
-          roadEl2.innerHTML = '<div class="hex-bg">' + hexSVG() + '</div><span class="hex-icon">🗑️</span><span class="hex-label">Démolir Route</span>';
-        } else {
-          roadEl2.className = 'hex-btn hex-action' + (rc2.ok ? ' hex-ok' : ' hex-locked');
-          roadEl2.dataset.action = 'road';
-          roadEl2.innerHTML = '<div class="hex-bg">' + hexSVG() + '</div><span class="hex-icon">🛤️</span><span class="hex-label">Route</span><span class="hex-cost' + (rc2.ok ? '' : ' short') + '">30🪙 10🪵</span>';
-        }
-        filteredFrag.appendChild(roadEl2);
-      }
-
-      // Transforms
-      if (showTransform) {
-        transforms.forEach(function(tr) {
-          var ok = self.rm.canAfford(tr.cost);
-          var trEl2 = document.createElement('div');
-          trEl2.className = 'hex-btn hex-action' + (ok ? ' hex-ok' : ' hex-locked');
-          trEl2.dataset.transform = tr.targetType;
-          var firstCost2 = Object.entries(tr.cost)[0];
-          var trCost2 = firstCost2 ? ((RES_ICONS[firstCost2[0]]||firstCost2[0]) + ' ' + self._fmt(firstCost2[1])) : '';
-          trEl2.innerHTML = '<div class="hex-bg">' + hexSVG() + '</div><span class="hex-icon">' + tr.glyph + '</span><span class="hex-label">' + tr.label + '</span>' + (trCost2 ? '<span class="hex-cost' + (ok?'':' short') + '">' + trCost2 + '</span>' : '');
-          filteredFrag.appendChild(trEl2);
-        });
-      }
-
-      hexWrap.appendChild(filteredFrag);
-    }
-
-    filterAndRenderHex(_activeBldCat);
-    body.appendChild(catBar);
-    body.appendChild(hexWrap);
-
-    // Category click handler
-    catBar.addEventListener('click', function(e) {
-      var catBtn = e.target.closest('.bp-cat-btn');
-      if (!catBtn) return;
-      _activeBldCat = catBtn.dataset.cat;
-      self._activeBldCat = _activeBldCat;
-      catBar.querySelectorAll('.bp-cat-btn').forEach(function(b){ b.classList.toggle('active', b.dataset.cat === _activeBldCat); });
-      filterAndRenderHex(_activeBldCat);
-    });
-
-    /* ── Délégation de clics — body.onclick garantit 1 seul handler,
-         toujours frais, utilise self.currentCell au moment du clic ── */
-    body.onclick = function(e) {
-      var activeCell = self.currentCell;
-      if (!activeCell) return;
-
-      // Bouton 📌 verrouillage
-      var pinBtn = e.target.closest('.hex-pin-btn');
-      if (pinBtn) {
-        e.stopPropagation();
-        var pinId = pinBtn.dataset.pin;
-        if (self._lockedBuildingId === pinId) {
-          // Déverrouiller
-          self._lockedBuildingId = null;
-          self._updateLockHUD(null);
-        } else {
-          // Verrouiller
-          self._lockedBuildingId = pinId;
-          var pinDef = (typeof BUILDINGS !== 'undefined') ? BUILDINGS[pinId] : null;
-          self._updateLockHUD(pinDef);
-        }
-        self.refresh();
-        return;
-      }
-
-      // Bouton ⓘ mobile
-      var infoBtn = e.target.closest('.hex-info-btn');
-      if (infoBtn) {
-        e.stopPropagation();
-        var id = infoBtn.dataset.info;
-        var defObj = (typeof BUILDINGS !== 'undefined') ? BUILDINGS[id] : null;
-        if (!defObj) return;
-        var checkObj = self.bm.canBuild(activeCell, id);
-        var parentHex = infoBtn.closest('.hex-btn');
-        if (tt.dataset.pinned === id) {
-          tt.dataset.pinned = ''; tt.className = '';
-        } else {
-          showTT(parentHex, defObj, checkObj);
-          tt.dataset.pinned = id;
-          tt.classList.add('pinned');
-          tt.style.pointerEvents = 'auto';
-        }
-        return;
-      }
-
-      // Ferme le tooltip épinglé si clic ailleurs
-      if (tt.dataset.pinned) { tt.dataset.pinned = ''; tt.className = ''; }
-
-      var hexEl = e.target.closest('.hex-btn');
-      if (!hexEl || hexEl.classList.contains('hex-locked')) return;
-
-      var _sx = window.innerWidth / 2, _sy = window.innerHeight / 2;
-
-      // Construction bâtiment
-      if (hexEl.dataset.id) {
-        // Debounce: évite double-build (touch + mouse, ou double-clic)
-        var now2 = Date.now();
-        if (self._lastBuildAt && now2 - self._lastBuildAt < 350) return;
-        self._lastBuildAt = now2;
-        // FIX: toujours construire le bâtiment CLIQUÉ (pas le verrou)
-        // Le mode verrou agit uniquement depuis cell:click (map)
-        self.bm.build(activeCell, hexEl.dataset.id, 0, 0);
-        self.refresh(); return;
-      }
-      // Transformation terrain
-      if (hexEl.dataset.transform) {
-        self.bm.transformTerrain(activeCell, hexEl.dataset.transform, 0, 0);
-        self.refresh(); return;
-      }
-      // Route
-      var act = hexEl.dataset.action;
-      if (act === 'road')        { self.bm.placeRoad(activeCell, _sx, _sy); self.refresh(); }
-      else if (act === 'road-remove') { self.bm.removeRoad(activeCell, _sx, _sy); self.refresh(); }
-    };
+    body.innerHTML = '';
+    body.onclick = null;
+    // Build Bar handles empty cells — just bind cell to it
+    if (self._buildBar) self._buildBar.setCell(cell);
   }
+
 
 
   // ── UI Batiment ──────────────────────────────────────────
@@ -2041,67 +2043,87 @@ _renderPantheonTab(el) {
     }
 
     // ── Lightning path (deterministic pseudo-random) ──────────────────────────
-    function makePath(x1, y1, x2, y2, style, seed) {
+    // makePath: returns {d, strokeW, strokeDash, color} for an edge
+    function makePath(x1, y1, x2, y2, style, seed, branchColor) {
       var dx=x2-x1, dy=y2-y1, L=Math.sqrt(dx*dx+dy*dy);
-      if (L<1) return 'M'+x1+','+y1;
+      if (L<1) return {d:'M'+x1+','+y1, strokeW:1.5, strokeDash:'none', color:branchColor||'#888'};
       var nx=-dy/L, ny=dx/L;
       var s=seed|0;
       function rnd(){ s=(s*1664525+1013904223)&0xFFFFFFFF; return (s>>>0)/4294967296; }
+      function pts2path(arr){ return 'M'+arr.map(function(p){return p[0].toFixed(1)+','+p[1].toFixed(1);}).join('L'); }
 
       if (style==='lightning') {
-        // Zigzag électrique comme Zeus
-        var N=8; var pts=[[x1,y1]];
+        // Zeus — éclairs crépitants, multiples segments agressifs
+        var N=10; var pts=[[x1,y1]];
         for(var i=1;i<N;i++){
-          var t=i/N, j=(rnd()-0.5)*2*22*(1-Math.abs(t-0.5)*1.4);
+          var t=i/N, j=(rnd()-0.5)*2*28*(1-Math.pow(Math.abs(t-0.5)*1.8,2));
           pts.push([x1+t*dx+j*nx, y1+t*dy+j*ny]);
         }
         pts.push([x2,y2]);
-        return 'M'+pts.map(function(p){return p[0].toFixed(1)+','+p[1].toFixed(1);}).join('L');
+        return {d:pts2path(pts), strokeW:2.2, strokeDash:'none', color:'#ffe066'};
       }
+
       if (style==='vine') {
-        // Courbe de Bézier organique — Déméter
-        var mx=x1+dx*0.5+(rnd()-0.5)*40, my=y1+dy*0.5+(rnd()-0.5)*40;
-        var mx2=x1+dx*0.7+(rnd()-0.5)*30, my2=y1+dy*0.7+(rnd()-0.5)*30;
-        return 'M'+x1+','+y1+' C'+mx.toFixed(1)+','+my.toFixed(1)+' '+mx2.toFixed(1)+','+my2.toFixed(1)+' '+x2.toFixed(1)+','+y2.toFixed(1);
+        // Déméter — racines tortueuses vert émeraude
+        // Deux courbes de Bézier cubiques enchaînées (S-curve)
+        var r1=rnd, r2=rnd;
+        var cp1x=x1+dx*0.25+(rnd()-0.5)*36, cp1y=y1+dy*0.25+(rnd()-0.5)*36;
+        var cp2x=x1+dx*0.55+(rnd()-0.5)*28, cp2y=y1+dy*0.55+(rnd()-0.5)*28;
+        var cp3x=x1+dx*0.75+(rnd()-0.5)*20, cp3y=y1+dy*0.75+(rnd()-0.5)*20;
+        var d='M'+x1.toFixed(1)+','+y1.toFixed(1)
+            +' C'+cp1x.toFixed(1)+','+cp1y.toFixed(1)
+            +' '+cp2x.toFixed(1)+','+cp2y.toFixed(1)
+            +' '+(x1+dx*0.5).toFixed(1)+','+(y1+dy*0.5).toFixed(1)
+            +' S'+cp3x.toFixed(1)+','+cp3y.toFixed(1)
+            +' '+x2.toFixed(1)+','+y2.toFixed(1);
+        return {d:d, strokeW:2.0, strokeDash:'none', color:'#34d058'};
       }
-      if (style==='wavy') {
-        // Sinusoïdal doux — Aphrodite
-        var N2=6; var pts2=[[x1,y1]];
-        for(var i2=1;i2<N2;i2++){
-          var t2=i2/N2, w=Math.sin(t2*Math.PI*2)*14;
-          pts2.push([x1+t2*dx+w*nx, y1+t2*dy+w*ny]);
-        }
-        pts2.push([x2,y2]);
-        return 'M'+pts2.map(function(p){return p[0].toFixed(1)+','+p[1].toFixed(1);}).join('L');
-      }
-      if (style==='jagged') {
-        // Dentelé agressif — Hadès
-        var N3=7; var pts3=[[x1,y1]];
-        for(var i3=1;i3<N3;i3++){
-          var t3=i3/N3, j3=(i3%2===0?1:-1)*(10+rnd()*14);
-          pts3.push([x1+t3*dx+j3*nx, y1+t3*dy+j3*ny]);
-        }
-        pts3.push([x2,y2]);
-        return 'M'+pts3.map(function(p){return p[0].toFixed(1)+','+p[1].toFixed(1);}).join('L');
-      }
+
       if (style==='chain') {
-        // Léger zigzag forge — Héphaïstos
-        var N4=6; var pts4=[[x1,y1]];
-        for(var i4=1;i4<N4;i4++){
-          var t4=i4/N4, j4=(i4%2===0?5:-5);
-          pts4.push([x1+t4*dx+j4*nx, y1+t4*dy+j4*ny]);
+        // Héphaïstos — chaînes incandescentes, tirets denses
+        var Nc=8; var pts=[[x1,y1]];
+        for(var ic=1;ic<Nc;ic++){
+          var tc=ic/Nc, jc=(ic%2===0?7:-7);
+          pts.push([x1+tc*dx+jc*nx, y1+tc*dy+jc*ny]);
         }
-        pts4.push([x2,y2]);
-        return 'M'+pts4.map(function(p){return p[0].toFixed(1)+','+p[1].toFixed(1);}).join('L');
+        pts.push([x2,y2]);
+        return {d:pts2path(pts), strokeW:2.5, strokeDash:'6,3', color:'#ff6820'};
       }
-      // Default: slight organic wobble (cartographie, artemis, prestige_codex, ornate)
+
+      if (style==='wavy') {
+        // Aphrodite — rubans sinueux rose poudré, amplitude douce
+        var Nw=10; var pts=[[x1,y1]];
+        for(var iw=1;iw<Nw;iw++){
+          var tw=iw/Nw, ww=Math.sin(tw*Math.PI*3)*16;
+          pts.push([x1+tw*dx+ww*nx, y1+tw*dy+ww*ny]);
+        }
+        pts.push([x2,y2]);
+        return {d:pts2path(pts), strokeW:2.0, strokeDash:'none', color:'#f8a8c8'};
+      }
+
+      if (style==='jagged') {
+        // Hadès — veines de saphir dentelées, irrégulières
+        var Nj=9; var pts=[[x1,y1]];
+        for(var ij=1;ij<Nj;ij++){
+          var tj=ij/Nj, jj=(ij%2===0?1:-1)*(8+rnd()*16);
+          // Add slight radial drift toward center
+          pts.push([x1+tj*dx+jj*nx+(rnd()-0.5)*8, y1+tj*dy+jj*ny+(rnd()-0.5)*8]);
+        }
+        pts.push([x2,y2]);
+        return {d:pts2path(pts), strokeW:1.8, strokeDash:'none', color:'#7844cc'};
+      }
+
+      if (style==='arrow') {
+        // Artémis — flèches spectrales, trait fin et droit
+        return {d:'M'+x1.toFixed(1)+','+y1.toFixed(1)+'L'+x2.toFixed(1)+','+y2.toFixed(1),
+                strokeW:1.6, strokeDash:'8,4', color:'#c0d8ff'};
+      }
+
+      // Default wobble (cartographie, prestige_codex, ornate)
       var N5=5; var pts5=[[x1,y1]];
-      for(var i5=1;i5<N5;i5++){
-        var t5=i5/N5, j5=(rnd()-0.5)*12;
-        pts5.push([x1+t5*dx+j5*nx, y1+t5*dy+j5*ny]);
-      }
+      for(var i5=1;i5<N5;i5++){var t5=i5/N5,j5=(rnd()-0.5)*10;pts5.push([x1+t5*dx+j5*nx,y1+t5*dy+j5*ny]);}
       pts5.push([x2,y2]);
-      return 'M'+pts5.map(function(p){return p[0].toFixed(1)+','+p[1].toFixed(1);}).join('L');
+      return {d:pts2path(pts5), strokeW:1.5, strokeDash:'none', color:branchColor||'#888'};
     }
 
     // ── Build SVG ─────────────────────────────────────────────────────────────
@@ -2170,20 +2192,29 @@ _renderPantheonTab(el) {
            + ' Z"'
            + ' fill="rgba('+rgb+','+fillOp+')" stroke="rgba('+rgb+','+strokeOp+')" stroke-width="1"/>';
 
-        // Branch label at tip of sector (beyond ring3)
-        var labelR = SECTOR_R_OUTER + 28;
+        // Branch label at tip of sector (beyond ring3) — very prominent
+        var labelR = SECTOR_R_OUTER + 44;
         var labelAngle = angleDeg*Math.PI/180;
         var lx=CX+Math.cos(labelAngle)*labelR, ly=CY+Math.sin(labelAngle)*labelR;
         var nameColor = unlocked ? bc : '#504858';
-        // God name — large and prominent
-        s += '<text x="'+lx.toFixed(1)+'" y="'+(ly-6).toFixed(1)+'" text-anchor="middle"'
-           + ' font-family="Cinzel,serif" font-size="14" font-weight="800"'
-           + ' fill="'+nameColor+'" opacity="'+(unlocked?'1':'0.45')+'">'
-           + b.icon+'</text>';
-        s += '<text x="'+lx.toFixed(1)+'" y="'+(ly+12).toFixed(1)+'" text-anchor="middle"'
-           + ' font-family="Cinzel,serif" font-size="12" font-weight="700"'
-           + ' fill="'+nameColor+'" opacity="'+(unlocked?'0.95':'0.4')+'">'
-           + b.label+'</text>';
+        var rgb2 = hexToRgb(bc);
+
+        if (unlocked) {
+          // Golden aura glow behind label
+          s += '<ellipse cx="'+lx.toFixed(1)+'" cy="'+(ly+4).toFixed(1)+'"'
+             + ' rx="58" ry="26" fill="rgba('+rgb2+',0.18)" stroke="rgba(240,200,64,0.55)" stroke-width="1"/>';
+          // Drop shadow text (fake glow layer)
+          s += '<text x="'+lx.toFixed(1)+'" y="'+(ly+16).toFixed(1)+'" text-anchor="middle"'
+             + ' font-family="Cinzel,serif" font-size="18" font-weight="900"'
+             + ' fill="rgba(240,200,64,0.35)" filter="url(#glow-sel)">'+b.label+'</text>';
+        }
+        // Icon
+        s += '<text x="'+lx.toFixed(1)+'" y="'+(ly-4).toFixed(1)+'" text-anchor="middle"'
+           + ' font-size="20" opacity="'+(unlocked?'1':'0.35')+'">'+b.icon+'</text>';
+        // God name — BIG and colored
+        s += '<text x="'+lx.toFixed(1)+'" y="'+(ly+18).toFixed(1)+'" text-anchor="middle"'
+           + ' font-family="Cinzel,serif" font-size="'+(unlocked?'17':'13')+'" font-weight="900"'
+           + ' fill="'+nameColor+'" opacity="'+(unlocked?'1':'0.40')+'">'+b.label+'</text>';
         // Sector divider lines
         s += '<line x1="'+(CX+Math.cos(a0)*SECTOR_R_INNER).toFixed(1)+'" y1="'+(CY+Math.sin(a0)*SECTOR_R_INNER).toFixed(1)+'"'
            + ' x2="'+(CX+Math.cos(a0)*SECTOR_R_OUTER).toFixed(1)+'" y2="'+(CY+Math.sin(a0)*SECTOR_R_OUTER).toFixed(1)+'"'
@@ -2217,13 +2248,13 @@ _renderPantheonTab(el) {
         // Center → ring1: one edge per ring1 node
         byRing[1].forEach(function(k,ki) {
           var p=nodePositions[k];
-          // Shorten edge to avoid entering hexagon: stop at NODE_R+2 from both ends
-          var dx=p.x-CX, dy=p.y-CY, L=Math.sqrt(dx*dx+dy*dy);
-          var t0=33/L, t1=1-(NODE_R+3)/L;
-          var sx2=CX+dx*t0, sy2=CY+dy*t0, ex=CX+dx*t1, ey=CY+dy*t1;
+          var dxe=p.x-CX, dye=p.y-CY, Le=Math.sqrt(dxe*dxe+dye*dye);
+          var t0=33/Le, t1=1-(NODE_R+3)/Le;
+          var sx2=CX+dxe*t0, sy2=CY+dye*t0, ex=CX+dxe*t1, ey=CY+dye*t1;
           var seed=(b.id.charCodeAt(0)*100+ki*31)|0;
-          var path=makePath(sx2,sy2,ex,ey,edgeStyle,seed);
-          s+='<path d="'+path+'" fill="none" stroke="'+bc+'" stroke-width="'+edgeW+'" opacity="'+edgeOp+'"/>';
+          var ep=makePath(sx2,sy2,ex,ey,edgeStyle,seed,bc);
+          s+='<path d="'+ep.d+'" fill="none" stroke="'+ep.color+'" stroke-width="'+(edgeW*ep.strokeW/1.5)+'"'
+            +' stroke-dasharray="'+(ep.strokeDash==='none'?'':ep.strokeDash)+'" opacity="'+edgeOp+'"/>';
         });
 
         // Ring n → ring n+1 (connect each dst node to closest src node)
@@ -2240,8 +2271,8 @@ _renderPantheonTab(el) {
             var t0_2=(NODE_R+3)/L2, t1_2=1-(NODE_R+3)/L2;
             var sx3=sp.x+dx2*t0_2, sy3=sp.y+dy2*t0_2, ex3=sp.x+dx2*t1_2, ey3=sp.y+dy2*t1_2;
             var seed2=(b.id.charCodeAt(0)*200+di*53+r2*17)|0;
-            var path2=makePath(sx3,sy3,ex3,ey3,edgeStyle,seed2);
-            s+='<path d="'+path2+'" fill="none" stroke="'+bc+'" stroke-width="'+(edgeW*0.85)+'" opacity="'+(edgeOp*0.85)+'"/>';
+            var ep2=makePath(sx3,sy3,ex3,ey3,edgeStyle,seed2,bc);
+            s+='<path d="'+ep2.d+'" fill="none" stroke="'+ep2.color+'" stroke-width="'+(edgeW*0.85)+'" opacity="'+(edgeOp*0.85)+'"/>';
           });
         });
 
