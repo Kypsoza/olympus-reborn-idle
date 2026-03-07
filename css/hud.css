@@ -358,13 +358,13 @@
 ══════════════════════════════════════════════════════════ */
 #score-renaissance {
   position: fixed;
-  bottom: calc(var(--hud-bottom-h) + 10px);
+  top: calc(var(--hud-top-h) + 10px);
   left: 12px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   padding: 6px 12px;
-  background: rgba(12,9,26,0.92);
+  background: rgba(12,9,26,0.90);
   border: 1px solid var(--col-border-gold);
   border-radius: 8px;
   backdrop-filter: blur(6px);
@@ -501,14 +501,14 @@
 ══════════════════════════════════════════════════════════ */
 #prestige-conditions-bar {
   position: fixed;
-  left: 10px;
-  bottom: calc(var(--hud-bottom-h) + 8px);
-  width: 210px;
+  left: 12px;
+  top: calc(var(--hud-top-h) + 80px);
+  width: 220px;
   background: rgba(20,10,40,0.93);
   border: 1px solid rgba(176,96,255,0.4);
   border-radius: 10px;
   padding: 8px 10px;
-  z-index: 120;
+  z-index: 348;
   backdrop-filter: blur(6px);
   display: none;
   flex-direction: column;
@@ -729,3 +729,75 @@
   box-shadow:0 4px 20px rgba(140,60,220,0.4); }
 #offline-close:hover { transform:translateY(-2px); box-shadow:0 6px 28px rgba(140,60,220,0.6); }
 
+/* ── Malédictions — barre + infobulle ─────────────────────────────── */
+#curse-hud-bar { cursor: help; position: relative; }
+.chb-curse-tooltip {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  min-width: 240px;
+  background: rgba(10,5,20,0.97);
+  border: 1px solid rgba(200,80,80,0.5);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 12px;
+  color: #e0d0ff;
+  font-family: var(--font-ui, Cinzel, serif);
+  line-height: 1.5;
+  z-index: 800;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.8);
+  pointer-events: none;
+}
+#curse-hud-bar:hover .chb-curse-tooltip { display: block; }
+
+/* ══════════════════════════════════════════════════════════
+   BÂTIMENTS — Barre de catégories SimCity-style
+   ══════════════════════════════════════════════════════════ */
+.bp-cat-bar {
+  display: flex;
+  gap: 5px;
+  padding: 6px 8px;
+  background: rgba(8,5,18,0.95);
+  border-bottom: 1px solid rgba(200,149,26,0.2);
+  overflow-x: auto;
+  flex-shrink: 0;
+  scrollbar-width: none;
+}
+.bp-cat-bar::-webkit-scrollbar { display: none; }
+.bp-cat-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 5px 8px;
+  background: rgba(200,149,26,0.06);
+  border: 1px solid rgba(200,149,26,0.20);
+  border-radius: 8px;
+  color: rgba(200,149,26,0.55);
+  font-family: Cinzel, serif;
+  font-size: 10px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.bp-cat-btn:hover { background: rgba(200,149,26,0.14); color: rgba(200,149,26,0.8); }
+.bp-cat-btn.active {
+  background: rgba(200,149,26,0.20);
+  border-color: rgba(200,149,26,0.7);
+  color: #e8c040;
+  box-shadow: 0 0 8px rgba(200,149,26,0.25);
+}
+.bp-cat-icon { font-size: 16px; line-height: 1; }
+.bp-cat-label { font-size: 9px; letter-spacing: 0.04em; }
+
+.bp-hex-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 8px;
+  overflow-y: auto;
+  flex: 1;
+  align-content: flex-start;
+}

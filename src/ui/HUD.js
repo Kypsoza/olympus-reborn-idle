@@ -63,10 +63,17 @@ class HUD {
     var worst = curses.length > 0 ? curses[0].stage.label : '';
     if (curses.length > 1) worst = curses.length + ' malédictions';
     var pct = Math.round((1 - mult) * 100);
+    // Build detailed tooltip for all curses
+    var curseTipHtml = curses.map(function(cu) {
+      var resolution = cu.def.ritual || 'Accomplir le rituel de ' + cu.def.god;
+      return '<div style="margin-bottom:6px"><b style="color:' + cu.def.color + '">' + cu.def.icon + ' ' + cu.def.god + '</b> — ' + cu.stage.label + '<br>' +
+             '<span style="font-size:10px;color:#e0c090">⚙️ Résolution : ' + resolution + '</span></div>';
+    }).join('');
     el.innerHTML =
       '<span class="chb-curse-icon">💀</span>' +
       '<span class="chb-curse-label">' + worst + '</span>' +
-      '<span class="chb-curse-mult">-' + pct + '%</span>';
+      '<span class="chb-curse-mult">-' + pct + '%</span>' +
+      '<div class="chb-curse-tooltip">' + curseTipHtml + '</div>';
   }
 
   _refreshCodexBadge() {
