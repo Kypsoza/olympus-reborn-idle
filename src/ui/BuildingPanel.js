@@ -1734,6 +1734,166 @@ class BuildingPanel {
 
 
   // ── Panthéon (Phase 7) ─────────────────────────────────
+  _renderCodexTab(el) {
+    var self = this;
+    var cm = window.game && window.game.codexManager;
+    var pm = window.game && window.game.prestigeManager;
+    var rm = this.rm;
+
+    if (!cm) {
+      el.innerHTML = '<div style="padding:24px;text-align:center;color:#888">Codex non initialisé.</div>';
+      return;
+    }
+
+    var pages      = cm.pages;
+    var level      = cm.codexLevel;
+    var mult       = cm.getEtherMultiplier();
+    var nextThresh = cm.getPagesForNextLevel();
+    var progress   = cm.getProgressToNextLevel();
+    var pctBar     = Math.round(Math.min(1, progress) * 100);
+
+    // Preview pages prochain prestige
+    var score        = pm ? pm.getLiveScore() : 0;
+    var bTypes       = cm.countBuildingTypes();
+    var era3         = cm.isEra3Reached();
+    var previewPages = cm.previewNextPages(score, bTypes, era3);
+
+    // Ether actuel
+    var etherAmt = rm ? Math.floor(rm.get('ether')) : 0;
+    var fmtE = function(v) { return v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e4?(v/1e3).toFixed(1)+'k':v.toString(); };
+
+    // ── HTML principal ──────────────────────────────────────
+    var html =
+      '<div class="cx-wrap">' +
+        // En-tête Codex
+        '<div class="cx-header">' +
+          '<div class="cx-book-icon">📖</div>' +
+          '<div class="cx-title-block">' +
+            '<div class="cx-title">Codex Olympien</div>' +
+            '<div class="cx-subtitle">Niveau ' + level + (nextThresh === Infinity ? ' — Maximum' : ' / ' + (cm.LEVEL_THRESHOLDS.length + 1)) + '</div>' +
+          '</div>' +
+          '<div class="cx-mult-badge">×' + mult.toFixed(1) + ' Éther</div>' +
+        '</div>' +
+
+        // Barre de progression vers prochain niveau
+        (nextThresh !== Infinity ?
+          '<div class="cx-prog-section">' +
+            '<div class="cx-prog-label">' +
+              '<span>📄 Pages : <b>' + pages + '</b></span>' +
+              '<span>Prochain niveau : <b>' + nextThresh + ' pages</b></span>' +
+            '</div>' +
+            '<div class="cx-prog-track"><div class="cx-prog-fill" style="width:' + pctBar + '%"></div></div>' +
+          '</div>'
+        :
+          '<div class="cx-prog-section" style="text-align:center;color:#c8961a">⭐ Niveau Maximum atteint</div>'
+        ) +
+
+        // Preview prochain prestige
+        '<div class="cx-preview">' +
+          '<div class="cx-preview-title">📊 Prochain Prestige</div>' +
+          '<div class="cx-preview-row"><span>Score Renaissance actuel</span><span>' + score.toLocaleString() + '</span></div>' +
+          '<div class="cx-preview-row"><span>Pages gagnées</span><span class="cx-pages-gain">+' + previewPages + ' pages</span></div>' +
+          '<div class="cx-preview-row"><span>Types de bâtiments</span><span>' + bTypes + (cm.buildingSourceUnlocked ? ' (+' + bTypes*5 + ' pages)' : '') + '</span></div>' +
+          (era3 ? '<div class="cx-preview-row"><span>Ère 3 atteinte</span><span class="cx-bonus">+' + (cm.eraSourceUpgraded ? 40 : 20) + ' pages</span></div>' : '') +
+          (cm.bonusPageSlots > 0 ? '<div class="cx-preview-row"><span>Slots bonus (' + cm.bonusPageSlots + ')</span><span class="cx-bonus">+' + cm.bonusPageSlots*15 + ' pages</span></div>' : '') +
+          (cm.goldenPagesLevel > 0 ? '<div class="cx-preview-row"><span>Pages Dorées Niv.' + cm.goldenPagesLevel + '</span><span class="cx-bonus">×' + [1,1.5,2.25,3.0][cm.goldenPagesLevel].toFixed(2) + '</span></div>' : '') +
+        '</div>' +
+
+        // Nœud Central — Investissements Éther
+        '<div class="cx-invest-title">🔮 Nœud Central — Investissements Éther</div>' +
+        '<div class="cx-ether-avail">Éther disponible : <b>' + fmtE(etherAmt) + '</b></div>' +
+        '<div class="cx-invest-grid">' +
+          self._cxInvestCard(cm, 'slot',    '📚 Slots Pages',    'slot', etherAmt) +
+          self._cxInvestCard(cm, 'golden',  '✨ Pages Dorées',   'golden', etherAmt) +
+          self._cxInvestCard(cm, 'building','🏛️ Source Bâtiments','building_source', etherAmt) +
+          self._cxInvestCard(cm, 'era',     '🌟 Source Ère',     'era_source', etherAmt) +
+        '</div>' +
+
+        // Table des niveaux Codex
+        '<div class="cx-level-title">📈 Table des Niveaux</div>' +
+        '<div class="cx-level-table">' + self._cxLevelTable(cm) + '</div>' +
+
+      '</div>';
+
+    el.innerHTML = html;
+
+    // Bind boutons investissement
+    el.querySelectorAll('[data-cx-buy]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var type = btn.dataset.cxBuy;
+        var ok = false;
+        if (type === 'slot')    ok = cm.buySlot();
+        if (type === 'golden')  ok = cm.buyGoldenPages();
+        if (type === 'building') ok = cm.buyBuildingSource();
+        if (type === 'era')     ok = cm.buyEraSource();
+        if (ok) self._renderCodexTab(el);
+      });
+    });
+  }
+
+  _cxInvestCard(cm, type, label, checkType, etherAmt) {
+    var check, level, maxLevel, costNext;
+
+    if (type === 'slot') {
+      check = cm.canBuySlot();
+      level = cm.bonusPageSlots;
+      maxLevel = 5;
+      costNext = cm.SLOT_COST[level] || null;
+    } else if (type === 'golden') {
+      check = cm.canBuyGoldenPages();
+      level = cm.goldenPagesLevel;
+      maxLevel = 3;
+      costNext = cm.GOLDEN_COST[level] || null;
+    } else if (type === 'building') {
+      check = cm.canBuyBuildingSource();
+      level = cm.buildingSourceUnlocked ? 1 : 0;
+      maxLevel = 1;
+      costNext = cm.BUILDING_COST;
+    } else {
+      check = cm.canBuyEraSource();
+      level = cm.eraSourceUpgraded ? 1 : 0;
+      maxLevel = 1;
+      costNext = cm.ERA_COST;
+    }
+
+    var maxed = (level >= maxLevel);
+    var canAfford = check.ok;
+    var desc = '';
+    if (type === 'slot')     desc = 'Ajoute +15 pages/prestige par slot';
+    if (type === 'golden')   desc = 'Multiplie les pages ×' + [1,1.5,2.25,3.0][Math.min(level+1,3)].toFixed(2);
+    if (type === 'building') desc = '+5 pages par type de bâtiment construit';
+    if (type === 'era')      desc = 'Bonus Ère 3 : 40 pages au lieu de 20';
+
+    return '<div class="cx-invest-card' + (maxed ? ' cx-maxed' : '') + '">' +
+      '<div class="cx-ic-label">' + label + '</div>' +
+      '<div class="cx-ic-level">' + (maxed ? '✅ Max' : 'Niv. ' + level + ' / ' + maxLevel) + '</div>' +
+      '<div class="cx-ic-desc">' + desc + '</div>' +
+      (!maxed ?
+        '<button class="cx-ic-btn' + (canAfford ? '' : ' cx-ic-locked') + '" data-cx-buy="' + type + '">' +
+          (canAfford ? '✨ ' + costNext + ' Éther' : '🔒 ' + check.reason) +
+        '</button>'
+      : '') +
+    '</div>';
+  }
+
+  _cxLevelTable(cm) {
+    var mults = cm.LEVEL_ETHER_MULT;
+    var thres = cm.LEVEL_THRESHOLDS;
+    var rows = '';
+    for (var i = 0; i < mults.length; i++) {
+      var active = (i + 1 === cm.codexLevel);
+      var req = i === 0 ? 'Départ' : thres[i-1] + ' pages';
+      rows +=
+        '<div class="cx-lv-row' + (active ? ' cx-lv-active' : '') + '">' +
+          '<span class="cx-lv-num">' + (active ? '▶ ' : '') + 'Niv.' + (i+1) + '</span>' +
+          '<span class="cx-lv-req">' + req + '</span>' +
+          '<span class="cx-lv-mult">×' + mults[i].toFixed(1) + '</span>' +
+        '</div>';
+    }
+    return rows;
+  }
+
+
   _renderPantheonTab(el) {
     var self = this;
     var pan  = this.pan;
@@ -2007,3 +2167,18 @@ class BuildingPanel {
   }
 
 }
+
+var RES_ICONS = {
+  drachmes:'🪙', bois:'🪵', nourr:'🌾', fer:'⚙️', ether:'✨',
+  habitants:'👥', nectar:'🍯', bronze:'🟫', acier:'🔩', farine:'🌾',
+  foudre:'⚡', orichalque:'🌟', metal_divin:'⚗️', amrita:'💎',
+};
+var RES_NAMES = {
+  drachmes:'Drachmes', bois:'Bois', nourr:'Ambroisie', fer:'Fer', ether:'Éther',
+  habitants:'Habitants', nectar:'Nectar', bronze:'Bronze', acier:'Acier',
+  farine:'Farine', foudre:'Foudre', orichalque:'Orichalque',
+  metal_divin:'Métal Divin', amrita:'Amrita',
+};
+// Also expose globally for zones tab etc.
+window.RES_ICONS = RES_ICONS;
+window.RES_NAMES = RES_NAMES;
