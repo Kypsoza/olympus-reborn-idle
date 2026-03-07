@@ -776,59 +776,38 @@
 /* ══════════════════════════════════════════════════════════
    PANTHÉON v2 — arbre de talents redesigné
    ══════════════════════════════════════════════════════════ */
-.pan2-wrap       { display:flex; flex-direction:column; height:100%; overflow:hidden; }
-.pan2-header     { display:flex; justify-content:space-between; align-items:center; padding:10px 16px 8px; border-bottom:1px solid rgba(200,149,26,0.2); flex-shrink:0; }
-.pan2-title      { font-family:Cinzel,serif; font-size:17px; font-weight:800; color:#f0e0a0; }
-.pan2-ether      { font-size:13px; color:#c0d8f8; font-family:Cinzel,serif; }
-.pan2-layout     { display:flex; flex:1; overflow:hidden; }
 
 /* Branch nav column */
-.pan2-branches   { width:150px; flex-shrink:0; overflow-y:auto; border-right:1px solid rgba(255,255,255,0.06); padding:8px 6px; display:flex; flex-direction:column; gap:4px; }
-.pan2-branch-btn { display:flex; align-items:center; gap:7px; padding:8px 10px; border-radius:8px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); cursor:pointer; width:100%; text-align:left; transition:all 0.15s; position:relative; }
-.pan2-branch-btn:hover   { background:rgba(255,255,255,0.07); border-color:rgba(255,255,255,0.12); }
-.pan2-branch-btn.active  { background:rgba(var(--bc-rgb,200,149,26),0.12); border-color:var(--bc,#c8961a); box-shadow:inset 0 0 0 1px rgba(200,149,26,0.15); }
-.pan2-branch-btn.locked  { opacity:0.45; cursor:not-allowed; }
-.pan2-bb-icon    { font-size:20px; line-height:1; flex-shrink:0; }
-.pan2-bb-label   { font-family:Cinzel,serif; font-size:11px; color:#c0b090; flex:1; line-height:1.2; }
-.pan2-branch-btn.active .pan2-bb-label { color:var(--bc,#f0c840); }
-.pan2-bb-count   { font-size:10px; font-weight:700; color:#fff; border-radius:10px; padding:1px 5px; min-width:16px; text-align:center; flex-shrink:0; }
-.pan2-bb-lock    { font-size:12px; flex-shrink:0; }
 
 /* Node grid content area */
-.pan2-content    { flex:1; overflow-y:auto; padding:10px 12px; }
-.pan2-ring-section { margin-bottom:16px; }
-.pan2-ring-label { font-family:Cinzel,serif; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; margin-bottom:8px; padding-bottom:4px; border-bottom:1px solid rgba(255,255,255,0.06); }
-.pan2-ring-grid  { display:grid; grid-template-columns:repeat(auto-fill,minmax(78px,1fr)); gap:8px; }
-.pan2-node       { display:flex; flex-direction:column; align-items:center; gap:3px; padding:8px 4px 6px; border-radius:10px; border:1.5px solid rgba(80,60,120,0.4); background:rgba(20,15,35,0.6); cursor:pointer; transition:all 0.15s; position:relative; }
-.pan2-node:hover { transform:translateY(-2px); filter:brightness(1.15); }
-.pan2-node.learned { }
-.pan2-node.avail  { border-color:rgba(200,149,26,0.55) !important; }
-.pan2-node-hex   { line-height:0; }
-.pan2-node-name  { font-family:Cinzel,serif; font-size:9.5px; color:#d0c0a0; text-align:center; line-height:1.2; max-width:72px; word-break:break-word; }
-.pan2-node.learned .pan2-node-name { color:#f0e080; }
-.pan2-node-pts   { font-size:9px; color:#a080c0; font-weight:700; }
-.pan2-node-check { position:absolute; top:4px; right:4px; font-size:10px; }
-.pan2-locked-branch { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; gap:8px; color:#888; text-align:center; padding:24px; }
 
-/* Detail panel */
-.pan2-detail     { width:240px; flex-shrink:0; border-left:1px solid rgba(255,255,255,0.06); overflow-y:auto; padding:12px; display:flex; flex-direction:column; }
-.pan2-hint       { color:#666; font-size:12px; font-style:italic; text-align:center; margin-top:40px; }
-.pan2-d-wrap     { display:flex; flex-direction:column; gap:10px; height:100%; }
-.pan2-d-head     { display:flex; gap:10px; align-items:flex-start; padding-bottom:10px; border-bottom:1px solid rgba(var(--rgb,128,128,128),0.2); }
-.pan2-d-hex      { flex-shrink:0; }
-.pan2-d-info     { flex:1; min-width:0; }
-.pan2-d-name     { font-family:Cinzel,serif; font-size:14px; font-weight:800; color:#f0e8d0; line-height:1.2; margin-bottom:3px; }
-.pan2-d-branch   { font-size:11px; margin-bottom:2px; }
-.pan2-d-ring     { font-size:10px; color:#888; }
-.pan2-d-state    { font-size:12px; font-weight:700; }
-.pan2-d-desc     { font-size:13px; color:rgba(255,255,255,0.75); line-height:1.65; border-top:1px solid rgba(255,255,255,0.06); padding-top:8px; }
-.pan2-d-prereq   { font-size:11px; color:#a090c0; background:rgba(255,255,255,0.04); border-radius:6px; padding:6px 8px; }
-.pan2-d-buy      { margin-top:auto; padding:10px 14px; border-radius:8px; border:1.5px solid rgba(160,80,255,0.6); background:rgba(90,30,160,0.25); color:#d0a8ff; font-family:Cinzel,serif; font-size:12px; font-weight:700; cursor:pointer; transition:all 0.15s; width:100%; text-align:center; }
-.pan2-d-buy:hover:not(.disabled) { background:rgba(130,55,220,0.45); border-color:rgba(200,120,255,0.85); color:#f0d8ff; transform:translateY(-1px); }
-.pan2-d-buy.disabled, .pan2-d-buy:disabled { opacity:0.45; cursor:not-allowed; transform:none; }
+/* ══════════════════════════════════════════════════════════
+   PANTHÉON — arbre radial SVG v2
+══════════════════════════════════════════════════════════ */
+.pnt-wrap         { display:flex; flex-direction:column; height:100%; overflow:hidden; }
+.pnt-header       { display:flex; justify-content:space-between; align-items:center; padding:8px 16px 7px; border-bottom:1px solid rgba(200,149,26,0.18); flex-shrink:0; }
+.pnt-title        { font-family:Cinzel,serif; font-size:16px; font-weight:800; color:#f0e0a0; }
+.pnt-ether        { font-size:13px; color:#c0d8f8; font-family:Cinzel,serif; }
+.pnt-main         { display:flex; flex:1; overflow:hidden; }
+.pnt-canvas-box   { flex:1; overflow:hidden; position:relative; }
+.pnt-canvas-box svg { display:block; width:100%; height:100%; cursor:grab; user-select:none; }
+.pnt-side         { width:230px; flex-shrink:0; border-left:1px solid rgba(255,255,255,0.06); overflow-y:auto; padding:12px; display:flex; flex-direction:column; background:rgba(8,5,18,0.5); }
+.pnt-hint         { color:#666; font-size:12px; font-style:italic; text-align:center; margin-top:50px; line-height:1.6; }
+
+/* Detail */
+.pnt-d-wrap       { display:flex; flex-direction:column; gap:10px; height:100%; }
+.pnt-d-head       { display:flex; gap:10px; align-items:flex-start; padding-bottom:10px; border-bottom:1px solid rgba(var(--rgb,128,128,128),0.2); }
+.pnt-d-info       { flex:1; min-width:0; }
+.pnt-d-name       { font-family:Cinzel,serif; font-size:15px; font-weight:800; color:#f0e8d0; line-height:1.2; margin-bottom:4px; }
+.pnt-d-branch     { font-size:12px; margin-bottom:3px; }
+.pnt-d-ring       { font-size:11px; color:#888; }
+.pnt-d-state      { font-size:13px; font-weight:700; }
+.pnt-d-desc       { font-size:14px; color:rgba(255,255,255,0.80); line-height:1.70; border-top:1px solid rgba(255,255,255,0.06); padding-top:8px; flex:1; }
+.pnt-d-prereq     { font-size:12px; color:#a090c0; background:rgba(255,255,255,0.04); border-radius:6px; padding:7px 9px; }
+.pnt-d-buy        { margin-top:auto; padding:11px 14px; border-radius:8px; border:1.5px solid rgba(160,80,255,0.65); background:rgba(90,30,160,0.28); color:#d0a8ff; font-family:Cinzel,serif; font-size:13px; font-weight:700; cursor:pointer; transition:all 0.15s; width:100%; text-align:center; }
+.pnt-d-buy:hover:not(.disabled):not(:disabled) { background:rgba(130,55,220,0.48); border-color:rgba(200,120,255,0.90); color:#f0d8ff; transform:translateY(-1px); box-shadow:0 4px 16px rgba(160,80,255,0.3); }
+.pnt-d-buy.disabled, .pnt-d-buy:disabled { opacity:0.45; cursor:not-allowed; transform:none; }
 
 @media (max-width:640px) {
-  .pan2-branches { width:110px; }
-  .pan2-detail   { display:none; }
-  .pan2-ring-grid { grid-template-columns:repeat(auto-fill,minmax(64px,1fr)); }
+  .pnt-side { display:none; }
 }

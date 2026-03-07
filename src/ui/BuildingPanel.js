@@ -1939,7 +1939,7 @@ class BuildingPanel {
   }
 
 
-  _renderPantheonTab(el) {
+_renderPantheonTab(el) {
     var self = this;
     var pan  = this.pan;
     if (!pan) {
@@ -1947,221 +1947,476 @@ class BuildingPanel {
       return;
     }
 
+    var PN = (typeof PANTHEON_NODES !== 'undefined') ? PANTHEON_NODES : {};
     var etherOwned = self.rm ? Math.floor(self.rm.get('ether')) : 0;
     var fmtE = function(v){ return v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e4?(v/1e3).toFixed(1)+'k':String(Math.floor(v)); };
+    var branches = pan.getAllBranches();
+    var selNode  = el._panSelNode || null;
 
-    var branches      = pan.getAllBranches();
-    var activeBranch  = el._panActiveBranch || branches[0].id;
-    var selNode       = el._panSelectedNode || null;
-
-    // ── Helper: hex color to rgb string ──────────────────
     function hexToRgb(hex) {
-      if (!hex || hex.length < 7) return '128,128,128';
-      var r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
-      return r+','+g+','+b;
+      if (!hex||hex.length<7) return '128,128,128';
+      return parseInt(hex.slice(1,3),16)+','+parseInt(hex.slice(3,5),16)+','+parseInt(hex.slice(5,7),16);
     }
 
-    // ── Build DOM ─────────────────────────────────────────
-    el.innerHTML = '<div class="pan2-wrap"></div>';
-    var wrap = el.querySelector('.pan2-wrap');
-
-    // Header
+    // ── Layout ───────────────────────────────────────────
+    el.innerHTML = '<div class="pnt-wrap" id="pnt-wrap"></div>';
+    var wrap = el.querySelector('#pnt-wrap');
     wrap.innerHTML =
-      '<div class="pan2-header">' +
-        '<span class="pan2-title">⚡ Panthéon des Dieux</span>' +
-        '<span class="pan2-ether" id="pan-ether-count">✨ ' + fmtE(etherOwned) + ' Éther</span>' +
+      '<div class="pnt-header">' +
+        '<span class="pnt-title">⚡ Panthéon des Dieux</span>' +
+        '<span class="pnt-ether" id="pnt-ether">✨ ' + fmtE(etherOwned) + ' Éther</span>' +
       '</div>' +
-      '<div class="pan2-layout">' +
-        '<nav class="pan2-branches" id="pan2-branches"></nav>' +
-        '<div class="pan2-content" id="pan2-content"></div>' +
-        '<div class="pan2-detail" id="pan2-detail"></div>' +
+      '<div class="pnt-main">' +
+        '<div class="pnt-canvas-box" id="pnt-canvas-box">' +
+          '<svg id="pnt-svg" xmlns="http://www.w3.org/2000/svg"></svg>' +
+        '</div>' +
+        '<div class="pnt-side" id="pnt-side">' +
+          '<div class="pnt-hint">← Clique sur un talent</div>' +
+        '</div>' +
       '</div>';
 
-    var navEl    = wrap.querySelector('#pan2-branches');
-    var contentEl= wrap.querySelector('#pan2-content');
-    var detailEl = wrap.querySelector('#pan2-detail');
+    var svgEl    = wrap.querySelector('#pnt-svg');
+    var sideEl   = wrap.querySelector('#pnt-side');
+    var canvasBox= wrap.querySelector('#pnt-canvas-box');
 
-    // ── Branch nav buttons ────────────────────────────────
+    // ── Constantes layout ─────────────────────────────────
+    var CX = 600, CY = 600;          // centre en coords SVG
+    var RING_R  = [0, 190, 340, 500]; // rayon par anneau (0=centre)
+    var NODE_R  = 24;                 // rayon hexagone nœud
+    var SPREAD  = {1: 0.30, 2: 0.19, 3: 0.16};
+    var N_SLOTS = {1: 3, 2: 4, 3: 5};
+
+    // ── Calcul positions ──────────────────────────────────
+    var nodePos = {};   // nodeId → {x,y,branchId,ring}
     branches.forEach(function(b) {
-      var unlocked = pan.isBranchUnlocked(b.id);
-      var learned  = Object.keys(pan.invested||{}).filter(function(k){
-        var pn = (typeof PANTHEON_NODES!=='undefined') ? PANTHEON_NODES : {};
-        return pn[k] && pn[k].branch === b.id && (pan.invested[k]||0) > 0;
-      }).length;
-      var btn = document.createElement('button');
-      btn.className = 'pan2-branch-btn' + (b.id===activeBranch?' active':'') + (unlocked?'':' locked');
-      btn.dataset.branch = b.id;
-      btn.style.setProperty('--bc', b.color || '#888');
-      btn.innerHTML =
-        '<span class="pan2-bb-icon">' + b.icon + '</span>' +
-        '<span class="pan2-bb-label">' + b.label + '</span>' +
-        (learned>0 ? '<span class="pan2-bb-count" style="background:'+b.color+'">' + learned + '</span>' : '') +
-        (!unlocked ? '<span class="pan2-bb-lock">🔒</span>' : '');
-      navEl.appendChild(btn);
+      var angle = b.angle || 0;
+      [1,2,3].forEach(function(ring) {
+        var r      = RING_R[ring];
+        var nSlots = N_SLOTS[ring];
+        var step   = SPREAD[ring];
+        var nodesInRing = Object.keys(PN).filter(function(k){
+          return PN[k].branch===b.id && PN[k].ring===ring;
+        }).sort(function(a,b2){ return PN[a].slot-PN[b2].slot; });
+        nodesInRing.forEach(function(nid, si) {
+          var remapped = Math.min(si, nSlots-1);
+          var spread   = (remapped - (nSlots-1)/2) * step;
+          var a = angle + spread;
+          nodePos[nid] = {
+            x: CX + Math.cos(a)*r,
+            y: CY + Math.sin(a)*r,
+            branchId: b.id,
+            ring: ring
+          };
+        });
+      });
     });
 
-    // ── Render node detail panel ──────────────────────────
+    // ── Lightning path helper (zigzag statique) ───────────
+    function lightningPath(x1, y1, x2, y2, seed, nSeg, jitter) {
+      nSeg   = nSeg   || 7;
+      jitter = jitter || 14;
+      var dx=x2-x1, dy=y2-y1;
+      var L  = Math.sqrt(dx*dx+dy*dy);
+      if (L < 0.01) return 'M'+x1+','+y1+'L'+x2+','+y2;
+      var nx=-dy/L, ny=dx/L;
+      // Deterministic pseudo-random via seed
+      var s=seed|0; function rand(){ s=(s*1664525+1013904223)&0xFFFFFFFF; return (s>>>0)/4294967296; }
+      var pts = [[x1,y1]];
+      for (var i=1; i<nSeg; i++) {
+        var t=i/nSeg;
+        var j=(rand()-0.5)*2*jitter*(1-Math.abs(t-0.5)*1.5);
+        pts.push([x1+t*dx+j*nx, y1+t*dy+j*ny]);
+      }
+      pts.push([x2,y2]);
+      return 'M'+pts.map(function(p){ return p[0].toFixed(1)+','+p[1].toFixed(1); }).join('L');
+    }
+
+    // ── Hexagone path helper ──────────────────────────────
+    function hexPath(cx, cy, r) {
+      var pts=[];
+      for (var i=0;i<6;i++){
+        var a=Math.PI/180*(60*i-30);
+        pts.push((cx+r*Math.cos(a)).toFixed(1)+','+(cy+r*Math.sin(a)).toFixed(1));
+      }
+      return 'M'+pts.join('L')+'Z';
+    }
+
+    // ── Build SVG ─────────────────────────────────────────
+    function buildSVG() {
+      var W=1200, H=1200;
+      var s='';
+
+      // Defs: glow filters per branch color + star pattern
+      s += '<defs>';
+      branches.forEach(function(b) {
+        var id='gf-'+b.id.replace(/[^a-z0-9]/g,'');
+        s += '<filter id="'+id+'" x="-80%" y="-80%" width="260%" height="260%">';
+        s += '<feGaussianBlur stdDeviation="5" result="blur"/>';
+        s += '<feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>';
+        s += '</filter>';
+      });
+      // Selection glow filter
+      s += '<filter id="gf-sel" x="-80%" y="-80%" width="260%" height="260%">';
+      s += '<feGaussianBlur stdDeviation="8" result="blur"/>';
+      s += '<feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>';
+      s += '</filter>';
+      s += '</defs>';
+
+      // Background gradient defs + rect
+      s += '<defs>'
+        + '<linearGradient id="pnt-bg" x1="0%" y1="0%" x2="100%" y2="100%">'
+        + '<stop offset="0%"   stop-color="#160d2e"/>'
+        + '<stop offset="50%"  stop-color="#0e0820"/>'
+        + '<stop offset="100%" stop-color="#080514"/>'
+        + '</linearGradient>'
+        + '</defs>';
+      s += '<rect width="'+W+'" height="'+H+'" fill="url(#pnt-bg)"/>';
+      // Stars
+      for (var si=0; si<120; si++) {
+        var sx=5+(si*137.5)%(W-10), sy=5+(si*73.1)%(H-10);
+        var sr=si%7===0?2:si%3===0?1.3:0.8;
+        var op=0.2+((si*47)%100)/280;
+        s += '<circle cx="'+sx.toFixed(1)+'" cy="'+sy.toFixed(1)+'" r="'+sr+'" fill="rgba(255,255,255,'+op.toFixed(2)+')" />';
+      }
+      // Central halo
+      s += '<radialGradient id="pnt-halo" cx="50%" cy="50%" r="50%" gradientUnits="userSpaceOnUse" fx="'+CX+'" fy="'+CY+'">';
+      s += '<stop offset="0%" stop-color="rgba(200,149,26,0.22)"/>';
+      s += '<stop offset="40%" stop-color="rgba(80,30,160,0.10)"/>';
+      s += '<stop offset="100%" stop-color="rgba(0,0,0,0)"/>';
+      s += '</radialGradient>';
+      s += '<circle cx="'+CX+'" cy="'+CY+'" r="520" fill="url(#pnt-halo)"/>';
+
+      // Ring guides
+      [190,340,500].forEach(function(r2,ri) {
+        s += '<circle cx="'+CX+'" cy="'+CY+'" r="'+r2+'" fill="none" stroke="rgba(200,149,26,0.06)" stroke-width="1" stroke-dasharray="4,6"/>';
+      });
+
+      // Center node
+      s += '<circle cx="'+CX+'" cy="'+CY+'" r="28" fill="rgba(20,14,40,0.95)" stroke="rgba(240,200,64,0.8)" stroke-width="2.5"/>';
+      s += '<text x="'+CX+'" y="'+(CY+8)+'" text-anchor="middle" font-size="22">⚡</text>';
+
+      // Branch edges (lightning) + nodes
+      branches.forEach(function(b) {
+        var bc  = b.color || '#888';
+        var rgb = hexToRgb(bc);
+        var filterId = 'gf-'+b.id.replace(/[^a-z0-9]/g,'');
+        var unlocked = pan.isBranchUnlocked(b.id);
+        var edgeAlpha = unlocked ? 0.7 : 0.2;
+        var edgeW     = unlocked ? 1.5 : 0.8;
+
+        // Collect all nodes for this branch with positions
+        var bNodes = Object.keys(PN).filter(function(k){ return PN[k].branch===b.id && nodePos[k]; });
+
+        // Draw edges: center→ring1, ring1→ring2, ring2→ring3
+        // Also connect adjacent nodes within same ring
+        var byRing = {1:[],2:[],3:[]};
+        bNodes.forEach(function(k){ (byRing[PN[k].ring]||[]).push(k); });
+
+        // Center → ring1 nodes
+        byRing[1].forEach(function(k, ki) {
+          var p = nodePos[k];
+          var seed = (b.id.charCodeAt(0)*100+ki*37)|0;
+          var path = lightningPath(CX, CY, p.x, p.y, seed, 6, 10);
+          s += '<path d="'+path+'" fill="none" stroke="'+bc+'" stroke-width="'+edgeW+'" opacity="'+edgeAlpha+'"/>';
+        });
+
+        // Ring n → ring n+1 (connect by proximity)
+        [1,2].forEach(function(r2) {
+          var src = byRing[r2]; var dst = byRing[r2+1];
+          if (!src.length||!dst.length) return;
+          dst.forEach(function(dk, di) {
+            // Connect to closest ring-n node
+            var dp = nodePos[dk];
+            var best=src[0]; var bestD=Infinity;
+            src.forEach(function(sk){ var sp=nodePos[sk]; var d=Math.hypot(sp.x-dp.x,sp.y-dp.y); if(d<bestD){bestD=d;best=sk;} });
+            var sp=nodePos[best];
+            var seed2=(b.id.charCodeAt(0)*200+di*53+r2*17)|0;
+            var path2=lightningPath(sp.x,sp.y,dp.x,dp.y,seed2,5,8);
+            s += '<path d="'+path2+'" fill="none" stroke="'+bc+'" stroke-width="'+(edgeW*0.9)+'" opacity="'+(edgeAlpha*0.85)+'"/>';
+          });
+        });
+
+        // Draw nodes
+        bNodes.forEach(function(k) {
+          var p   = nodePos[k];
+          var nd  = PN[k];
+          var state = pan.getNodeState(k);
+          var pts   = pan.invested[k]||0;
+          var learned  = state==='learned';
+          var available= state==='available';
+          var isSel = k === selNode;
+
+          var nodeColor = unlocked ? bc : '#505060';
+          var nodeRgb   = unlocked ? rgb : '80,80,96';
+          var fillOp    = learned ? '0.30' : available ? '0.12' : '0.06';
+          var strokeOp  = learned ? '1.0'  : available ? '0.75' : '0.30';
+          var strokeW   = isSel ? 3.5 : learned ? 2.5 : 2.0;
+
+          // Selection outer ring
+          if (isSel) {
+            s += '<path d="'+hexPath(p.x,p.y,NODE_R+9)+'" fill="rgba(240,200,64,0.12)" stroke="#f0c840" stroke-width="2" filter="url(#gf-sel)"/>';
+          }
+          // Glow background for learned/available
+          if (learned || available) {
+            s += '<path d="'+hexPath(p.x,p.y,NODE_R+4)+'" fill="rgba('+nodeRgb+','+(learned?'0.20':'0.08')+')" stroke="none"/>';
+          }
+          // Hex node
+          s += '<path class="pnt-node" data-nid="'+k+'"'
+            + ' d="'+hexPath(p.x,p.y,NODE_R)+'"'
+            + ' fill="rgba('+nodeRgb+','+fillOp+')"'
+            + ' stroke="'+nodeColor+'" stroke-opacity="'+strokeOp+'" stroke-width="'+strokeW+'"'
+            + ' style="cursor:pointer"'
+            + (learned&&!isSel?' filter="url(#'+filterId+')"':'')
+            + '/>';
+          // Icon
+          s += '<text x="'+p.x.toFixed(1)+'" y="'+(p.y+7)+'" text-anchor="middle" font-size="'+(unlocked?'15':'13')+'"'
+            + ' opacity="'+(unlocked?'1':'0.35')+'" style="pointer-events:none">'+nd.icon+'</text>';
+          // Pts badge for uncapped
+          if (pts>1) {
+            s += '<text x="'+(p.x+14)+'" y="'+(p.y-14)+'" text-anchor="middle" font-size="9" fill="'+bc+'" font-weight="700" style="pointer-events:none">×'+pts+'</text>';
+          }
+          // Branch label at ring 1, slot 0 (first node)
+          if (nd.ring===1 && nd.slot===0) {
+            var labelAngle = b.angle || 0;
+            var labelR = RING_R[1] + NODE_R + 18;
+            var lx = CX + Math.cos(labelAngle)*labelR;
+            var ly = CY + Math.sin(labelAngle)*labelR + 4;
+            s += '<text x="'+lx.toFixed(1)+'" y="'+ly.toFixed(1)+'" text-anchor="middle"'
+              + ' font-size="11" font-family="Cinzel,serif" fill="'+nodeColor+'" opacity="'+(unlocked?'0.85':'0.3')+'"'
+              + ' style="pointer-events:none">'+b.icon+' '+b.label+'</text>';
+          }
+        });
+      });
+
+      return '<svg id="pnt-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+W+' '+H+'" style="width:100%;height:100%;display:block;cursor:grab">'+s+'</svg>';
+    }
+
+    // ── Background gradient (SVG defs must be in the SVG) ──
+    // We render the full SVG inline
+    var svgHtml = buildSVG();
+    canvasBox.innerHTML = svgHtml;
+    svgEl = canvasBox.querySelector('#pnt-svg');
+
+    // ── Pan / Zoom ────────────────────────────────────────
+    var vb = { x:0, y:0, scale:1 };
+    var VW_SVG=1200, VH_SVG=1200;
+    var MIN_SCALE=0.35, MAX_SCALE=2.5;
+    var drag2={active:false,sx:0,sy:0,vx:0,vy:0};
+
+    function applyVB() {
+      var cw=canvasBox.clientWidth||800, ch=canvasBox.clientHeight||600;
+      // Clamp so we never pan outside SVG content
+      var vw=cw/vb.scale, vh=ch/vb.scale;
+      var maxX=Math.max(0,VW_SVG-vw), maxY=Math.max(0,VH_SVG-vh);
+      vb.x=Math.max(0,Math.min(vb.x,maxX));
+      vb.y=Math.max(0,Math.min(vb.y,maxY));
+      var vw2=cw/vb.scale, vh2=ch/vb.scale;
+      svgEl.setAttribute('viewBox', vb.x.toFixed(1)+' '+vb.y.toFixed(1)+' '+vw2.toFixed(1)+' '+vh2.toFixed(1));
+    }
+
+    // Center view initially
+    vb.scale=1;
+    vb.x=(VW_SVG-canvasBox.clientWidth||0)/2;
+    vb.y=(VH_SVG-canvasBox.clientHeight||0)/2;
+    // Small delay for layout
+    setTimeout(function(){
+      var cw=canvasBox.clientWidth, ch=canvasBox.clientHeight;
+      vb.scale=Math.min(cw/VW_SVG, ch/VH_SVG)*0.95;
+      vb.x=0; vb.y=0;
+      applyVB();
+    }, 30);
+
+    // Wheel zoom
+    svgEl.addEventListener('wheel', function(e) {
+      e.preventDefault();
+      var rect=canvasBox.getBoundingClientRect();
+      var mx=(e.clientX-rect.left)/rect.width*VW_SVG/vb.scale+vb.x;
+      var my=(e.clientY-rect.top)/rect.height*VH_SVG/vb.scale+vb.y;
+      var delta=e.deltaY<0?1.12:1/1.12;
+      var newScale=Math.max(MIN_SCALE,Math.min(MAX_SCALE,vb.scale*delta));
+      vb.x=mx-(mx-vb.x)*(vb.scale/newScale);
+      vb.y=my-(my-vb.y)*(vb.scale/newScale);
+      vb.scale=newScale;
+      applyVB();
+    }, {passive:false});
+
+    // Mouse drag
+    svgEl.addEventListener('mousedown', function(e) {
+      if (e.button!==0) return;
+      drag2={active:true,sx:e.clientX,sy:e.clientY,vx:vb.x,vy:vb.y,moved:false};
+      svgEl.style.cursor='grabbing';
+    });
+    window.addEventListener('mousemove', function(e) {
+      if (!drag2.active) return;
+      var dx=e.clientX-drag2.sx, dy=e.clientY-drag2.sy;
+      if (Math.hypot(dx,dy)>4) drag2.moved=true;
+      var rect=canvasBox.getBoundingClientRect();
+      var scx=VW_SVG/rect.width/vb.scale, scy=VH_SVG/rect.height/vb.scale;
+      vb.x=drag2.vx-dx*scx;
+      vb.y=drag2.vy-dy*scy;
+      applyVB();
+    });
+    window.addEventListener('mouseup', function() {
+      if (drag2.active) { drag2.active=false; svgEl.style.cursor='grab'; }
+    });
+
+    // Touch drag/zoom
+    var touches={};
+    svgEl.addEventListener('touchstart', function(e){
+      e.preventDefault();
+      Array.from(e.changedTouches).forEach(function(t){ touches[t.identifier]={x:t.clientX,y:t.clientY}; });
+      if (Object.keys(touches).length===1) {
+        var t=e.changedTouches[0];
+        drag2={active:true,sx:t.clientX,sy:t.clientY,vx:vb.x,vy:vb.y,moved:false};
+      }
+    },{passive:false});
+    svgEl.addEventListener('touchmove', function(e){
+      e.preventDefault();
+      var tArr=Array.from(e.changedTouches);
+      if (Object.keys(touches).length===2) {
+        // pinch zoom
+        var ids=Object.keys(touches); var t0=touches[ids[0]],t1=touches[ids[1]];
+        var newArr=e.touches;
+        if (newArr.length>=2) {
+          var d0=Math.hypot(t0.x-t1.x,t0.y-t1.y);
+          var d1=Math.hypot(newArr[0].clientX-newArr[1].clientX,newArr[0].clientY-newArr[1].clientY);
+          var pinchScale=d1/d0;
+          var rect=canvasBox.getBoundingClientRect();
+          var mx=((t0.x+t1.x)/2-rect.left)/rect.width*VW_SVG/vb.scale+vb.x;
+          var my=((t0.y+t1.y)/2-rect.top)/rect.height*VH_SVG/vb.scale+vb.y;
+          var ns=Math.max(MIN_SCALE,Math.min(MAX_SCALE,vb.scale*pinchScale));
+          vb.x=mx-(mx-vb.x)*(vb.scale/ns);
+          vb.y=my-(my-vb.y)*(vb.scale/ns);
+          vb.scale=ns;
+          applyVB();
+          tArr.forEach(function(t){ touches[t.identifier]={x:t.clientX,y:t.clientY}; });
+        }
+      } else {
+        tArr.forEach(function(t){ touches[t.identifier]={x:t.clientX,y:t.clientY}; });
+        if (drag2.active) {
+          var t=e.changedTouches[0];
+          var dx=t.clientX-drag2.sx,dy=t.clientY-drag2.sy;
+          if (Math.hypot(dx,dy)>4) drag2.moved=true;
+          var rect=canvasBox.getBoundingClientRect();
+          vb.x=drag2.vx-dx*(VW_SVG/rect.width/vb.scale);
+          vb.y=drag2.vy-dy*(VH_SVG/rect.height/vb.scale);
+          applyVB();
+        }
+      }
+    },{passive:false});
+    svgEl.addEventListener('touchend', function(e){
+      Array.from(e.changedTouches).forEach(function(t){ delete touches[t.identifier]; });
+      if (!drag2.moved && e.changedTouches.length===1) {
+        // Treat as click
+        var t=e.changedTouches[0];
+        var fakeEv={clientX:t.clientX,clientY:t.clientY,target:document.elementFromPoint(t.clientX,t.clientY)};
+        handleNodeClick(fakeEv);
+      }
+      drag2.active=false;
+    },{passive:false});
+
+    // ── Node click ────────────────────────────────────────
+    function handleNodeClick(e) {
+      var target = e.target;
+      if (!target) return;
+      var nidEl = target.closest ? target.closest('[data-nid]') : (target.dataset && target.dataset.nid ? target : null);
+      if (!nidEl) return;
+      var nid = nidEl.dataset.nid || (nidEl.getAttribute && nidEl.getAttribute('data-nid'));
+      if (!nid) return;
+      selNode = nid;
+      el._panSelNode = nid;
+      // Rebuild SVG for selection highlight
+      var newSvgHtml = buildSVG();
+      canvasBox.innerHTML = newSvgHtml;
+      svgEl = canvasBox.querySelector('#pnt-svg');
+      rebindSvgEvents();
+      renderDetail(nid);
+    }
+
+    function rebindSvgEvents() {
+      svgEl.addEventListener('wheel', function(e){e.preventDefault();var rect=canvasBox.getBoundingClientRect();var mx=(e.clientX-rect.left)/rect.width*VW_SVG/vb.scale+vb.x;var my=(e.clientY-rect.top)/rect.height*VH_SVG/vb.scale+vb.y;var delta=e.deltaY<0?1.12:1/1.12;var ns=Math.max(MIN_SCALE,Math.min(MAX_SCALE,vb.scale*delta));vb.x=mx-(mx-vb.x)*(vb.scale/ns);vb.y=my-(my-vb.y)*(vb.scale/ns);vb.scale=ns;applyVB();},{passive:false});
+      svgEl.addEventListener('mousedown',function(e){if(e.button!==0)return;drag2={active:true,sx:e.clientX,sy:e.clientY,vx:vb.x,vy:vb.y,moved:false};svgEl.style.cursor='grabbing';});
+      svgEl.addEventListener('touchstart',function(e){e.preventDefault();Array.from(e.changedTouches).forEach(function(t){touches[t.identifier]={x:t.clientX,y:t.clientY};});if(Object.keys(touches).length===1){var t=e.changedTouches[0];drag2={active:true,sx:t.clientX,sy:t.clientY,vx:vb.x,vy:vb.y,moved:false};}},{passive:false});
+      svgEl.addEventListener('touchend',function(e){Array.from(e.changedTouches).forEach(function(t){delete touches[t.identifier];});if(!drag2.moved&&e.changedTouches.length===1){var t=e.changedTouches[0];var fakeEv={clientX:t.clientX,clientY:t.clientY,target:document.elementFromPoint(t.clientX,t.clientY)};handleNodeClick(fakeEv);}drag2.active=false;},{passive:false});
+      svgEl.addEventListener('click', handleNodeClick);
+      applyVB();
+    }
+
+    svgEl.addEventListener('click', handleNodeClick);
+
+    // ── Render detail panel ───────────────────────────────
     function renderDetail(nodeId) {
-      var PN = (typeof PANTHEON_NODES !== 'undefined') ? PANTHEON_NODES : {};
       var nd = PN[nodeId];
-      if (!nd) { detailEl.innerHTML = '<div class="pan2-hint">Clique sur un talent pour voir les détails</div>'; return; }
-      var branch = branches.find(function(b){ return b.id === nd.branch; });
+      if (!nd) { sideEl.innerHTML='<div class="pnt-hint">← Clique sur un talent</div>'; return; }
+      var branch = branches.find(function(b){ return b.id===nd.branch; });
       var bc = branch ? branch.color : '#888';
       var rgb = hexToRgb(bc);
       var state = pan.getNodeState(nodeId);
       var check = pan.canLearn(nodeId);
-      var pts   = pan.invested[nodeId] || 0;
+      var pts   = pan.invested[nodeId]||0;
+      var unlocked = pan.isBranchUnlocked(nd.branch);
 
-      var stateLabel = state==='learned' ? '✅ Acquis' : state==='available' ? '🟡 Disponible' : '🔒 Verrouillé';
-      var stateColor = state==='learned' ? '#60e060' : state==='available' ? '#f0c840' : '#808080';
+      var stateLabel = state==='learned'   ? '✅ Acquis'
+                     : state==='available' ? '🟡 Disponible'
+                     : '🔒 Verrouillé';
+      var stateColor = state==='learned'   ? '#60e060'
+                     : state==='available' ? '#f0c840'
+                     : '#808080';
 
       var prereqHtml = '';
-      if (nd.requires && nd.requires.length > 0) {
-        prereqHtml = '<div class="pan2-d-prereq">🔗 Prérequis : ' +
+      if (nd.requires&&nd.requires.length>0) {
+        prereqHtml='<div class="pnt-d-prereq">🔗 Prérequis : '+
           nd.requires.map(function(rId){
-            var rn = PN[rId]; var ok = (pan.invested[rId]||0)>0;
+            var rn=PN[rId]; var ok=(pan.invested[rId]||0)>0;
             return '<span style="color:'+(ok?'#60e060':'#e06060')+'">'+(rn?rn.name:rId)+'</span>';
-          }).join(', ') + '</div>';
+          }).join(', ')+'</div>';
       }
 
-      var buyDisabled = (state==='learned' && !nd.uncapped) || !check.ok;
-      var buyLabel = state==='learned' && !nd.uncapped ? '✅ Acquis'
-                  : nd.uncapped ? '✨ +'+ nd.cost +' Éther (' + (pts>0?'×'+pts+' — ':'')+' sans limite)'
-                  : check.ok    ? '✨ Apprendre — ' + nd.cost + ' Éther'
-                  : '🔒 ' + (check.reason || 'Indisponible');
+      var buyDisabled = (state==='learned'&&!nd.uncapped)||!check.ok;
+      var buyLabel = state==='learned'&&!nd.uncapped ? '✅ Déjà acquis'
+                   : !unlocked                       ? '🔒 Branche verrouillée'
+                   : nd.uncapped ? '✨ Acheter à nouveau — '+nd.cost+' Éther'+(pts>0?' (×'+pts+' actuel)':'')
+                   : check.ok   ? '✨ Apprendre — '+nd.cost+' Éther'
+                   : '🔒 '+(check.reason||'Indisponible');
 
-      detailEl.innerHTML =
-        '<div class="pan2-d-wrap" style="--bc:'+bc+';--rgb:'+rgb+'">' +
-          '<div class="pan2-d-head">' +
-            '<div class="pan2-d-hex"><svg viewBox="0 0 60 70" width="56" height="64">' +
+      sideEl.innerHTML =
+        '<div class="pnt-d-wrap" style="--bc:'+bc+';--rgb:'+rgb+'">' +
+          '<div class="pnt-d-head">' +
+            '<svg viewBox="0 0 60 70" width="52" height="60">' +
               '<polygon points="30,2 56,17 56,53 30,68 4,53 4,17" fill="rgba('+rgb+',0.25)" stroke="'+bc+'" stroke-width="2.5"/>' +
-              '<text x="30" y="43" text-anchor="middle" font-size="24">'+nd.icon+'</text></svg></div>' +
-            '<div class="pan2-d-info">' +
-              '<div class="pan2-d-name">'+nd.name+'</div>' +
-              '<div class="pan2-d-branch" style="color:'+bc+'">'+( branch?branch.icon+' '+branch.label:'')+'</div>' +
-              '<div class="pan2-d-ring">Anneau ' + nd.ring + (nd.uncapped?' · ∞':'')+' · Coût : '+nd.cost+' ✨</div>' +
+              '<text x="30" y="44" text-anchor="middle" font-size="26">'+nd.icon+'</text>' +
+            '</svg>' +
+            '<div class="pnt-d-info">' +
+              '<div class="pnt-d-name">'+nd.name+'</div>' +
+              '<div class="pnt-d-branch" style="color:'+bc+'">'+(branch?branch.icon+' '+branch.label:'')+'</div>' +
+              '<div class="pnt-d-ring">Anneau '+nd.ring+(nd.uncapped?' · ∞':'')+' · '+nd.cost+' ✨</div>' +
             '</div>' +
           '</div>' +
-          '<div class="pan2-d-state" style="color:'+stateColor+'">'+stateLabel+(pts>1?' (×'+pts+')':state==='learned'&&pts===1?' (×1)':'')+'</div>' +
-          '<div class="pan2-d-desc">'+nd.desc+'</div>' +
+          '<div class="pnt-d-state" style="color:'+stateColor+'">'+stateLabel+(pts>1?' (×'+pts+')':state==='learned'&&pts===1?' (×1)':'')+'</div>' +
+          '<div class="pnt-d-desc">'+nd.desc+'</div>' +
           prereqHtml +
-          '<button class="pan2-d-buy'+(buyDisabled?' disabled':'')+'" data-buy-node="'+nodeId+'"'+(buyDisabled?' disabled':'')+'>'+buyLabel+'</button>' +
+          '<button class="pnt-d-buy'+(buyDisabled?' disabled':'')+'" data-buy-node="'+nodeId+'"'+(buyDisabled?' disabled':'')+'>'+buyLabel+'</button>' +
         '</div>';
+
+      sideEl.querySelector('[data-buy-node]').onclick = function(e) {
+        var btn=e.currentTarget;
+        if (btn.disabled) return;
+        var nid2=btn.dataset.buyNode;
+        if (pan.learn(nid2, e.clientX, e.clientY)) {
+          var etherEl=document.getElementById('pnt-ether');
+          if (etherEl) etherEl.textContent='✨ '+fmtE(self.rm?self.rm.get('ether'):0)+' Éther';
+          var newSvgHtml=buildSVG();
+          canvasBox.innerHTML=newSvgHtml;
+          svgEl=canvasBox.querySelector('#pnt-svg');
+          rebindSvgEvents();
+          renderDetail(nid2);
+        }
+      };
     }
 
-    // ── Render branch nodes grid ──────────────────────────
-    function renderBranchContent(branchId) {
-      activeBranch = branchId;
-      el._panActiveBranch = branchId;
-      navEl.querySelectorAll('.pan2-branch-btn').forEach(function(b){
-        b.classList.toggle('active', b.dataset.branch === branchId);
-      });
-
-      var branch   = branches.find(function(b){ return b.id === branchId; });
-      var unlocked = pan.isBranchUnlocked(branchId);
-
-      if (!unlocked) {
-        contentEl.innerHTML =
-          '<div class="pan2-locked-branch">' +
-          '<div style="font-size:48px">'+branch.icon+'</div>' +
-          '<div style="font-size:18px;color:'+branch.color+';margin:8px 0">'+branch.label+'</div>' +
-          '<div style="color:#888;font-size:13px">Branche verrouillée</div>' +
-          '<div style="color:#666;font-size:11px;margin-top:4px">Débloquez la zone correspondante (Phase 8)</div>' +
-          '</div>';
-        return;
-      }
-
-      // Get nodes for this branch, sorted ring→slot
-      var PN = (typeof PANTHEON_NODES !== 'undefined') ? PANTHEON_NODES : {};
-      var bNodes = Object.keys(PN).filter(function(k){ return PN[k].branch===branchId; })
-        .map(function(k){ return Object.assign({},PN[k],{id:k}); })
-        .sort(function(a,b){ return a.ring!==b.ring ? a.ring-b.ring : a.slot-b.slot; });
-
-      var byRing = {1:[],2:[],3:[]};
-      bNodes.forEach(function(nd){ (byRing[nd.ring]||(byRing[nd.ring]=[])).push(nd); });
-
-      var ringDefs = [
-        {ring:1,label:'Anneau I — Fondements',   color:'#b09060'},
-        {ring:2,label:'Anneau II — Synergies',    color:'#60a0c8'},
-        {ring:3,label:'Anneau III — Maîtrise ∞',  color:'#c080f0'},
-      ];
-
-      var bc = branch.color || '#888';
-      var html = '';
-      ringDefs.forEach(function(rd) {
-        var rNodes = byRing[rd.ring]||[];
-        if (!rNodes.length) return;
-        html += '<div class="pan2-ring-section"><div class="pan2-ring-label" style="color:'+rd.color+'">'+rd.label+'</div><div class="pan2-ring-grid">';
-        rNodes.forEach(function(nd) {
-          var state     = pan.getNodeState(nd.id);
-          var pts       = pan.invested[nd.id] || 0;
-          var isSel     = nd.id === selNode;
-          var isLearned = state==='learned';
-          var isAvail   = state==='available';
-          var rgb = hexToRgb(bc);
-          var borderCol = isLearned ? bc : isAvail ? '#c89620' : 'rgba(80,60,120,0.4)';
-          var fillCol   = isLearned ? 'rgba('+rgb+',0.22)' : isAvail ? 'rgba(200,150,26,0.10)' : 'rgba(20,15,35,0.6)';
-          var selStyle  = isSel ? 'box-shadow:0 0 0 2px #f0c840,0 0 14px rgba(240,200,64,0.55);' : '';
-          html +=
-            '<div class="pan2-node'+(isLearned?' learned':isAvail?' avail':'')+'" data-pannode="'+nd.id+'"'+
-            ' style="border-color:'+borderCol+';background:'+fillCol+';'+selStyle+'">' +
-            '<div class="pan2-node-hex"><svg viewBox="0 0 60 70" width="44" height="50">' +
-              '<polygon points="30,2 56,17 56,53 30,68 4,53 4,17" fill="'+fillCol+'" stroke="'+borderCol+'" stroke-width="2.5"'+
-              (isSel?' filter="drop-shadow(0 0 6px #f0c840)"':'')+'/>' +
-              (isLearned?'<polygon points="30,2 56,17 56,53 30,68 4,53 4,17" fill="rgba('+rgb+',0.15)"/>':'') +
-              '<text x="30" y="43" text-anchor="middle" font-size="20">'+nd.icon+'</text>' +
-            '</svg></div>' +
-            '<div class="pan2-node-name">'+nd.name+'</div>' +
-            (nd.uncapped&&pts>0?'<div class="pan2-node-pts">×'+pts+'</div>':'') +
-            (isLearned&&!nd.uncapped?'<div class="pan2-node-check">✅</div>':'') +
-            '</div>';
-        });
-        html += '</div></div>';
-      });
-      contentEl.innerHTML = html;
-
-      if (selNode) renderDetail(selNode);
-      else detailEl.innerHTML = '<div class="pan2-hint">← Sélectionne un talent</div>';
-    }
-
-    // ── Events (use .onclick to avoid accumulation) ───────
-    navEl.onclick = function(e) {
-      var btn = e.target.closest('.pan2-branch-btn');
-      if (!btn || btn.classList.contains('locked')) return;
-      renderBranchContent(btn.dataset.branch);
-    };
-
-    contentEl.onclick = function(e) {
-      var card = e.target.closest('[data-pannode]');
-      if (!card) return;
-      selNode = card.dataset.pannode;
-      el._panSelectedNode = selNode;
-      // Update selection highlight
-      contentEl.querySelectorAll('[data-pannode]').forEach(function(c2){
-        var isSel = c2.dataset.pannode === selNode;
-        if (isSel) c2.style.boxShadow = '0 0 0 2px #f0c840,0 0 14px rgba(240,200,64,0.55)';
-        else c2.style.boxShadow = '';
-      });
-      renderDetail(selNode);
-    };
-
-    detailEl.onclick = function(e) {
-      var btn = e.target.closest('[data-buy-node]');
-      if (!btn || btn.disabled) return;
-      var nodeId = btn.dataset.buyNode;
-      if (pan.learn(nodeId, e.clientX, e.clientY)) {
-        var etherEl = document.getElementById('pan-ether-count');
-        if (etherEl) etherEl.textContent = '✨ ' + fmtE(self.rm ? self.rm.get('ether') : 0) + ' Éther';
-        // Refresh current branch
-        renderBranchContent(activeBranch);
-        renderDetail(nodeId);
-      }
-    };
-
-    renderBranchContent(activeBranch);
     if (selNode) renderDetail(selNode);
-    else detailEl.innerHTML = '<div class="pan2-hint">← Sélectionne un talent pour voir les détails</div>';
   }
+
 
 
   // ── Mode verrou construction ─────────────────────────────
