@@ -259,3 +259,128 @@
   :root { --hex-size: 74px; --bp-slider-h: 108px; }
   .hex-icon { font-size: 28px; }
 }
+
+/* ══════════════════════════════════════════════════════════
+   BUILD BAR — Dock 7 catégories + tiroir surgissant
+   v0.9.85
+══════════════════════════════════════════════════════════ */
+
+#bb-bar {
+  position: fixed;
+  left: 0; right: 0;
+  bottom: var(--hud-bottom-h, 52px);
+  z-index: 200;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  /* Hidden by default */
+  visibility: hidden;
+}
+#bb-bar.bb-bar-visible {
+  visibility: visible;
+}
+
+/* ── Tiroir (surgit au-dessus du dock) ─────────────────── */
+#bb-drawer {
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 44px 6px 10px; /* right pad for close btn */
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  background: linear-gradient(180deg,
+    rgba(6,3,14,0) 0%,
+    rgba(6,3,14,0.96) 20%,
+    rgba(6,3,14,0.98) 100%);
+  min-height: 86px;
+  transition: max-height 0.22s cubic-bezier(0.4,0,0.2,1), opacity 0.18s;
+  max-height: 0;
+  opacity: 0;
+  position: relative;
+}
+#bb-drawer::-webkit-scrollbar { display: none; }
+#bb-drawer.bb-drawer-open {
+  pointer-events: all;
+  max-height: 110px;
+  opacity: 1;
+}
+#bb-drawer.bb-drawer-closed {
+  pointer-events: none;
+  max-height: 0;
+  opacity: 0;
+}
+
+/* Close button in drawer */
+.bb-drawer-close {
+  position: absolute;
+  right: 6px; top: 50%;
+  transform: translateY(-50%);
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: rgba(10,6,22,0.9);
+  border: 1px solid rgba(200,149,26,0.25);
+  color: rgba(255,255,255,0.45);
+  font-size: 12px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  z-index: 5;
+  pointer-events: all;
+}
+.bb-drawer-close:hover { color: #e05050; border-color: rgba(224,80,80,0.5); }
+
+/* ── Dock (catégories) ──────────────────────────────────── */
+#bb-dock {
+  pointer-events: all;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  gap: 2px;
+  padding: 4px 6px 3px;
+  background: rgba(8,5,18,0.97);
+  border-top: 1px solid rgba(200,149,26,0.18);
+  backdrop-filter: blur(8px);
+}
+
+.bb-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  flex: 1;
+  max-width: 64px;
+  padding: 4px 2px;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.13s, border-color 0.13s;
+}
+.bb-tab:hover {
+  background: rgba(255,255,255,0.06);
+}
+.bb-tab-active {
+  background: rgba(200,149,26,0.14);
+  border-color: rgba(200,149,26,0.45);
+}
+.bb-tab-icon  { font-size: 18px; line-height: 1; }
+.bb-tab-label {
+  font-family: Cinzel, serif;
+  font-size: 8px;
+  color: rgba(200,160,80,0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  white-space: nowrap;
+}
+.bb-tab-active .bb-tab-label { color: rgba(240,200,80,1); }
+
+@media (max-width:600px) {
+  .bb-tab-label { display: none; }
+  .bb-tab       { padding: 5px 3px; }
+  .bb-tab-icon  { font-size: 20px; }
+  #bb-dock      { gap: 0; }
+}
