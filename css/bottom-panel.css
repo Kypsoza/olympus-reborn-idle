@@ -3,7 +3,7 @@
    ═══════════════════════════════════════════════════════════ */
 
 :root {
-  --hex-size: 68px;
+  --hex-size: 82px;
   --bp-slider-h: 100px;
 }
 
@@ -108,7 +108,7 @@
 /* Icône */
 .hex-icon {
   position: relative; z-index: 1;
-  font-size: 24px; line-height: 1;
+  font-size: 28px; line-height: 1;
   transition: filter 0.13s;
 }
 .hex-locked .hex-icon { opacity: 0.3; filter: grayscale(0.9); }
@@ -116,8 +116,8 @@
 /* Label */
 .hex-label {
   position: relative; z-index: 1;
-  font-size: 8.5px; font-family: Cinzel, serif;
-  color: rgba(200,180,140,0.72); text-align: center;
+  font-size: 9.5px; font-family: Cinzel, serif;
+  color: rgba(200,180,140,0.82); text-align: center;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   max-width: calc(var(--hex-size) + 4px); line-height: 1.2;
 }
@@ -147,7 +147,7 @@
 .hex-cost {
   position: absolute; bottom: 3px; left: 50%;
   transform: translateX(-50%);
-  z-index: 2; font-size: 7.5px; color: #80e080;
+  z-index: 2; font-size: 8.5px; color: #80e080;
   white-space: nowrap; pointer-events: none;
 }
 .hex-cost.short { color: #e08080; }
@@ -240,9 +240,9 @@
    RESPONSIVE
 ══════════════════════════════════════════════════════════ */
 @media (max-width: 600px) {
-  :root { --hex-size: 58px; --bp-slider-h: 88px; }
+  :root { --hex-size: 68px; --bp-slider-h: 100px; }
   #bp-drawer { right: 0; }
-  .hex-icon { font-size: 22px; }
+  .hex-icon { font-size: 26px; }
   .hex-label { font-size: 8px; }
   .btt-close { display: block; }
   #bld-tooltip.pinned {
@@ -286,7 +286,9 @@
   pointer-events: none;
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  flex-wrap: nowrap;
+  gap: 8px;
   padding: 6px 44px 6px 10px; /* right pad for close btn */
   overflow-x: auto;
   overflow-y: hidden;
@@ -295,7 +297,7 @@
     rgba(6,3,14,0) 0%,
     rgba(6,3,14,0.96) 20%,
     rgba(6,3,14,0.98) 100%);
-  min-height: 86px;
+  min-height: 108px;
   transition: max-height 0.22s cubic-bezier(0.4,0,0.2,1), opacity 0.18s;
   max-height: 0;
   opacity: 0;
@@ -304,7 +306,7 @@
 #bb-drawer::-webkit-scrollbar { display: none; }
 #bb-drawer.bb-drawer-open {
   pointer-events: all;
-  max-height: 110px;
+  max-height: 130px;
   opacity: 1;
 }
 #bb-drawer.bb-drawer-closed {

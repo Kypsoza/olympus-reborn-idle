@@ -23,14 +23,14 @@ class BuildingPanel {
 
     // ── Catégories ────────────────────────────────────────
     var CATS = [
-      { id:'nature',   icon:'🌿', label:'Nature',       ids:['ferme','moulin','grenier','verger','ruche','oliveraie','camp_bucherons','scierie','charbonnerie'] },
-      { id:'extract',  icon:'⛏️', label:'Extraction',   ids:['mine_fer','fonderie','carriere'] },
-      { id:'transform',icon:'⚙️', label:'Transfo',      ids:['moulin','atelier','forge','manufacture','fonderie','alambic','atelier_divin','forge_divine','autel_fusion'] },
-      { id:'housing',  icon:'🛖', label:'Logements',    ids:['maison','taverne','temple','marche','agora'] },
-      { id:'energy',   icon:'⚡', label:'Énergie',      ids:['pylone','noeud_olympien'] },
-      { id:'explore',  icon:'🗺️', label:'Exploration',  ids:['tour_guet','sanctuaire','temple_hermes'] },
-      { id:'wonders',  icon:'🏛️', label:'Merveilles',   ids:['agora','forteresse','senat','palais'] },
-      { id:'road',     icon:'🛤️', label:'Routes',       ids:[] },
+      { id:'nature',    icon:'🌿', label:'Nature',      ids:['farm','lumber','moulin','verger','halle','jardins','bosquet'] },
+      { id:'extract',   icon:'⛏️', label:'Extraction',  ids:['mine_copper','mine_iron','tresor'] },
+      { id:'transform', icon:'⚙️', label:'Transfo',     ids:['atelier_forgeron','fonderie_celeste','alambic','forge_divine','autel_fusion','distillerie','fontaine'] },
+      { id:'housing',   icon:'🛖', label:'Logements',   ids:['huttes','maison','palais','stele_zeus','bibliotheque'] },
+      { id:'energy',    icon:'⚡', label:'Énergie',     ids:['pylone','noeud_olympien'] },
+      { id:'explore',   icon:'🗺️', label:'Explore',     ids:['scout','sanctuaire','temple_hermes'] },
+      { id:'wonders',   icon:'🏛️', label:'Merveilles',  ids:['agora','forteresse','senat'] },
+      { id:'road',      icon:'🛤️', label:'Routes',      ids:[] },
     ];
 
     // ── Outer bar DOM ─────────────────────────────────────
@@ -2064,59 +2064,79 @@ _renderPantheonTab(el) {
       }
 
       if (style==='vine') {
-        // Déméter — racines tortueuses vert émeraude
-        // Deux courbes de Bézier cubiques enchaînées (S-curve)
-        var r1=rnd, r2=rnd;
-        var cp1x=x1+dx*0.25+(rnd()-0.5)*36, cp1y=y1+dy*0.25+(rnd()-0.5)*36;
-        var cp2x=x1+dx*0.55+(rnd()-0.5)*28, cp2y=y1+dy*0.55+(rnd()-0.5)*28;
-        var cp3x=x1+dx*0.75+(rnd()-0.5)*20, cp3y=y1+dy*0.75+(rnd()-0.5)*20;
-        var d='M'+x1.toFixed(1)+','+y1.toFixed(1)
+        // Déméter — racines tortueuses, plusieurs brins emmêlés vert émeraude
+        // Brin principal: courbe cubique avec forte déviation
+        var cp1x=x1+dx*0.3+(rnd()-0.5)*44, cp1y=y1+dy*0.3+(rnd()-0.5)*44;
+        var cp2x=x1+dx*0.7+(rnd()-0.5)*38, cp2y=y1+dy*0.7+(rnd()-0.5)*38;
+        var main='M'+x1.toFixed(1)+','+y1.toFixed(1)
             +' C'+cp1x.toFixed(1)+','+cp1y.toFixed(1)
             +' '+cp2x.toFixed(1)+','+cp2y.toFixed(1)
-            +' '+(x1+dx*0.5).toFixed(1)+','+(y1+dy*0.5).toFixed(1)
-            +' S'+cp3x.toFixed(1)+','+cp3y.toFixed(1)
             +' '+x2.toFixed(1)+','+y2.toFixed(1);
-        return {d:d, strokeW:2.0, strokeDash:'none', color:'#34d058'};
+        // Second brin décalé
+        var cp3x=x1+dx*0.35+(rnd()-0.5)*30+10, cp3y=y1+dy*0.35+(rnd()-0.5)*30+10;
+        var cp4x=x1+dx*0.65+(rnd()-0.5)*22-10, cp4y=y1+dy*0.65+(rnd()-0.5)*22-10;
+        var brin2='M'+(x1+nx*6).toFixed(1)+','+(y1+ny*6).toFixed(1)
+            +' C'+cp3x.toFixed(1)+','+cp3y.toFixed(1)
+            +' '+cp4x.toFixed(1)+','+cp4y.toFixed(1)
+            +' '+(x2+nx*6).toFixed(1)+','+(y2+ny*6).toFixed(1);
+        // Return combined path
+        return {d:main+' '+brin2, strokeW:1.8, strokeDash:'none', color:'#2de05a'};
       }
 
       if (style==='chain') {
-        // Héphaïstos — chaînes incandescentes, tirets denses
-        var Nc=8; var pts=[[x1,y1]];
+        // Héphaïstos — chaînes incandescentes, maillons en tirets épais
+        // Double path: chain links as thick dashes + thin inner
+        var pts=[[x1,y1]];
+        var Nc=10;
         for(var ic=1;ic<Nc;ic++){
-          var tc=ic/Nc, jc=(ic%2===0?7:-7);
+          var tc=ic/Nc, jc=(ic%2===0?8:-8)*(0.7+rnd()*0.6);
           pts.push([x1+tc*dx+jc*nx, y1+tc*dy+jc*ny]);
         }
         pts.push([x2,y2]);
-        return {d:pts2path(pts), strokeW:2.5, strokeDash:'6,3', color:'#ff6820'};
+        return {d:pts2path(pts), strokeW:3.0, strokeDash:'8,5', color:'#ff7030'};
       }
 
       if (style==='wavy') {
-        // Aphrodite — rubans sinueux rose poudré, amplitude douce
-        var Nw=10; var pts=[[x1,y1]];
+        // Aphrodite — rubans de soie chatoyants, multiple brins rose poudré
+        var Nw=12; var ampW=20;
+        var pts1=[[x1,y1]], pts2b=[[x1+nx*8,y1+ny*8]], pts3b=[[x1-nx*8,y1-ny*8]];
         for(var iw=1;iw<Nw;iw++){
-          var tw=iw/Nw, ww=Math.sin(tw*Math.PI*3)*16;
-          pts.push([x1+tw*dx+ww*nx, y1+tw*dy+ww*ny]);
+          var tw=iw/Nw;
+          var ww=Math.sin(tw*Math.PI*4)*ampW;
+          pts1.push([x1+tw*dx+ww*nx, y1+tw*dy+ww*ny]);
+          pts2b.push([x1+tw*dx+(ww+10)*nx, y1+tw*dy+(ww+10)*ny]);
+          pts3b.push([x1+tw*dx+(ww-10)*nx, y1+tw*dy+(ww-10)*ny]);
         }
-        pts.push([x2,y2]);
-        return {d:pts2path(pts), strokeW:2.0, strokeDash:'none', color:'#f8a8c8'};
+        pts1.push([x2,y2]); pts2b.push([x2+nx*8,y2+ny*8]); pts3b.push([x2-nx*8,y2-ny*8]);
+        var d=pts2path(pts1)+' '+pts2path(pts2b)+' '+pts2path(pts3b);
+        return {d:d, strokeW:1.5, strokeDash:'none', color:'#ffb0d8'};
       }
 
       if (style==='jagged') {
-        // Hadès — veines de saphir dentelées, irrégulières
-        var Nj=9; var pts=[[x1,y1]];
+        // Hadès — veines sombres de saphir et d'ombre violette
+        var Nj=11; var pts=[[x1,y1]];
         for(var ij=1;ij<Nj;ij++){
-          var tj=ij/Nj, jj=(ij%2===0?1:-1)*(8+rnd()*16);
-          // Add slight radial drift toward center
-          pts.push([x1+tj*dx+jj*nx+(rnd()-0.5)*8, y1+tj*dy+jj*ny+(rnd()-0.5)*8]);
+          var tj=ij/Nj;
+          var jj=(ij%2===0?1:-1)*(6+rnd()*18);
+          var dr=(rnd()-0.5)*7; // aléatoire supplémentaire
+          pts.push([x1+tj*dx+jj*nx+dr*ny, y1+tj*dy+jj*ny-dr*nx]);
         }
         pts.push([x2,y2]);
-        return {d:pts2path(pts), strokeW:1.8, strokeDash:'none', color:'#7844cc'};
+        // Second vein slightly offset
+        var pts2v=[[x1+nx*5,y1+ny*5]];
+        for(var ij2=1;ij2<Nj;ij2++){
+          var tj2=ij2/Nj, jj2=(ij2%2===0?1:-1)*(4+rnd()*12);
+          pts2v.push([x1+tj2*dx+jj2*nx+5, y1+tj2*dy+jj2*ny+5]);
+        }
+        pts2v.push([x2+nx*5,y2+ny*5]);
+        return {d:pts2path(pts)+' '+pts2path(pts2v), strokeW:1.7, strokeDash:'none', color:'#8855ee'};
       }
 
       if (style==='arrow') {
-        // Artémis — flèches spectrales, trait fin et droit
+        // Artémis — flèches spectrales argentées, fines et droites
+        // Fine ligne + petits tirets espacés (évoque une flèche en vol)
         return {d:'M'+x1.toFixed(1)+','+y1.toFixed(1)+'L'+x2.toFixed(1)+','+y2.toFixed(1),
-                strokeW:1.6, strokeDash:'8,4', color:'#c0d8ff'};
+                strokeW:1.8, strokeDash:'10,5', color:'#d0e8ff'};
       }
 
       // Default wobble (cartographie, prestige_codex, ornate)
@@ -2192,34 +2212,39 @@ _renderPantheonTab(el) {
            + ' Z"'
            + ' fill="rgba('+rgb+','+fillOp+')" stroke="rgba('+rgb+','+strokeOp+')" stroke-width="1"/>';
 
-        // Branch label at tip of sector (beyond ring3) — very prominent
-        var labelR = SECTOR_R_OUTER + 44;
+        // Branch label at tip of sector — clean, no double-text artifact
+        var labelR = SECTOR_R_OUTER + 50;
         var labelAngle = angleDeg*Math.PI/180;
         var lx=CX+Math.cos(labelAngle)*labelR, ly=CY+Math.sin(labelAngle)*labelR;
         var nameColor = unlocked ? bc : '#504858';
         var rgb2 = hexToRgb(bc);
 
         if (unlocked) {
-          // Golden aura glow behind label
-          s += '<ellipse cx="'+lx.toFixed(1)+'" cy="'+(ly+4).toFixed(1)+'"'
-             + ' rx="58" ry="26" fill="rgba('+rgb2+',0.18)" stroke="rgba(240,200,64,0.55)" stroke-width="1"/>';
-          // Drop shadow text (fake glow layer)
-          s += '<text x="'+lx.toFixed(1)+'" y="'+(ly+16).toFixed(1)+'" text-anchor="middle"'
-             + ' font-family="Cinzel,serif" font-size="18" font-weight="900"'
-             + ' fill="rgba(240,200,64,0.35)" filter="url(#glow-sel)">'+b.label+'</text>';
+          // Unique filter per branch for glow — no blur bleed onto text
+          var glowId = 'glow-lbl-'+b.id.replace(/[^a-z0-9]/g,'');
+          // (filters already in defs — use branch glow filter)
+          // Aura pill: colored rectangle behind label only
+          var pillW=72, pillH=28;
+          s += '<rect x="'+(lx-pillW/2).toFixed(1)+'" y="'+(ly-20).toFixed(1)+'"'
+             + ' width="'+pillW+'" height="'+pillH+'" rx="14"'
+             + ' fill="rgba('+rgb2+',0.20)" stroke="rgba('+rgb2+',0.70)" stroke-width="1.5"/>';
         }
-        // Icon
-        s += '<text x="'+lx.toFixed(1)+'" y="'+(ly-4).toFixed(1)+'" text-anchor="middle"'
-           + ' font-size="20" opacity="'+(unlocked?'1':'0.35')+'">'+b.icon+'</text>';
-        // God name — BIG and colored
-        s += '<text x="'+lx.toFixed(1)+'" y="'+(ly+18).toFixed(1)+'" text-anchor="middle"'
-           + ' font-family="Cinzel,serif" font-size="'+(unlocked?'17':'13')+'" font-weight="900"'
+        // Icon (above pill)
+        s += '<text x="'+lx.toFixed(1)+'" y="'+(ly-26).toFixed(1)+'" text-anchor="middle"'
+           + ' font-size="18" opacity="'+(unlocked?'1':'0.35')+'">'+b.icon+'</text>';
+        // God name — single clean text, no blur layer
+        s += '<text x="'+lx.toFixed(1)+'" y="'+(ly-3).toFixed(1)+'" text-anchor="middle"'
+           + ' font-family="Cinzel,serif" font-size="'+(unlocked?'15':'12')+'" font-weight="900"'
            + ' fill="'+nameColor+'" opacity="'+(unlocked?'1':'0.40')+'">'+b.label+'</text>';
         // Sector divider lines
         s += '<line x1="'+(CX+Math.cos(a0)*SECTOR_R_INNER).toFixed(1)+'" y1="'+(CY+Math.sin(a0)*SECTOR_R_INNER).toFixed(1)+'"'
            + ' x2="'+(CX+Math.cos(a0)*SECTOR_R_OUTER).toFixed(1)+'" y2="'+(CY+Math.sin(a0)*SECTOR_R_OUTER).toFixed(1)+'"'
            + ' stroke="rgba('+rgb+',0.20)" stroke-width="1" stroke-dasharray="4,5"/>';
       });
+
+      // Ellipse transform group — all tree content stretched to ellipse shape
+      // SX=1.45 (wider), SY=0.82 (shorter) applied around center CX,CY
+      s += '<g transform="translate('+CX+','+CY+') scale(1.45,0.82) translate(-'+CX+',-'+CY+')">';
 
       // Ring guide circles
       [RING_START, RING_START+RING_STEP, RING_START+2*RING_STEP].forEach(function(r2) {
@@ -2321,6 +2346,8 @@ _renderPantheonTab(el) {
           }
         });
       });
+
+      s += '</g>'; // end ellipse transform
 
       return '<svg id="pnt-svg" xmlns="http://www.w3.org/2000/svg"'
            + ' viewBox="0 0 '+W+' '+H+'"'
