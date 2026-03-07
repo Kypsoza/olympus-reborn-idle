@@ -1062,6 +1062,19 @@ class BuildingPanel {
   _renderEmptyUI(cell, body) {
     var self = this;
 
+    /* ── Catégories de bâtiments SimCity-style ─────────────── */
+    var BUILDING_CATEGORIES = [
+      { id:'all',         label:'Tout',        icon:'🏛️', ids: null },
+      { id:'farm',        label:'Agriculture',  icon:'🌾', ids: ['ferme','moulin','grenier','verger','ruche','oliveraie'] },
+      { id:'wood',        label:'Bois',         icon:'🌲', ids: ['camp_bucherons','scierie','charbonnerie'] },
+      { id:'mine',        label:'Mine',         icon:'⛏️', ids: ['mine_fer','fonderie','forge','atelier'] },
+      { id:'pop',         label:'Population',   icon:'👥', ids: ['maison','taverne','temple','marche'] },
+      { id:'prod',        label:'Production',   icon:'⚙️', ids: ['manufacture','arsenal','atelier_divin'] },
+      { id:'road',        label:'Routes',       icon:'🛤️', ids: [] },
+    ];
+    if (!self._activeBldCat) self._activeBldCat = 'all';
+    var _activeBldCat = self._activeBldCat;
+
     /* ── SVG hexagone helper ──────────────────────────────── */
     function hexSVG() {
       // Flat-top hexagone — points calculés pour 68×78 (ratio utilisé)
@@ -1259,6 +1272,7 @@ class BuildingPanel {
       var catBtn = e.target.closest('.bp-cat-btn');
       if (!catBtn) return;
       _activeBldCat = catBtn.dataset.cat;
+      self._activeBldCat = _activeBldCat;
       catBar.querySelectorAll('.bp-cat-btn').forEach(function(b){ b.classList.toggle('active', b.dataset.cat === _activeBldCat); });
       filterAndRenderHex(_activeBldCat);
     });
