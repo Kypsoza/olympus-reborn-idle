@@ -1896,4 +1896,52 @@ class BuildingPanel {
 
     renderBranchTree(activeBranch);
   }
+
+  // ── Liaison événements ──────────────────────────────────
+  _bindEvents() {
+    var self = this;
+
+    // Clic sur une case de la carte → ouvrir le drawer
+    EventBus.on('cell:clicked', function(d) {
+      var cell = d.cell;
+      if (!cell) return;
+      var sx = d.screenX || window.innerWidth / 2;
+      var sy = d.screenY || window.innerHeight / 2;
+
+      // Clic dans le vide -> ferme le slider
+      if (!cell) { self.hide(); return; }
+
+      // Case cachee -> fouille silencieuse + ferme le slider
+      if (cell.isHidden) {
+        var digMult = window._debugClickMultiplier || 1;
+        for (var _di = 0; _di < digMult; _di++) { if (!self.bm.digCell(cell, sx, sy)) break; }
+        self.hide();
+        return;
+      }
+
+      // Case revelee deja selectionnee -> toggle (ferme)
+      if (self.currentCell && self.currentCell.key === cell.key) {
+        self.hide();
+        return;
+      }
+
+      // Case revelee -> ouvre le drawer
+      self.open(cell);
+    });
+
+    // Rafraîchissements réactifs
+    EventBus.on('cell:revealed',       function(d) { if (self.currentCell && self.currentCell.key === d.cell.key) self.refresh(); });
+    // resources:updated géré par le HUD uniquement (pas de refresh panel à chaque tick)
+    EventBus.on('talent:applied',      function()  { if (self.currentCell) self.refresh(); });
+
+    EventBus.on('road:placed',         function()  { if (self.currentCell) self.refresh(); });
+    EventBus.on('road:removed',        function()  { if (self.currentCell) self.refresh(); });
+    EventBus.on('terrain:transformed', function()  { if (self.currentCell) self.refresh(); });
+    EventBus.on('building:built',      function()  { if (self.currentCell) self.refresh(); });
+    EventBus.on('scout:revealed',      function()  { if (self.currentCell) self.refresh(); });
+    EventBus.on('base:upgraded',       function()  { if (self.currentCell) self.refresh(); });
+    EventBus.on('prestige:bonus_updated', function() { if (self.currentCell) self.refresh(); });
+    EventBus.on('resources:updated',   function()  { if (self.currentCell) self.refresh(); });
+  }
+
 }
