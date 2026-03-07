@@ -1089,3 +1089,38 @@
   .pnt-side { width: 100%; min-width: unset; border-left: none; border-top: 1px solid rgba(200,149,26,0.18); max-height: 180px; }
   .pnt-canvas-box { min-height: 300px; }
 }
+
+/* ═══ Panthéon — edge animations (SVG stroke-dashoffset flow) ════════════ */
+@keyframes pnt-flow {
+  from { stroke-dashoffset: 120; }
+  to   { stroke-dashoffset: 0;   }
+}
+@keyframes pnt-breathe {
+  0%,100% { opacity: 0.18; }
+  50%      { opacity: 0.55; }
+}
+@keyframes pnt-pulse-glow {
+  0%,100% { filter: url(#glow-s); opacity: 0.28; }
+  50%      { filter: url(#glow-m); opacity: 0.60; }
+}
+@keyframes pnt-ember {
+  0%       { stroke-dashoffset: 0;  opacity: 0.55; }
+  50%      { opacity: 0.80; }
+  100%     { stroke-dashoffset: 28; opacity: 0.55; }
+}
+@keyframes pnt-ribbon {
+  from { stroke-dashoffset: 32; }
+  to   { stroke-dashoffset: 0;  }
+}
+@keyframes pnt-orb-pulse {
+  0%,100% { r: 36; opacity: 0.80; }
+  50%      { r: 41; opacity: 1.00; }
+}
+
+/* Active edge glow layers pulse */
+#pnt-svg .edge-zeus-glow    { animation: pnt-breathe 1.8s ease-in-out infinite; }
+#pnt-svg .edge-dem-glow     { animation: pnt-breathe 2.2s ease-in-out infinite 0.4s; }
+#pnt-svg .edge-hep-ember    { animation: pnt-ember   1.0s linear infinite; }
+#pnt-svg .edge-aph-ribbon   { animation: pnt-ribbon  3.0s linear infinite; }
+#pnt-svg .edge-had-fissure  { animation: pnt-breathe 2.5s ease-in-out infinite 0.8s; }
+#pnt-svg .edge-art-flow     { animation: pnt-flow    2.0s linear infinite; }

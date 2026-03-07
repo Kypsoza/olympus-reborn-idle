@@ -2359,341 +2359,339 @@ class BuildingPanel {
 
     // ── Build SVG ────────────────────────────────────────────────────────────
     function buildSVG() {
-      var s = '<svg id="pnt-svg" xmlns="http://www.w3.org/2000/svg"'
+      var selNode = el._panSelNode || null;
+
+      function hexP(cx,cy,r){
+        var pts=[];
+        for(var i=0;i<6;i++){var a=Math.PI/3*i-Math.PI/6;pts.push((cx+r*Math.cos(a)).toFixed(1)+','+(cy+r*Math.sin(a)).toFixed(1));}
+        return 'M'+pts.join('L')+'Z';
+      }
+
+      var s = '<svg id="pnt-svg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"'
             + ' viewBox="0 0 '+W+' '+H+'"'
             + ' style="width:100%;height:100%;display:block;cursor:grab;user-select:none">';
 
-      // Filters
+      // ── Defs ──────────────────────────────────────────────────────────────
       s += '<defs>'
          + '<filter id="glow-s" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
          + '<filter id="glow-m" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="9" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
          + '<filter id="glow-l" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="18" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
-         + '<radialGradient id="bg-grad" cx="50%" cy="50%" r="60%">'
-         +   '<stop offset="0%" stop-color="#100824"/>'
-         +   '<stop offset="100%" stop-color="#04020e"/>'
+         + '<radialGradient id="bg-grad" cx="50%" cy="50%" r="70%">'
+         +   '<stop offset="0%" stop-color="#12082a"/>'
+         +   '<stop offset="100%" stop-color="#04020c"/>'
          + '</radialGradient>'
          + '</defs>';
 
-      // Background
+      // ── Background ────────────────────────────────────────────────────────
       s += '<rect width="'+W+'" height="'+H+'" fill="url(#bg-grad)"/>';
 
-      // Subtle star field
-      var STARS=[[120,80],[350,40],[650,90],[950,30],[1280,65],[1480,110],[80,200],[1550,300],[70,450],[1520,500],[90,750],[300,940],[700,970],[1100,960],[1450,880],[1530,700],[200,880],[450,20],[1200,80],[900,950]];
+      // Stars
+      var STARS=[[120,80],[350,40],[650,90],[950,30],[1280,65],[1480,110],[80,200],[1550,300],[70,450],[1520,420],[100,700],[200,850],[500,920],[900,950],[1300,880],[1480,750],[1530,600],[240,160],[760,50],[1100,140],[430,800],[1050,820],[680,920],[1380,200],[320,520],[1200,460]];
       STARS.forEach(function(st){
-        var r=0.5+((st[0]*13+st[1]*7)%10)*0.15;
-        s+='<circle cx="'+st[0]+'" cy="'+st[1]+'" r="'+r.toFixed(1)+'" fill="rgba(255,255,255,'+(0.15+r*0.1)+')" />';
+        var r=0.5+((st[0]*13+st[1]*7)%10)*0.18;
+        s+='<circle cx="'+st[0]+'" cy="'+st[1]+'" r="'+r.toFixed(1)+'" fill="rgba(255,255,255,'+(0.18+r*0.1)+')"/>';
       });
 
-      // Ellipse guide rings (subtle)
+      // ── Colored sector fills — camembert semi-transparent (~40%) ──────────
+      BRANCHES.forEach(function(b){
+        var rgb=hexToRgb(b.color);
+        var unlocked = pan.isBranchUnlocked ? pan.isBranchUnlocked(b.id) : true;
+        var a0=(b.angle-30)*Math.PI/180, a1=(b.angle+30)*Math.PI/180;
+        var sR=R3+110, steps=24;
+        // Full sector fill
+        var arcPts=CX.toFixed(1)+','+CY.toFixed(1);
+        for(var si=0;si<=steps;si++){
+          var ta=a0+(a1-a0)*si/steps;
+          arcPts+=' '+(CX+Math.cos(ta)*sR*EX).toFixed(1)+','+(CY+Math.sin(ta)*sR*EY).toFixed(1);
+        }
+        s+='<polygon points="'+arcPts+'" fill="rgba('+rgb+','+(unlocked?'0.38':'0.08')+')" stroke="none"/>';
+        // Bright rim band (inner arc strip at R3 for depth)
+        if(unlocked){
+          var rimPts='';
+          for(var ri=0;ri<=steps;ri++){
+            var tr=a0+(a1-a0)*ri/steps;
+            var ix=(CX+Math.cos(tr)*(R3-6)*EX).toFixed(1)+','+(CY+Math.sin(tr)*(R3-6)*EY).toFixed(1);
+            rimPts+=(ri===0?'M':'L')+ix;
+          }
+          for(var ri2=steps;ri2>=0;ri2--){
+            var tr2=a0+(a1-a0)*ri2/steps;
+            var ox=(CX+Math.cos(tr2)*(R3+50)*EX).toFixed(1)+','+(CY+Math.sin(tr2)*(R3+50)*EY).toFixed(1);
+            rimPts+='L'+ox;
+          }
+          s+='<path d="'+rimPts+'" fill="rgba('+rgb+',0.22)" stroke="rgba('+rgb+',0.55)" stroke-width="1.5"/>';
+        }
+        // Center divider line
+        var radM=b.angle*Math.PI/180;
+        s+='<line x1="'+CX+'" y1="'+CY+'" x2="'+(CX+Math.cos(radM)*(R3+85)*EX).toFixed(1)+'" y2="'+(CY+Math.sin(radM)*(R3+85)*EY).toFixed(1)+'"'
+          +' stroke="rgba('+rgb+','+(unlocked?'0.35':'0.08')+')" stroke-width="2" stroke-dasharray="3,7"/>';
+      });
+
+      // ── Ellipse guide rings ───────────────────────────────────────────────
       [R1,R2,R3].forEach(function(r){
         s+='<ellipse cx="'+CX+'" cy="'+CY+'" rx="'+(r*EX).toFixed(0)+'" ry="'+(r*EY).toFixed(0)+'"'
-          +' fill="none" stroke="rgba(200,149,26,0.07)" stroke-width="1" stroke-dasharray="4,8"/>';
+          +' fill="none" stroke="rgba(200,149,26,0.09)" stroke-width="1" stroke-dasharray="4,8"/>';
       });
 
-      // Sector dividers (faint lines from center to edge)
+      // ── Center orb ───────────────────────────────────────────────────────
+      s+='<circle cx="'+CX+'" cy="'+CY+'" r="82" fill="none" stroke="rgba(255,220,100,0.04)" stroke-width="40"/>';
+      s+='<circle cx="'+CX+'" cy="'+CY+'" r="58" fill="none" stroke="rgba(255,200,80,0.09)" stroke-width="22"/>';
+      s+='<circle cx="'+CX+'" cy="'+CY+'" r="45" fill="rgba(50,22,88,0.60)" stroke="rgba(255,220,120,0.22)" stroke-width="9" filter="url(#glow-l)"/>';
+      s+='<circle cx="'+CX+'" cy="'+CY+'" r="38" fill="rgba(18,8,42,0.96)" filter="url(#glow-m)"/>';
+      s+='<circle cx="'+CX+'" cy="'+CY+'" r="37" fill="none" stroke="rgba(255,210,70,0.95)" stroke-width="2.5"/>';
+      s+='<circle cx="'+CX+'" cy="'+CY+'" r="30" fill="none" stroke="rgba(255,180,50,0.30)" stroke-width="1"/>';
+      s+='<text x="'+CX+'" y="'+(CY+13)+'" text-anchor="middle" font-size="36" filter="url(#glow-m)">⚡</text>';
+
+      // ── Edges: center → ring1 ─────────────────────────────────────────────
+      BRANCHES.forEach(function(b){
+        (nodesByBranch[b.id][1]||[]).forEach(function(nid){
+          var st=pan.getNodeState(nid); var p=nodePositions[nid];
+          if(!p) return;
+          s+=makeEdgeDirect(CX,CY,p.x,p.y,b.id,'learned',st);
+        });
+      });
+      // ring1→ring2, ring2→ring3 via requires
+      Object.keys(nodePositions).forEach(function(nid){
+        var nd=PN[nid]; if(!nd||!nd.requires) return;
+        var st1=pan.getNodeState(nid);
+        nd.requires.forEach(function(reqId){
+          if(!nodePositions[reqId]) return;
+          var st2=pan.getNodeState(reqId);
+          s+=makeEdge(reqId,nid,nd.branch,st2,st1);
+        });
+      });
+
+      // ── Nodes ─────────────────────────────────────────────────────────────
+      Object.keys(nodePositions).forEach(function(nid){
+        var nd=PN[nid]; if(!nd) return;
+        var b=branchMap[nd.branch]; if(!b) return;
+        var pos=nodePositions[nid];
+        var state=pan.getNodeState(nid);
+        var pts2=pan.invested[nid]||0;
+        var bc=b.color, rgb=hexToRgb(bc);
+        var isSelected=(selNode===nid);
+        var isLearned=(state==='learned');
+        var isAvailable=(state==='available');
+        var unlocked=pan.isBranchUnlocked?pan.isBranchUnlocked(nd.branch):true;
+
+        s+='<g data-nid="'+nid+'" style="cursor:pointer">';
+        if(isSelected){
+          s+='<path d="'+hexP(pos.x,pos.y,NODE_R+17)+'" fill="rgba('+rgb+',0.22)" stroke="'+bc+'" stroke-width="3" filter="url(#glow-m)"/>';
+          s+='<path d="'+hexP(pos.x,pos.y,NODE_R+24)+'" fill="none" stroke="rgba('+rgb+',0.35)" stroke-width="1.5" stroke-dasharray="4,4"/>';
+        }
+        if(isLearned){
+          s+='<path d="'+hexP(pos.x,pos.y,NODE_R+20)+'" fill="rgba('+rgb+',0.14)" stroke="none" filter="url(#glow-l)"/>';
+          s+='<path d="'+hexP(pos.x,pos.y,NODE_R+9)+'" fill="rgba('+rgb+',0.30)" stroke="none" filter="url(#glow-m)"/>';
+        } else if(isAvailable&&unlocked){
+          s+='<path d="'+hexP(pos.x,pos.y,NODE_R+9)+'" fill="rgba('+rgb+',0.07)" stroke="rgba('+rgb+',0.28)" stroke-width="1" filter="url(#glow-s)"/>';
+        }
+        var fillCol=isLearned?'rgba('+rgb+',0.30)':isAvailable?'rgba(12,7,28,0.93)':'rgba(6,4,14,0.93)';
+        var strokeCol=isLearned?bc:(isAvailable&&unlocked)?'rgba('+rgb+',0.68)':'rgba(55,55,78,0.38)';
+        var strokeW=isLearned?3.0:(isAvailable&&unlocked)?1.8:1.0;
+        s+='<path d="'+hexP(pos.x,pos.y,NODE_R)+'" fill="'+fillCol+'" stroke="'+strokeCol+'" stroke-width="'+strokeW+'"/>';
+        if(isLearned){
+          s+='<path d="'+hexP(pos.x,pos.y,NODE_R-3)+'" fill="none" stroke="rgba('+rgb+',0.42)" stroke-width="1"/>';
+          s+='<text x="'+pos.x+'" y="'+(pos.y-NODE_R*0.58).toFixed(1)+'" text-anchor="middle" font-size="9" fill="rgba(255,240,100,0.85)">✓</text>';
+        }
+        if(nd.uncapped&&pts2>1)
+          s+='<text x="'+(pos.x+NODE_R*0.72).toFixed(1)+'" y="'+(pos.y-NODE_R*0.58).toFixed(1)+'" text-anchor="middle" font-size="9" fill="#ffd54f" font-family="Cinzel,serif">×'+pts2+'</text>';
+        s+='<text x="'+pos.x.toFixed(1)+'" y="'+(pos.y+9).toFixed(1)+'" text-anchor="middle" dominant-baseline="middle" font-size="'+(isLearned?25:21)+'">'+nd.icon+'</text>';
+        var lbl=nd.name||nid; if(lbl.length>12) lbl=lbl.slice(0,11)+'…';
+        var labelFill=isLearned?'#f0e080':(isAvailable&&unlocked)?'rgba(220,200,150,0.88)':'rgba(105,100,90,0.42)';
+        s+='<text x="'+pos.x.toFixed(1)+'" y="'+(pos.y+NODE_R+14).toFixed(1)+'" text-anchor="middle" font-family="Cinzel,serif" font-size="9.5" fill="'+labelFill+'">'+lbl+'</text>';
+        s+='</g>';
+      });
+
+      // ── God labels — luminous bloom ────────────────────────────────────────
       BRANCHES.forEach(function(b){
         var rad=b.angle*Math.PI/180;
-        var ex=CX+Math.cos(rad)*(R3+60)*EX, ey=CY+Math.sin(rad)*(R3+60)*EY;
+        var lx=CX+Math.cos(rad)*(R3+65)*EX;
+        var ly=CY+Math.sin(rad)*(R3+65)*EY;
+        lx=Math.max(82,Math.min(W-82,lx));
+        ly=Math.max(40,Math.min(H-40,ly));
         var rgb=hexToRgb(b.color);
-        s+='<line x1="'+CX+'" y1="'+CY+'" x2="'+ex.toFixed(1)+'" y2="'+ey.toFixed(1)+'"'
-          +' stroke="rgba('+rgb+',0.09)" stroke-width="1" stroke-dasharray="6,10"/>';
+        var unlocked=pan.isBranchUnlocked?pan.isBranchUnlocked(b.id):true;
+        var col=unlocked?b.color:'rgba(68,64,80,1)';
+        var pillW=Math.max(96,b.label.length*10+32), pillH=34;
+
+        if(unlocked){
+          // Bloom halo
+          s+='<ellipse cx="'+lx.toFixed(1)+'" cy="'+ly.toFixed(1)+'" rx="'+(pillW*0.68)+'" ry="22"'
+            +' fill="rgba('+rgb+',0.12)" filter="url(#glow-l)"/>';
+          // Pill
+          s+='<rect x="'+(lx-pillW/2).toFixed(1)+'" y="'+(ly-pillH/2).toFixed(1)+'"'
+            +' width="'+pillW+'" height="'+pillH+'" rx="'+Math.round(pillH/2)+'"'
+            +' fill="rgba(6,3,16,0.84)" stroke="rgba('+rgb+',0.75)" stroke-width="2"/>';
+          // Icon
+          s+='<text x="'+(lx-pillW/2+19).toFixed(1)+'" y="'+(ly+7).toFixed(1)+'" text-anchor="middle" font-size="16">'+b.icon+'</text>';
+          // Name — glow layer beneath + solid layer on top
+          s+='<text x="'+(lx+10).toFixed(1)+'" y="'+(ly+7).toFixed(1)+'" text-anchor="middle"'
+            +' font-family="Cinzel,serif" font-size="13.5" font-weight="900" letter-spacing="0.06em"'
+            +' fill="rgba('+rgb+',0.55)" filter="url(#glow-m)">'+b.label+'</text>';
+          s+='<text x="'+(lx+10).toFixed(1)+'" y="'+(ly+7).toFixed(1)+'" text-anchor="middle"'
+            +' font-family="Cinzel,serif" font-size="13.5" font-weight="900" letter-spacing="0.06em"'
+            +' fill="'+col+'">'+b.label+'</text>';
+        } else {
+          s+='<rect x="'+(lx-pillW/2).toFixed(1)+'" y="'+(ly-pillH/2).toFixed(1)+'"'
+            +' width="'+pillW+'" height="'+pillH+'" rx="'+Math.round(pillH/2)+'"'
+            +' fill="rgba(6,3,16,0.62)" stroke="rgba(88,82,100,0.30)" stroke-width="1"/>';
+          s+='<text x="'+lx.toFixed(1)+'" y="'+(ly+7).toFixed(1)+'" text-anchor="middle"'
+            +' font-family="Cinzel,serif" font-size="12" font-weight="700" fill="rgba(78,74,90,0.55)">🔒 '+b.label+'</text>';
+        }
       });
 
-      // Center node
-      s+='<circle cx="'+CX+'" cy="'+CY+'" r="38" fill="rgba(30,20,60,0.95)" stroke="rgba(200,180,80,0.8)" stroke-width="2.5" filter="url(#glow-m)"/>';
-      s+='<text x="'+CX+'" y="'+(CY+9)+'" text-anchor="middle" font-size="30">⚡</text>';
-
-      // ── Edges ──────────────────────────────────────────────────────────────
-      BRANCHES.forEach(function(b) {
-        var nodes = nodesByBranch[b.id];
-        var rad = b.angle * Math.PI / 180;
-
-        // Center → ring1 nodes (direct from center edge)
-        (nodes[1]||[]).forEach(function(nid) {
-          var pos = nodePositions[nid];
-          if (!pos) return;
-          var st = pan.getNodeState(nid);
-          // Start from center circle edge
-          var ex = CX + Math.cos(rad) * 38;
-          var ey = CY + Math.sin(rad) * 38;
-          s += makeEdgeDirect(ex, ey, pos.x, pos.y, b.id, 'available', st);
-        });
-
-        // ring1 → ring2 (via requires)
-        (nodes[2]||[]).forEach(function(nid) {
-          var nd = PN[nid]; if (!nd || !nd.requires) return;
-          nd.requires.forEach(function(req) {
-            var pa = nodePositions[req], pb = nodePositions[nid];
-            if (!pa || !pb) return;
-            s += makeEdgeDirect(pa.x, pa.y, pb.x, pb.y, b.id,
-              pan.getNodeState(req), pan.getNodeState(nid));
-          });
-        });
-
-        // ring2 → ring3 (via requires)
-        (nodes[3]||[]).forEach(function(nid) {
-          var nd = PN[nid]; if (!nd || !nd.requires) return;
-          nd.requires.forEach(function(req) {
-            var pa = nodePositions[req], pb = nodePositions[nid];
-            if (!pa || !pb) return;
-            s += makeEdgeDirect(pa.x, pa.y, pb.x, pb.y, b.id,
-              pan.getNodeState(req), pan.getNodeState(nid));
-          });
-        });
-      });
-
-      // ── Nodes ──────────────────────────────────────────────────────────────
-      Object.keys(nodePositions).forEach(function(nid) {
-        var nd = PN[nid];
-        if (!nd) return;
-        var b = branchMap[nd.branch];
-        if (!b) return;
-        var pos = nodePositions[nid];
-        var state = pan.getNodeState(nid);
-        var pts2 = pan.invested[nid] || 0;
-        var bc = b.color;
-        var rgb = hexToRgb(bc);
-        var isSelected = (selNode === nid);
-        var isLearned = (state === 'learned');
-        var isAvailable = (state === 'available');
-
-        // Hex path
-        function hexP(cx, cy, r) {
-          var pts=[];
-          for(var i=0;i<6;i++){
-            var a=Math.PI/3*i-Math.PI/6;
-            pts.push((cx+r*Math.cos(a)).toFixed(1)+','+(cy+r*Math.sin(a)).toFixed(1));
-          }
-          return 'M'+pts.join('L')+'Z';
-        }
-
-        var outer = hexP(pos.x, pos.y, NODE_R+6);
-        var inner = hexP(pos.x, pos.y, NODE_R);
-
-        s += '<g data-nid="'+nid+'" style="cursor:pointer">';
-
-        if (isSelected) {
-          s += '<path d="'+hexP(pos.x,pos.y,NODE_R+16)+'" fill="rgba('+rgb+',0.2)" stroke="'+bc+'" stroke-width="3" filter="url(#glow-m)"/>';
-          s += '<path d="'+hexP(pos.x,pos.y,NODE_R+22)+'" fill="none" stroke="rgba('+rgb+',0.3)" stroke-width="1.5" stroke-dasharray="4,4"/>';
-        }
-        if (isLearned) {
-          // Strong outer glow matching reference image
-          s += '<path d="'+hexP(pos.x,pos.y,NODE_R+18)+'" fill="rgba('+rgb+',0.12)" stroke="none" filter="url(#glow-l)"/>';
-          s += '<path d="'+hexP(pos.x,pos.y,NODE_R+8)+'" fill="rgba('+rgb+',0.28)" stroke="none" filter="url(#glow-m)"/>';
-        } else if (isAvailable) {
-          s += '<path d="'+hexP(pos.x,pos.y,NODE_R+8)+'" fill="rgba('+rgb+',0.06)" stroke="rgba('+rgb+',0.25)" stroke-width="1" filter="url(#glow-s)"/>';
-        }
-
-        // Main hex fill — matching reference: dark interior with bright colored border
-        var fillCol = isLearned   ? 'rgba('+rgb+',0.28)'
-                    : isAvailable ? 'rgba(12,8,28,0.92)'
-                    :               'rgba(6,4,14,0.92)';
-        var strokeCol = isLearned   ? bc
-                      : isAvailable ? 'rgba('+rgb+',0.65)'
-                      :               'rgba(60,60,80,0.35)';
-        var strokeW = isLearned?2.8:isAvailable?1.8:1.0;
-
-        s += '<path d="'+inner+'" fill="'+fillCol+'" stroke="'+strokeCol+'" stroke-width="'+strokeW+'"/>';
-        // Inner ring for learned nodes (double-border effect)
-        if (isLearned) {
-          s += '<path d="'+hexP(pos.x,pos.y,NODE_R-3)+'" fill="none" stroke="rgba('+rgb+',0.4)" stroke-width="1"/>';
-        }
-
-        // Check mark for learned
-        if (isLearned) {
-          s += '<text x="'+pos.x+'" y="'+(pos.y-NODE_R*0.6).toFixed(1)+'" text-anchor="middle" font-size="9" fill="rgba(255,240,100,0.85)">✓</text>';
-        }
-        // Uncapped level badge
-        if (nd.uncapped && pts2>1) {
-          s += '<text x="'+(pos.x+NODE_R*0.7).toFixed(1)+'" y="'+(pos.y-NODE_R*0.6).toFixed(1)+'" text-anchor="middle" font-size="9" fill="#ffd54f" font-family="Cinzel,serif">×'+pts2+'</text>';
-        }
-        // Icon
-        s += '<text x="'+pos.x.toFixed(1)+'" y="'+(pos.y+9).toFixed(1)+'" text-anchor="middle" dominant-baseline="middle" font-size="'+( isLearned?24:22)+'">'+nd.icon+'</text>';
-        // Name label below
-        var lbl = nd.name||nid; if(lbl.length>12) lbl=lbl.slice(0,11)+'…';
-        var labelFill = isLearned?'#f0e080':isAvailable?'rgba(220,200,150,0.85)':'rgba(120,110,100,0.5)';
-        s += '<text x="'+pos.x.toFixed(1)+'" y="'+(pos.y+NODE_R+13).toFixed(1)+'" text-anchor="middle" font-family="Cinzel,serif" font-size="9.5" fill="'+labelFill+'">'+lbl+'</text>';
-
-        s += '</g>';
-      });
-
-      // ── Branch god labels ─────────────────────────────────────────────────
-      BRANCHES.forEach(function(b) {
-        var rad=b.angle*Math.PI/180;
-        var labelDist = R3 + 52;
-        var lx = CX + Math.cos(rad)*labelDist*EX;
-        var ly = CY + Math.sin(rad)*labelDist*EY;
-        // Clamp inside canvas with safe margins
-        lx = Math.max(65, Math.min(W-65, lx));
-        ly = Math.max(30, Math.min(H-30, ly));
-        var rgb = hexToRgb(b.color);
-        var unlocked = pan.isBranchUnlocked ? pan.isBranchUnlocked(b.id) : true;
-        var col = unlocked ? b.color : 'rgba(80,75,90,1)';
-
-        if (unlocked) {
-          // Pill background
-          s += '<rect x="'+(lx-40).toFixed(1)+'" y="'+(ly-18).toFixed(1)+'" width="80" height="28" rx="14"'
-             + ' fill="rgba('+rgb+',0.18)" stroke="rgba('+rgb+',0.65)" stroke-width="1.5"/>';
-        }
-        // God icon above pill
-        s += '<text x="'+lx.toFixed(1)+'" y="'+(ly-24).toFixed(1)+'" text-anchor="middle" font-size="18" opacity="'+(unlocked?'1':'0.3')+'">'+b.icon+'</text>';
-        // God name
-        s += '<text x="'+lx.toFixed(1)+'" y="'+(ly-1).toFixed(1)+'" text-anchor="middle"'
-           + ' font-family="Cinzel,serif" font-size="'+(unlocked?'14':'11')+'" font-weight="900"'
-           + ' fill="'+col+'" opacity="'+(unlocked?'1':'0.35')+'">'+b.label+'</text>';
-      });
-
-      s += '</svg>';
+      s+='</svg>';
       return s;
     }
 
     // Helper: direct edge between two absolute positions
-    function makeEdgeDirect(x1,y1,x2,y2,branchId,st1,st2) {
-      var b = branchMap[branchId] || {color:'#888'};
-      var active = (st1==='learned' && st2==='learned');
-      var half   = (st1==='learned' && st2!=='learned');
-      var baseOp = active ? 1.0 : half ? 0.5 : 0.18;
-      var col    = active ? b.color : half ? b.color : 'rgba(80,80,110,1)';
-      var sw     = active ? 2.8 : half ? 1.6 : 1.0;
-      var dx = x2-x1, dy = y2-y1;
-      var mx = (x1+x2)/2, my = (y1+y2)/2;
-      var len = Math.sqrt(dx*dx+dy*dy);
-      var nx = -dy/len, ny = dx/len; // normal
+    function makeEdgeDirect(x1,y1,x2,y2,branchId,st1,st2){
+      var b=branchMap[branchId]||{color:'#888'};
+      var active=(st1==='learned'&&st2==='learned');
+      var halfway=(st1==='learned'&&st2!=='learned');
+      var unlocked=pan.isBranchUnlocked?pan.isBranchUnlocked(branchId):true;
+      var op=active?1.0:halfway?0.55:(unlocked?0.22:0.07);
+      var col=active?b.color:halfway?b.color:'rgba(65,62,85,1)';
+      var sw=active?3.2:halfway?1.9:1.0;
+      var dx=x2-x1,dy=y2-y1;
+      var len=Math.sqrt(dx*dx+dy*dy)||1;
+      var nx=-dy/len,ny=dx/len;
+      if(!active&&!halfway&&!unlocked) return '<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="rgba(40,38,58,0.12)" stroke-width="0.8"/>';
 
-      // ── Per-deity visual style ──────────────────────────────────
-      if (branchId === 'zeus') {
-        // ⚡ Pure crackling lightning bolts — multi-segment zigzag
-        if (!active && !half) {
-          return '<path d="M'+x1.toFixed(1)+','+y1.toFixed(1)+'L'+x2.toFixed(1)+','+y2.toFixed(1)+'"'
-            + ' fill="none" stroke="rgba(80,80,110,0.15)" stroke-width="1"/>';
+      // ── ZEUS — éclairs crépitants multicouches ──────────────────────────
+      if(branchId==='zeus'){
+        var rng=function(s){return Math.sin(s*127.3+1.8)*Math.sin(s*31.7+5.1);};
+        var amp=active?26:halfway?16:9;
+        var n=12, pts='';
+        for(var i=0;i<=n;i++){
+          var t=i/n;
+          var j=(i>0&&i<n)?nx*rng(i)*amp+ny*rng(i*1.3+2)*amp*0.4:0;
+          var j2=(i>0&&i<n)?ny*rng(i)*amp-nx*rng(i*1.3+2)*amp*0.4:0;
+          pts+=(i===0?'M':'L')+(x1+t*dx+j).toFixed(1)+','+(y1+t*dy+j2).toFixed(1);
         }
-        var segs = 8;
-        var pts = x1.toFixed(1)+','+y1.toFixed(1);
-        for (var zi=1; zi<segs; zi++) {
-          var t = zi/segs;
-          var bx = x1+dx*t, by = y1+dy*t;
-          var rnd = (((zi*1234567+branchId.length)*9301+49297)%233280)/233280-0.5;
-          var amp = active ? 18 : 10;
-          bx += nx*rnd*amp*2; by += ny*rnd*amp*2;
-          pts += ' '+bx.toFixed(1)+','+by.toFixed(1);
+        // secondary bolt (offset phase)
+        var pts2='';
+        for(var i2=0;i2<=n;i2++){
+          var t2=i2/n;
+          var j3=(i2>0&&i2<n)?nx*rng(i2+4.1)*amp*0.55+ny*rng(i2*1.7+3.3)*amp*0.2:0;
+          var j4=(i2>0&&i2<n)?ny*rng(i2+4.1)*amp*0.55-nx*rng(i2*1.7+3.3)*amp*0.2:0;
+          pts2+=(i2===0?'M':'L')+(x1+t2*dx+j3).toFixed(1)+','+(y1+t2*dy+j4).toFixed(1);
         }
-        pts += ' '+x2.toFixed(1)+','+y2.toFixed(1);
-        var glowOp = active ? '0.35' : '0.15';
-        return '<polyline points="'+pts+'" fill="none" stroke="rgba(200,240,255,'+glowOp+')" stroke-width="'+(sw+6)+'" stroke-linecap="round"/>'
-          + '<polyline points="'+pts+'" fill="none" stroke="'+col+'" stroke-width="'+sw+'" opacity="'+baseOp+'" stroke-linecap="round"/>'
-          + (active ? '<polyline points="'+pts+'" fill="none" stroke="white" stroke-width="1" opacity="0.6" stroke-linecap="round"/>' : '');
-
-      } else if (branchId === 'demeter') {
-        // 🌿 Organic winding vines / roots
-        if (!active && !half) {
-          return '<path d="M'+x1.toFixed(1)+','+y1.toFixed(1)+'L'+x2.toFixed(1)+','+y2.toFixed(1)+'"'
-            + ' fill="none" stroke="rgba(60,90,60,0.15)" stroke-width="1"/>';
-        }
-        var amp2 = active ? 14 : 7;
-        var seed2 = (x1*13+y1*7)%100;
-        var cp1x = mx + nx*amp2*(0.6+(seed2%30)/100) + dx*0.1;
-        var cp1y = my + ny*amp2*(0.6+(seed2%30)/100) + dy*0.1;
-        var cp2x = mx - nx*amp2*(0.4+((seed2+17)%30)/100) - dx*0.1;
-        var cp2y = my - ny*amp2*(0.4+((seed2+17)%30)/100) - dy*0.1;
-        var mainPath = 'M'+x1.toFixed(1)+','+y1.toFixed(1)
-          +' C'+cp1x.toFixed(1)+','+cp1y.toFixed(1)
-          +' '+cp2x.toFixed(1)+','+cp2y.toFixed(1)
-          +' '+x2.toFixed(1)+','+y2.toFixed(1);
-        // second vine
-        var cp3x = mx + nx*amp2*(-0.5+(seed2%25)/100);
-        var cp3y = my + ny*amp2*(-0.5+(seed2%25)/100);
-        var brin = 'M'+x1.toFixed(1)+','+y1.toFixed(1)
-          +' Q'+cp3x.toFixed(1)+','+cp3y.toFixed(1)
-          +' '+x2.toFixed(1)+','+y2.toFixed(1);
-        return '<path d="'+mainPath+'" fill="none" stroke="'+col+'" stroke-width="'+(sw+4)+'" opacity="'+(baseOp*0.22)+'"/>'
-          + '<path d="'+mainPath+'" fill="none" stroke="'+col+'" stroke-width="'+sw+'" opacity="'+baseOp+'"/>'
-          + '<path d="'+brin+'" fill="none" stroke="rgba(150,255,100,0.3)" stroke-width="1" opacity="'+(active?0.6:0.2)+'"/>';
-
-      } else if (branchId === 'hephaïstos') {
-        // 🔥 Chains of molten iron — thick links with dashes
-        if (!active && !half) {
-          return '<path d="M'+x1.toFixed(1)+','+y1.toFixed(1)+'L'+x2.toFixed(1)+','+y2.toFixed(1)+'"'
-            + ' fill="none" stroke="rgba(80,30,10,0.15)" stroke-width="1"/>';
-        }
-        var glowCol = active ? 'rgba(255,160,50,0.25)' : 'rgba(180,80,20,0.12)';
-        return '<path d="M'+x1.toFixed(1)+','+y1.toFixed(1)+'L'+x2.toFixed(1)+','+y2.toFixed(1)+'"'
-          + ' fill="none" stroke="'+glowCol+'" stroke-width="'+(sw+10)+'"/>'
-          + '<path d="M'+x1.toFixed(1)+','+y1.toFixed(1)+'L'+x2.toFixed(1)+','+y2.toFixed(1)+'"'
-          + ' fill="none" stroke="'+col+'" stroke-width="'+(sw+2)+'" stroke-dasharray="10,5" opacity="'+baseOp+'"/>'
-          + '<path d="M'+x1.toFixed(1)+','+y1.toFixed(1)+'L'+x2.toFixed(1)+','+y2.toFixed(1)+'"'
-          + ' fill="none" stroke="rgba(255,220,100,'+(active?'0.6':'0.1')+')" stroke-width="1" stroke-dasharray="4,11" stroke-dashoffset="7"/>';
-
-      } else if (branchId === 'aphrodite') {
-        // 💗 Silk ribbons / petal trails — sinuous double ribbon
-        if (!active && !half) {
-          return '<path d="M'+x1.toFixed(1)+','+y1.toFixed(1)+'L'+x2.toFixed(1)+','+y2.toFixed(1)+'"'
-            + ' fill="none" stroke="rgba(150,50,80,0.12)" stroke-width="1"/>';
-        }
-        var amp3 = active ? 12 : 6;
-        var pts3 = '';
-        var n3 = 12;
-        for (var ai=0; ai<=n3; ai++) {
-          var t3 = ai/n3;
-          var px3 = x1+dx*t3 + nx*amp3*Math.sin(t3*Math.PI*2.5);
-          var py3 = y1+dy*t3 + ny*amp3*Math.sin(t3*Math.PI*2.5);
-          pts3 += (ai===0?'M':'L')+px3.toFixed(1)+','+py3.toFixed(1);
-        }
-        var pts3b = '';
-        for (var ai2=0; ai2<=n3; ai2++) {
-          var t3b = ai2/n3;
-          var px3b = x1+dx*t3b + nx*amp3*0.6*Math.sin(t3b*Math.PI*2.5+0.8);
-          var py3b = y1+dy*t3b + ny*amp3*0.6*Math.sin(t3b*Math.PI*2.5+0.8);
-          pts3b += (ai2===0?'M':'L')+px3b.toFixed(1)+','+py3b.toFixed(1);
-        }
-        return '<path d="'+pts3+'" fill="none" stroke="'+col+'" stroke-width="'+(sw+3)+'" opacity="'+(baseOp*0.3)+'"/>'
-          + '<path d="'+pts3+'" fill="none" stroke="'+col+'" stroke-width="'+sw+'" opacity="'+baseOp+'"/>'
-          + '<path d="'+pts3b+'" fill="none" stroke="rgba(255,200,220,0.4)" stroke-width="1" opacity="'+(active?0.7:0.2)+'"/>';
-
-      } else if (branchId === 'hades') {
-        // 💀 Dark fissures / sapphire shadow veins — jagged dark cracks
-        if (!active && !half) {
-          return '<path d="M'+x1.toFixed(1)+','+y1.toFixed(1)+'L'+x2.toFixed(1)+','+y2.toFixed(1)+'"'
-            + ' fill="none" stroke="rgba(30,10,50,0.18)" stroke-width="1"/>';
-        }
-        var segsH = 10;
-        var ptsH = x1.toFixed(1)+','+y1.toFixed(1);
-        for (var hi=1; hi<segsH; hi++) {
-          var th = hi/segsH;
-          var bxh = x1+dx*th, byh = y1+dy*th;
-          var rndH = (((hi*789123+13)%233)/233-0.5);
-          var ampH = active ? 11 : 6;
-          bxh += nx*rndH*ampH; byh += ny*rndH*ampH;
-          ptsH += ' '+bxh.toFixed(1)+','+byh.toFixed(1);
-        }
-        ptsH += ' '+x2.toFixed(1)+','+y2.toFixed(1);
-        return '<polyline points="'+ptsH+'" fill="none" stroke="rgba(60,20,100,0.4)" stroke-width="'+(sw+6)+'"/>'
-          + '<polyline points="'+ptsH+'" fill="none" stroke="'+col+'" stroke-width="'+sw+'" opacity="'+baseOp+'" stroke-linecap="square"/>'
-          + (active ? '<polyline points="'+ptsH+'" fill="none" stroke="rgba(180,120,255,0.25)" stroke-width="1"/>' : '');
-
-      } else if (branchId === 'artemis') {
-        // 🌙 Spectral arrows / moonbeams — thin straight with arrow heads
-        if (!active && !half) {
-          return '<path d="M'+x1.toFixed(1)+','+y1.toFixed(1)+'L'+x2.toFixed(1)+','+y2.toFixed(1)+'"'
-            + ' fill="none" stroke="rgba(40,80,100,0.12)" stroke-width="1"/>';
-        }
-        var arrowLen = Math.min(12, len*0.15);
-        var ax = dx/len, ay = dy/len;
-        // Arrow tip near x2,y2
-        var atx = x2 - ax*arrowLen*0.5, aty = y2 - ay*arrowLen*0.5;
-        var arrowHead = 'M'+(atx-nx*4+ax*arrowLen*0.5).toFixed(1)+','+(aty-ny*4+ay*arrowLen*0.5).toFixed(1)
-          +' L'+x2.toFixed(1)+','+y2.toFixed(1)
-          +' L'+(atx+nx*4+ax*arrowLen*0.5).toFixed(1)+','+(aty+ny*4+ay*arrowLen*0.5).toFixed(1);
-        var glowA = active ? 'rgba(100,200,255,0.2)' : 'rgba(60,120,160,0.08)';
-        return '<path d="M'+x1.toFixed(1)+','+y1.toFixed(1)+'L'+x2.toFixed(1)+','+y2.toFixed(1)+'"'
-          + ' fill="none" stroke="'+glowA+'" stroke-width="'+(sw+5)+'"/>'
-          + '<path d="M'+x1.toFixed(1)+','+y1.toFixed(1)+'L'+x2.toFixed(1)+','+y2.toFixed(1)+'"'
-          + ' fill="none" stroke="'+col+'" stroke-width="'+sw+'" stroke-dasharray="'+(active?'none':'12,5')+'" opacity="'+baseOp+'"/>'
-          + '<path d="'+arrowHead+'" fill="none" stroke="'+col+'" stroke-width="'+(sw*0.8)+'" opacity="'+(active?baseOp:baseOp*0.5)+'"/>';
+        return '<path d="'+pts+'" fill="none" stroke="rgba(120,190,255,'+(active?'0.35':halfway?'0.18':'0.06')+')" stroke-width="'+(sw*6)+'" stroke-linecap="round" filter="url(#glow-s)"/>'
+             + '<path d="'+pts+'" fill="none" stroke="rgba(200,230,255,'+(active?'0.55':halfway?'0.28':'0.10')+')" stroke-width="'+(sw*2.2)+'" stroke-linecap="round"/>'
+             + '<path d="'+pts+'" fill="none" stroke="'+col+'" stroke-width="'+sw+'" opacity="'+op+'" stroke-linecap="round"/>'
+             + (active?'<path d="'+pts+'" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="1.2" stroke-linecap="round"/>':'')
+             + (active?'<path d="'+pts2+'" fill="none" stroke="rgba(255,220,80,0.45)" stroke-width="1.0" stroke-linecap="round"/>':'')
+             + (halfway?'<path d="'+pts2+'" fill="none" stroke="rgba(255,200,60,0.22)" stroke-width="0.8" stroke-linecap="round"/>':'');
       }
 
-      // Fallback: simple line
-      return '<path d="M'+x1.toFixed(1)+','+y1.toFixed(1)+'L'+x2.toFixed(1)+','+y2.toFixed(1)+'"'
-        + ' fill="none" stroke="'+col+'" stroke-width="'+sw+'" opacity="'+baseOp+'"/>';
+      // ── DEMETER — vignes entrelacées émeraude ───────────────────────────
+      if(branchId==='demeter'){
+        var amp2=active?32:halfway?20:11;
+        var cp1x=x1+dx*0.28+nx*amp2, cp1y=y1+dy*0.28+ny*amp2;
+        var cp2x=x1+dx*0.72-nx*amp2, cp2y=y1+dy*0.72-ny*amp2;
+        var main='M'+x1.toFixed(1)+','+y1.toFixed(1)+' C'+cp1x.toFixed(1)+','+cp1y.toFixed(1)+' '+cp2x.toFixed(1)+','+cp2y.toFixed(1)+' '+x2.toFixed(1)+','+y2.toFixed(1);
+        // secondary brin, opposite S-curve
+        var off=nx*11, ofy=ny*11;
+        var cp3x=x1+dx*0.32-nx*amp2*0.65+off, cp3y=y1+dy*0.32-ny*amp2*0.65+ofy;
+        var cp4x=x1+dx*0.68+nx*amp2*0.50+off, cp4y=y1+dy*0.68+ny*amp2*0.50+ofy;
+        var brin='M'+(x1+off).toFixed(1)+','+(y1+ofy).toFixed(1)+' C'+cp3x.toFixed(1)+','+cp3y.toFixed(1)+' '+cp4x.toFixed(1)+','+cp4y.toFixed(1)+' '+(x2+off).toFixed(1)+','+(y2+ofy).toFixed(1);
+        // root tendrils: small knot at midpoint
+        var mx2=(x1+x2)/2+nx*8, my2=(y1+y2)/2+ny*8;
+        var knot=active?'<circle cx="'+mx2.toFixed(1)+'" cy="'+my2.toFixed(1)+'" r="3" fill="rgba(80,200,80,0.55)" filter="url(#glow-s)"/>':'';
+        return '<path d="'+main+'" fill="none" stroke="rgba(40,200,60,'+(active?'0.28':halfway?'0.14':'0.05')+')" stroke-width="'+(sw*7.5)+'" filter="url(#glow-s)" class="edge-dem-glow"/>'
+             + '<path d="'+main+'" fill="none" stroke="'+col+'" stroke-width="'+(sw*1.6)+'" opacity="'+op+'" stroke-linecap="round"/>'
+             + '<path d="'+brin+'" fill="none" stroke="'+col+'" stroke-width="'+(sw*0.8)+'" opacity="'+(op*0.62).toFixed(2)+'" stroke-linecap="round"/>'
+             + (active?'<path d="'+main+'" fill="none" stroke="rgba(140,255,100,0.28)" stroke-width="1.2" stroke-dasharray="3,6"/>':'')
+             + knot;
+      }
+
+      // ── HEPHAÏSTOS — chaînes incandescentes rouge-orange ────────────────
+      if(branchId==='hephaïstos'){
+        var fireGlow=active?'rgba(255,110,10,0.35)':halfway?'rgba(200,70,5,0.18)':'rgba(130,40,5,0.07)';
+        var embers=active?'rgba(255,230,70,0.55)':halfway?'rgba(255,170,40,0.28)':'rgba(0,0,0,0)';
+        // Chain: thick dashes with ember sparks
+        var chainLen=Math.sqrt(dx*dx+dy*dy);
+        var sparkPts='';
+        if(active){
+          var ax2=dx/len,ay2=dy/len;
+          for(var ci=1;ci<4;ci++){
+            var ct=ci/4;
+            var spx=(x1+ct*dx+nx*(ci%2===0?6:-6)).toFixed(1);
+            var spy=(y1+ct*dy+ny*(ci%2===0?6:-6)).toFixed(1);
+            sparkPts+='<circle cx="'+spx+'" cy="'+spy+'" r="2.5" fill="rgba(255,200,50,0.7)" filter="url(#glow-s)"/>';
+          }
+        }
+        return '<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="'+fireGlow+'" stroke-width="'+(sw*9)+'" filter="url(#glow-s)"/>'
+             + '<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="'+col+'" stroke-width="'+(sw*2)+'" opacity="'+op+'" stroke-dasharray="12,5" stroke-linecap="round"/>'
+             + '<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="'+embers+'" stroke-width="1.8" stroke-dasharray="4,13" stroke-dashoffset="8" class="edge-hep-ember"/>'
+             + sparkPts;
+      }
+
+      // ── APHRODITE — rubans de soie sinusoïdaux ──────────────────────────
+      if(branchId==='aphrodite'){
+        var ampA=active?24:halfway?15:8;
+        var N=20, pts1='', pts2='';
+        for(var ia=0;ia<=N;ia++){
+          var ta2=ia/N;
+          var w1=Math.sin(ta2*Math.PI*3.8)*ampA;
+          var w2=Math.sin(ta2*Math.PI*3.8+Math.PI*0.45)*ampA*0.52;
+          pts1+=(ia===0?'M':'L')+(x1+ta2*dx+w1*nx).toFixed(1)+','+(y1+ta2*dy+w1*ny).toFixed(1);
+          pts2+=(ia===0?'M':'L')+(x1+ta2*dx+w2*nx).toFixed(1)+','+(y1+ta2*dy+w2*ny).toFixed(1);
+        }
+        // petal sparkle at midpoint
+        var pmx=(x1+x2)/2, pmy=(y1+y2)/2;
+        var petalSpark=active?'<circle cx="'+pmx.toFixed(1)+'" cy="'+pmy.toFixed(1)+'" r="3.5" fill="rgba(255,180,220,0.65)" filter="url(#glow-m)"/>':'';
+        var petalGlow=active?'rgba(255,130,180,0.30)':halfway?'rgba(210,85,130,0.15)':'rgba(150,55,85,0.06)';
+        return '<path d="'+pts1+'" fill="none" stroke="'+petalGlow+'" stroke-width="'+(sw*7)+'" filter="url(#glow-s)"/>'
+             + '<path d="'+pts1+'" fill="none" stroke="'+col+'" stroke-width="'+sw+'" opacity="'+op+'" stroke-linecap="round"/>'
+             + '<path d="'+pts2+'" fill="none" stroke="rgba(255,215,235,0.42)" stroke-width="'+(sw*0.55)+'" opacity="'+(op*0.65).toFixed(2)+'" stroke-linecap="round"/>'
+             + (active?'<path d="'+pts1+'" fill="none" stroke="rgba(255,240,250,0.20)" stroke-width="0.8" stroke-dasharray="2,4"/>':'')
+             + petalSpark;
+      }
+
+      // ── HADES — veines d'ombre saphir ───────────────────────────────────
+      if(branchId==='hades'){
+        var rngH=function(s){return Math.sin(s*193.1+3.7)*0.5+Math.sin(s*47.3+1.2)*0.3;};
+        var ampH=active?16:halfway?10:5;
+        var nH=14, ptsH='';
+        for(var ih=0;ih<=nH;ih++){
+          var thH=ih/nH;
+          var jH=(ih>0&&ih<nH)?(ih%2===0?1:-1)*(ampH*0.5+Math.abs(rngH(ih))*ampH):0;
+          ptsH+=(ih===0?'M':'L')+(x1+thH*dx+jH*nx).toFixed(1)+','+(y1+thH*dy+jH*ny).toFixed(1);
+        }
+        // fissure cracks (secondary jagged path, perpendicular offset)
+        var ptsH2='';
+        for(var ih2=0;ih2<=nH;ih2++){
+          var thH2=ih2/nH;
+          var jH2=(ih2>0&&ih2<nH)?(ih2%2===0?-1:1)*(ampH*0.4+Math.abs(rngH(ih2+2.5))*ampH*0.6):0;
+          ptsH2+=(ih2===0?'M':'L')+(x1+thH2*dx+jH2*nx+nx*6).toFixed(1)+','+(y1+thH2*dy+jH2*ny+ny*6).toFixed(1);
+        }
+        return '<path d="'+ptsH+'" fill="none" stroke="rgba(80,20,170,'+(active?'0.38':halfway?'0.18':'0.06')+')" stroke-width="'+(sw*6)+'" filter="url(#glow-s)"/>'
+             + '<path d="'+ptsH+'" fill="none" stroke="'+col+'" stroke-width="'+sw+'" opacity="'+op+'" stroke-linecap="square"/>'
+             + (active?'<path d="'+ptsH+'" fill="none" stroke="rgba(180,120,255,0.32)" stroke-width="1.2"/>':'')
+             + (active?'<path d="'+ptsH2+'" fill="none" stroke="rgba(100,50,200,0.22)" stroke-width="0.8" stroke-dasharray="2,5"/>':'')
+             + (halfway?'<path d="'+ptsH2+'" fill="none" stroke="rgba(80,30,150,0.15)" stroke-width="0.7" stroke-dasharray="2,6"/>':'');
+      }
+
+      // ── ARTEMIS — flèches spectrales lunaires ───────────────────────────
+      if(branchId==='artemis'){
+        var ax3=dx/len,ay3=dy/len;
+        var al=Math.min(12,len*0.13);
+        // Arrowhead
+        var ah='M'+(x2-ax3*al+nx*4.5).toFixed(1)+','+(y2-ay3*al+ny*4.5).toFixed(1)
+              +' L'+x2.toFixed(1)+','+y2.toFixed(1)
+              +' L'+(x2-ax3*al-nx*4.5).toFixed(1)+','+(y2-ay3*al-ny*4.5).toFixed(1);
+        // Secondary parallel ray
+        var off2=nx*8,ofy2=ny*8;
+        var moonGlow=active?'rgba(150,215,255,0.28)':halfway?'rgba(90,165,220,0.14)':'rgba(50,90,135,0.06)';
+        return '<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="'+moonGlow+'" stroke-width="'+(sw*6)+'" filter="url(#glow-s)"/>'
+             + '<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="'+col+'" stroke-width="'+sw+'" opacity="'+op+'" stroke-dasharray="'+(active?'none':halfway?'16,4':'9,6')+'" stroke-linecap="butt" class="'+(active?'edge-art-flow':'')+'"/>'
+             + '<path d="'+ah+'" fill="none" stroke="'+col+'" stroke-width="'+(sw*0.9)+'" opacity="'+op+'" stroke-linecap="round"/>'
+             + (active?'<line x1="'+(x1+off2).toFixed(1)+'" y1="'+(y1+ofy2).toFixed(1)+'" x2="'+(x2+off2).toFixed(1)+'" y2="'+(y2+ofy2).toFixed(1)+'" stroke="rgba(180,230,255,0.22)" stroke-width="0.8" stroke-dasharray="6,5"/>':'');
+      }
+
+      // Fallback
+      return '<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="'+col+'" stroke-width="'+sw+'" opacity="'+op+'"/>';
     }
 
     // ── DOM Setup ────────────────────────────────────────────────────────────
@@ -2724,9 +2722,11 @@ class BuildingPanel {
 
     function clampVB() {
       var cw=canvasBox.clientWidth||900, ch=canvasBox.clientHeight||580;
-      var vw=W/vb.scale, vh=H/vb.scale;
-      vb.x=Math.max(0, Math.min(vb.x, Math.max(0,W-vw)));
-      vb.y=Math.max(0, Math.min(vb.y, Math.max(0,H-vh)));
+      var vw=cw/vb.scale, vh=ch/vb.scale;
+      // 25% overshoot so you can pan to edges
+      var ox=W*0.25, oy=H*0.25;
+      vb.x=Math.max(-ox, Math.min(vb.x, Math.max(-ox, W-vw+ox)));
+      vb.y=Math.max(-oy, Math.min(vb.y, Math.max(-oy, H-vh+oy)));
     }
     function applyVB() {
       clampVB();
@@ -2735,13 +2735,16 @@ class BuildingPanel {
       if (!svgEl) return;
       svgEl.setAttribute('viewBox', vb.x.toFixed(1)+' '+vb.y.toFixed(1)+' '+vw.toFixed(1)+' '+vh.toFixed(1));
     }
+    // Initial fit — center the full diagram
     setTimeout(function(){
       if (!canvasBox) return;
       var cw=canvasBox.clientWidth, ch=canvasBox.clientHeight;
       if (!cw||!ch) return;
-      vb.scale = Math.min(cw/W, ch/H) * 0.97;
-      vb.x=0; vb.y=0;
-      MIN_SCALE = vb.scale * 0.92;
+      vb.scale = Math.min(cw/W, ch/H) * 0.96;
+      MIN_SCALE = vb.scale * 0.80;
+      // Center the diagram in the viewport
+      vb.x = -(cw/vb.scale - W) / 2;
+      vb.y = -(ch/vb.scale - H) / 2;
       applyVB();
     }, 40);
 
