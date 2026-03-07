@@ -491,10 +491,14 @@
   width: 100%;
   height: 100%;
 }
-/* tp-body when showing pantheon */
-#tp-body:has(#pan-wrap) {
+/* tp-body — no padding for any tab with canvas content */
+#tp-body:has(.pnt-wrap),
+#tp-body:has(.at-svg-box),
+#tp-body:has(.zn-grid) {
   padding: 0 !important;
   overflow: hidden !important;
+}
+#tp-body:has(.pnt-wrap) {
   display: flex;
   flex-direction: column;
 }
@@ -789,7 +793,7 @@
 .pnt-title        { font-family:Cinzel,serif; font-size:16px; font-weight:800; color:#f0e0a0; }
 .pnt-ether        { font-size:13px; color:#c0d8f8; font-family:Cinzel,serif; }
 .pnt-main         { display:flex; flex:1; overflow:hidden; }
-.pnt-canvas-box   { flex:1; overflow:hidden; position:relative; }
+.pnt-canvas-box { flex:1; overflow:hidden; position:relative; min-height:0; }
 .pnt-canvas-box svg { display:block; width:100%; height:100%; cursor:grab; user-select:none; }
 .pnt-side         { width:230px; flex-shrink:0; border-left:1px solid rgba(255,255,255,0.06); overflow-y:auto; padding:12px; display:flex; flex-direction:column; background:rgba(8,5,18,0.5); }
 .pnt-hint         { color:#666; font-size:12px; font-style:italic; text-align:center; margin-top:50px; line-height:1.6; }
