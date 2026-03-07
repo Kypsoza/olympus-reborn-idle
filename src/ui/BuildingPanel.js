@@ -4,7 +4,7 @@
 
 class BuildingPanel {
   constructor(bm, rm, tm, pm, zm) {
-    this.bm = bm; this.rm = rm; this.tm = tm; this.pm_pan = pm; this.zm = zm;
+    this.bm = bm; this.rm = rm; this.tm = tm; this.pm_pan = pm; this.pan = pm; this.zm = zm;
     this.currentCell = null;
     this._createDrawer();
     this._createTalentPanel();
@@ -26,7 +26,8 @@ class BuildingPanel {
     document.body.appendChild(this.drawer);
     document.getElementById('bp-close').addEventListener('click', () => this.hide());
     // Délégation unique — remplace tous les listeners posés individuellement
-    document.getElementById('bp-body').addEventListener('click', e => this._handleBodyClick(e));
+    var self2 = this;
+    document.getElementById('bp-body').addEventListener('click', function(e) { self2._handleBodyClick(e); });
   }
 
   _createTalentPanel() {
@@ -1263,7 +1264,9 @@ class BuildingPanel {
     });
 
     /* ── Délégation de clics sur le body ──────────────── */
-    body.addEventListener('click', function handler(e) {
+    if (!body._hexHandlerBound) {
+      body._hexHandlerBound = true;
+      body.addEventListener('click', function handler(e) {
       // Bouton ⓘ mobile
       var infoBtn = e.target.closest('.hex-info-btn');
       if (infoBtn) {
@@ -1306,7 +1309,8 @@ class BuildingPanel {
       var act = hexEl.dataset.action;
       if (act === 'road')        { self.bm.placeRoad(cell, _sx, _sy); self.refresh(); }
       else if (act === 'road-remove') { self.bm.removeRoad(cell, _sx, _sy); self.refresh(); }
-    });
+      });
+    } // end if !_hexHandlerBound
   }
 
 
@@ -1719,190 +1723,234 @@ class BuildingPanel {
   _renderPantheonTab(el) {
     var self = this;
     var pan  = this.pan;
-    if (!pan) { el.innerHTML = '<div style="padding:24px;color:#888;text-align:center">Panthéon non initialisé.</div>'; return; }
-
-    var NODES    = pan.getAllBranches ? {} : {};
-    var allNodes = {};
-    // Build a flat nodes map from PantheonManager
-    try {
-      // Access PANTHEON_NODES through the manager
-      Object.keys(pan.invested || {}).concat([]).forEach(function(){});
-    } catch(e2){}
+    if (!pan) {
+      el.innerHTML = '<div style="padding:24px;color:#888;text-align:center">Panthéon non initialisé.</div>';
+      return;
+    }
 
     var etherOwned = self.rm ? Math.floor(self.rm.get('ether')) : 0;
     var fmtE = function(v){ return v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e4?(v/1e3).toFixed(1)+'k':String(Math.floor(v)); };
 
-    var branches = pan.getAllBranches();
-    var activeBranch = el._panActiveBranch || branches[0].id;
+    var branches      = pan.getAllBranches();
+    var activeBranch  = el._panActiveBranch || branches[0].id;
+    var selNode       = el._panSelectedNode || null;
 
-    // ── Build header ──────────────────────────────────────
-    el.innerHTML =
-      '<div class="pan-wrap">' +
-        // Ether counter header
-        '<div class="pan-header">' +
-          '<span class="pan-title">⚡ Panthéon des Dieux</span>' +
-          '<span class="pan-ether" id="pan-ether-count">✨ ' + fmtE(etherOwned) + ' Éther</span>' +
-        '</div>' +
-        // Layout: branch tabs left + tree right
-        '<div class="pan-layout">' +
-          '<div class="pan-branch-tabs" id="pan-branch-tabs"></div>' +
-          '<div class="pan-tree-area" id="pan-tree-area"></div>' +
-        '</div>' +
+    // ── Helper: hex color to rgb string ──────────────────
+    function hexToRgb(hex) {
+      if (!hex || hex.length < 7) return '128,128,128';
+      var r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
+      return r+','+g+','+b;
+    }
+
+    // ── Build DOM ─────────────────────────────────────────
+    el.innerHTML = '<div class="pan2-wrap"></div>';
+    var wrap = el.querySelector('.pan2-wrap');
+
+    // Header
+    wrap.innerHTML =
+      '<div class="pan2-header">' +
+        '<span class="pan2-title">⚡ Panthéon des Dieux</span>' +
+        '<span class="pan2-ether" id="pan-ether-count">✨ ' + fmtE(etherOwned) + ' Éther</span>' +
+      '</div>' +
+      '<div class="pan2-layout">' +
+        '<nav class="pan2-branches" id="pan2-branches"></nav>' +
+        '<div class="pan2-content" id="pan2-content"></div>' +
+        '<div class="pan2-detail" id="pan2-detail"></div>' +
       '</div>';
 
-    // ── Fill branch tab list ──────────────────────────────
-    var tabsEl = el.querySelector('#pan-branch-tabs');
-    var treeEl = el.querySelector('#pan-tree-area');
+    var navEl    = wrap.querySelector('#pan2-branches');
+    var contentEl= wrap.querySelector('#pan2-content');
+    var detailEl = wrap.querySelector('#pan2-detail');
 
+    // ── Branch nav buttons ────────────────────────────────
     branches.forEach(function(b) {
       var unlocked = pan.isBranchUnlocked(b.id);
-      var btn = document.createElement('button');
-      btn.className = 'pan-branch-btn' + (b.id === activeBranch ? ' active' : '') + (unlocked ? '' : ' locked');
-      btn.dataset.branch = b.id;
-      // Count learned nodes in this branch
-      var learnedCount = Object.keys(pan.invested||{}).filter(function(k){
-        return k.startsWith(b.id.split('_')[0]) || k.startsWith(b.id);
+      var learned  = Object.keys(pan.invested||{}).filter(function(k){
+        var pn = (typeof PANTHEON_NODES!=='undefined') ? PANTHEON_NODES : {};
+        return pn[k] && pn[k].branch === b.id && (pan.invested[k]||0) > 0;
       }).length;
+      var btn = document.createElement('button');
+      btn.className = 'pan2-branch-btn' + (b.id===activeBranch?' active':'') + (unlocked?'':' locked');
+      btn.dataset.branch = b.id;
+      btn.style.setProperty('--bc', b.color || '#888');
       btn.innerHTML =
-        '<span class="pan-bb-icon">' + b.icon + '</span>' +
-        '<span class="pan-bb-label" style="color:' + (unlocked ? b.color : '#555') + '">' + b.label + '</span>' +
-        (unlocked && learnedCount > 0 ? '<span class="pan-bb-count">' + learnedCount + '</span>' : '') +
-        (!unlocked ? '<span class="pan-bb-lock">🔒</span>' : '');
-      tabsEl.appendChild(btn);
+        '<span class="pan2-bb-icon">' + b.icon + '</span>' +
+        '<span class="pan2-bb-label">' + b.label + '</span>' +
+        (learned>0 ? '<span class="pan2-bb-count" style="background:'+b.color+'">' + learned + '</span>' : '') +
+        (!unlocked ? '<span class="pan2-bb-lock">🔒</span>' : '');
+      navEl.appendChild(btn);
     });
 
-    // ── Render branch tree ────────────────────────────────
-    function renderBranchTree(branchId) {
+    // ── Render node detail panel ──────────────────────────
+    function renderDetail(nodeId) {
+      var PN = (typeof PANTHEON_NODES !== 'undefined') ? PANTHEON_NODES : {};
+      var nd = PN[nodeId];
+      if (!nd) { detailEl.innerHTML = '<div class="pan2-hint">Clique sur un talent pour voir les détails</div>'; return; }
+      var branch = branches.find(function(b){ return b.id === nd.branch; });
+      var bc = branch ? branch.color : '#888';
+      var rgb = hexToRgb(bc);
+      var state = pan.getNodeState(nodeId);
+      var check = pan.canLearn(nodeId);
+      var pts   = pan.invested[nodeId] || 0;
+
+      var stateLabel = state==='learned' ? '✅ Acquis' : state==='available' ? '🟡 Disponible' : '🔒 Verrouillé';
+      var stateColor = state==='learned' ? '#60e060' : state==='available' ? '#f0c840' : '#808080';
+
+      var prereqHtml = '';
+      if (nd.requires && nd.requires.length > 0) {
+        prereqHtml = '<div class="pan2-d-prereq">🔗 Prérequis : ' +
+          nd.requires.map(function(rId){
+            var rn = PN[rId]; var ok = (pan.invested[rId]||0)>0;
+            return '<span style="color:'+(ok?'#60e060':'#e06060')+'">'+(rn?rn.name:rId)+'</span>';
+          }).join(', ') + '</div>';
+      }
+
+      var buyDisabled = (state==='learned' && !nd.uncapped) || !check.ok;
+      var buyLabel = state==='learned' && !nd.uncapped ? '✅ Acquis'
+                  : nd.uncapped ? '✨ +'+ nd.cost +' Éther (' + (pts>0?'×'+pts+' — ':'')+' sans limite)'
+                  : check.ok    ? '✨ Apprendre — ' + nd.cost + ' Éther'
+                  : '🔒 ' + (check.reason || 'Indisponible');
+
+      detailEl.innerHTML =
+        '<div class="pan2-d-wrap" style="--bc:'+bc+';--rgb:'+rgb+'">' +
+          '<div class="pan2-d-head">' +
+            '<div class="pan2-d-hex"><svg viewBox="0 0 60 70" width="56" height="64">' +
+              '<polygon points="30,2 56,17 56,53 30,68 4,53 4,17" fill="rgba('+rgb+',0.25)" stroke="'+bc+'" stroke-width="2.5"/>' +
+              '<text x="30" y="43" text-anchor="middle" font-size="24">'+nd.icon+'</text></svg></div>' +
+            '<div class="pan2-d-info">' +
+              '<div class="pan2-d-name">'+nd.name+'</div>' +
+              '<div class="pan2-d-branch" style="color:'+bc+'">'+( branch?branch.icon+' '+branch.label:'')+'</div>' +
+              '<div class="pan2-d-ring">Anneau ' + nd.ring + (nd.uncapped?' · ∞':'')+' · Coût : '+nd.cost+' ✨</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="pan2-d-state" style="color:'+stateColor+'">'+stateLabel+(pts>1?' (×'+pts+')':state==='learned'&&pts===1?' (×1)':'')+'</div>' +
+          '<div class="pan2-d-desc">'+nd.desc+'</div>' +
+          prereqHtml +
+          '<button class="pan2-d-buy'+(buyDisabled?' disabled':'')+'" data-buy-node="'+nodeId+'"'+(buyDisabled?' disabled':'')+'>'+buyLabel+'</button>' +
+        '</div>';
+    }
+
+    // ── Render branch nodes grid ──────────────────────────
+    function renderBranchContent(branchId) {
       activeBranch = branchId;
       el._panActiveBranch = branchId;
-      // Update tab active state
-      tabsEl.querySelectorAll('.pan-branch-btn').forEach(function(btn) {
-        btn.classList.toggle('active', btn.dataset.branch === branchId);
+      navEl.querySelectorAll('.pan2-branch-btn').forEach(function(b){
+        b.classList.toggle('active', b.dataset.branch === branchId);
       });
 
-      var branch  = branches.find(function(b){ return b.id === branchId; });
+      var branch   = branches.find(function(b){ return b.id === branchId; });
       var unlocked = pan.isBranchUnlocked(branchId);
 
       if (!unlocked) {
-        treeEl.innerHTML =
-          '<div class="pan-locked-msg">' +
-          '<span style="font-size:40px">' + branch.icon + '</span>' +
-          '<div style="font-size:18px;color:' + branch.color + ';margin:8px 0">' + branch.label + '</div>' +
-          '<div style="color:#888;font-size:13px">Branche verrouillée — débloquez la zone correspondante (Phase 8)</div>' +
+        contentEl.innerHTML =
+          '<div class="pan2-locked-branch">' +
+          '<div style="font-size:48px">'+branch.icon+'</div>' +
+          '<div style="font-size:18px;color:'+branch.color+';margin:8px 0">'+branch.label+'</div>' +
+          '<div style="color:#888;font-size:13px">Branche verrouillée</div>' +
+          '<div style="color:#666;font-size:11px;margin-top:4px">Débloquez la zone correspondante (Phase 8)</div>' +
           '</div>';
         return;
       }
 
-      // Get all nodes for this branch
-      var bNodes = [];
-      try {
-        // Access PANTHEON_NODES (global from PantheonManager.js)
-        var PN = (typeof PANTHEON_NODES !== 'undefined') ? PANTHEON_NODES : {};
-        Object.keys(PN).forEach(function(nodeId) {
-          if (PN[nodeId].branch === branchId) {
-            var nd = Object.assign({}, PN[nodeId], { id: nodeId });
-            bNodes.push(nd);
-          }
-        });
-      } catch(e2) { treeEl.innerHTML = '<div style="color:#e08080;padding:16px">Erreur chargement nœuds.</div>'; return; }
+      // Get nodes for this branch, sorted ring→slot
+      var PN = (typeof PANTHEON_NODES !== 'undefined') ? PANTHEON_NODES : {};
+      var bNodes = Object.keys(PN).filter(function(k){ return PN[k].branch===branchId; })
+        .map(function(k){ return Object.assign({},PN[k],{id:k}); })
+        .sort(function(a,b){ return a.ring!==b.ring ? a.ring-b.ring : a.slot-b.slot; });
 
-      // Sort by ring then slot
-      bNodes.sort(function(a,b) { return a.ring !== b.ring ? a.ring - b.ring : a.slot - b.slot; });
+      var byRing = {1:[],2:[],3:[]};
+      bNodes.forEach(function(nd){ (byRing[nd.ring]||(byRing[nd.ring]=[])).push(nd); });
 
-      // Group by ring
-      var byRing = { 1:[], 2:[], 3:[] };
-      bNodes.forEach(function(nd){ (byRing[nd.ring] || (byRing[nd.ring]=[])).push(nd); });
+      var ringDefs = [
+        {ring:1,label:'Anneau I — Fondements',   color:'#b09060'},
+        {ring:2,label:'Anneau II — Synergies',    color:'#60a0c8'},
+        {ring:3,label:'Anneau III — Maîtrise ∞',  color:'#c080f0'},
+      ];
 
-      var ringLabels = { 1:'Anneau I — Fondements', 2:'Anneau II — Synergies', 3:'Anneau III — Divin (∞)' };
-      var ringColors = { 1:'#a09060', 2:'#60a0c8', 3:'#c080f0' };
-
-      var html = '<div class="pan-branch-header" style="border-color:' + branch.color + '">' +
-        '<span class="pan-bh-icon">' + branch.icon + '</span>' +
-        '<div class="pan-bh-info"><div class="pan-bh-name" style="color:' + branch.color + '">' + branch.label + '</div>' +
-        '<div class="pan-bh-desc" style="font-size:11px;color:#888">' + (branch.desc || '') + '</div></div>' +
-        '</div>';
-
-      // Selected node tooltip area
-      html += '<div class="pan-tt-box" id="pan-tt-box"></div>';
-
-      [1,2,3].forEach(function(ring) {
-        var rNodes = byRing[ring] || [];
+      var bc = branch.color || '#888';
+      var html = '';
+      ringDefs.forEach(function(rd) {
+        var rNodes = byRing[rd.ring]||[];
         if (!rNodes.length) return;
-        html += '<div class="pan-ring-section">' +
-          '<div class="pan-ring-label" style="color:' + ringColors[ring] + '">' + ringLabels[ring] + '</div>' +
-          '<div class="pan-ring-nodes">';
+        html += '<div class="pan2-ring-section"><div class="pan2-ring-label" style="color:'+rd.color+'">'+rd.label+'</div><div class="pan2-ring-grid">';
         rNodes.forEach(function(nd) {
-          var state   = pan.getNodeState(nd.id);
-          var check   = pan.canLearn(nd.id);
-          var pts     = pan.invested[nd.id] || 0;
-          var isLearned = state === 'learned';
-          var isAvail   = state === 'available';
-          var isSelected = nd.id === el._panSelectedNode;
-
-          var borderColor = isLearned ? branch.color : isAvail ? 'rgba(200,149,26,0.6)' : 'rgba(80,60,120,0.4)';
-          var bgColor     = isLearned ? 'rgba(' + hexToRgb(branch.color) + ',0.18)' : isAvail ? 'rgba(200,149,26,0.08)' : 'rgba(20,15,35,0.6)';
-          var selectRing  = isSelected ? 'box-shadow:0 0 0 3px #f0c840,0 0 16px rgba(240,200,64,0.6);' : '';
-
-          html += '<div class="pan-node-card' + (isLearned?' learned':isAvail?' available':' locked') + (nd.uncapped?' uncapped':'') + '" data-pannode="' + nd.id + '" style="border-color:' + borderColor + ';background:' + bgColor + ';' + selectRing + '">' +
-            // Hexagon icon
-            '<div class="pan-node-hex">' +
-              '<svg viewBox="0 0 60 70" width="52" height="60"><polygon points="30,2 56,17 56,53 30,68 4,53 4,17" fill="' + (isLearned ? 'rgba('+hexToRgb(branch.color)+',0.25)' : isAvail ? 'rgba(200,149,26,0.12)' : 'rgba(20,15,35,0.5)') + '" stroke="' + borderColor + '" stroke-width="2"/>' +
-              '<text x="30" y="42" text-anchor="middle" font-size="22">' + nd.icon + '</text></svg>' +
-            '</div>' +
-            '<div class="pan-node-info">' +
-              '<div class="pan-node-name">' + nd.name + '</div>' +
-              '<div class="pan-node-desc">' + (nd.desc || '') + '</div>' +
-              (nd.uncapped && pts > 0 ? '<div class="pan-node-pts">✕' + pts + ' investi</div>' : '') +
-            '</div>' +
-            '<div class="pan-node-cost ' + (isLearned&&!nd.uncapped?'cost-done':check.ok?'cost-ok':'cost-lock') + '">' +
-              (isLearned&&!nd.uncapped ? '✅' : '✨ ' + nd.cost + ' Éther') +
-            '</div>' +
-          '</div>';
+          var state     = pan.getNodeState(nd.id);
+          var pts       = pan.invested[nd.id] || 0;
+          var isSel     = nd.id === selNode;
+          var isLearned = state==='learned';
+          var isAvail   = state==='available';
+          var rgb = hexToRgb(bc);
+          var borderCol = isLearned ? bc : isAvail ? '#c89620' : 'rgba(80,60,120,0.4)';
+          var fillCol   = isLearned ? 'rgba('+rgb+',0.22)' : isAvail ? 'rgba(200,150,26,0.10)' : 'rgba(20,15,35,0.6)';
+          var selStyle  = isSel ? 'box-shadow:0 0 0 2px #f0c840,0 0 14px rgba(240,200,64,0.55);' : '';
+          html +=
+            '<div class="pan2-node'+(isLearned?' learned':isAvail?' avail':'')+'" data-pannode="'+nd.id+'"'+
+            ' style="border-color:'+borderCol+';background:'+fillCol+';'+selStyle+'">' +
+            '<div class="pan2-node-hex"><svg viewBox="0 0 60 70" width="44" height="50">' +
+              '<polygon points="30,2 56,17 56,53 30,68 4,53 4,17" fill="'+fillCol+'" stroke="'+borderCol+'" stroke-width="2.5"'+
+              (isSel?' filter="drop-shadow(0 0 6px #f0c840)"':'')+'/>' +
+              (isLearned?'<polygon points="30,2 56,17 56,53 30,68 4,53 4,17" fill="rgba('+rgb+',0.15)"/>':'') +
+              '<text x="30" y="43" text-anchor="middle" font-size="20">'+nd.icon+'</text>' +
+            '</svg></div>' +
+            '<div class="pan2-node-name">'+nd.name+'</div>' +
+            (nd.uncapped&&pts>0?'<div class="pan2-node-pts">×'+pts+'</div>':'') +
+            (isLearned&&!nd.uncapped?'<div class="pan2-node-check">✅</div>':'') +
+            '</div>';
         });
         html += '</div></div>';
       });
+      contentEl.innerHTML = html;
 
-      treeEl.innerHTML = html;
+      if (selNode) renderDetail(selNode);
+      else detailEl.innerHTML = '<div class="pan2-hint">← Sélectionne un talent</div>';
+    }
 
-      // Click handler on nodes
-      treeEl.addEventListener('click', function(e) {
-        var card = e.target.closest('[data-pannode]');
-        if (!card) return;
-        var nid   = card.dataset.pannode;
-        el._panSelectedNode = nid;
+    // ── Events (use .onclick to avoid accumulation) ───────
+    navEl.onclick = function(e) {
+      var btn = e.target.closest('.pan2-branch-btn');
+      if (!btn || btn.classList.contains('locked')) return;
+      renderBranchContent(btn.dataset.branch);
+    };
 
-        // Try to learn
-        if (pan.learn(nid, e.clientX, e.clientY)) {
-          var etherEl = document.getElementById('pan-ether-count');
-          if (etherEl) etherEl.textContent = '✨ ' + fmtE(self.rm ? self.rm.get('ether') : 0) + ' Éther';
-        }
-        // Refresh tree to show new state + selection
-        renderBranchTree(branchId);
+    contentEl.onclick = function(e) {
+      var card = e.target.closest('[data-pannode]');
+      if (!card) return;
+      selNode = card.dataset.pannode;
+      el._panSelectedNode = selNode;
+      // Update selection highlight
+      contentEl.querySelectorAll('[data-pannode]').forEach(function(c2){
+        var isSel = c2.dataset.pannode === selNode;
+        if (isSel) c2.style.boxShadow = '0 0 0 2px #f0c840,0 0 14px rgba(240,200,64,0.55)';
+        else c2.style.boxShadow = '';
       });
-    }
+      renderDetail(selNode);
+    };
 
-    // Tab click handler
-    tabsEl.addEventListener('click', function(e) {
-      var btn = e.target.closest('.pan-branch-btn');
-      if (!btn) return;
-      renderBranchTree(btn.dataset.branch);
-    });
+    detailEl.onclick = function(e) {
+      var btn = e.target.closest('[data-buy-node]');
+      if (!btn || btn.disabled) return;
+      var nodeId = btn.dataset.buyNode;
+      if (pan.learn(nodeId, e.clientX, e.clientY)) {
+        var etherEl = document.getElementById('pan-ether-count');
+        if (etherEl) etherEl.textContent = '✨ ' + fmtE(self.rm ? self.rm.get('ether') : 0) + ' Éther';
+        // Refresh current branch
+        renderBranchContent(activeBranch);
+        renderDetail(nodeId);
+      }
+    };
 
-    // Helper: hex color to rgb
-    function hexToRgb(hex) {
-      var r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
-      return r+','+g+','+b;
-    }
-
-    renderBranchTree(activeBranch);
+    renderBranchContent(activeBranch);
+    if (selNode) renderDetail(selNode);
+    else detailEl.innerHTML = '<div class="pan2-hint">← Sélectionne un talent pour voir les détails</div>';
   }
+
 
   // ── Liaison événements ──────────────────────────────────
   _bindEvents() {
     var self = this;
 
     // Clic sur une case de la carte → ouvrir le drawer
-    EventBus.on('cell:clicked', function(d) {
+    EventBus.on('cell:click', function(d) {
       var cell = d.cell;
       if (!cell) return;
       var sx = d.screenX || window.innerWidth / 2;

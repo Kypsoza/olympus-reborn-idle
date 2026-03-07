@@ -502,8 +502,8 @@
 #prestige-conditions-bar {
   position: fixed;
   left: 12px;
-  top: calc(var(--hud-top-h) + 80px);
-  width: 220px;
+  top: calc(var(--hud-top-h) + 90px);
+  width: 230px;
   background: rgba(20,10,40,0.93);
   border: 1px solid rgba(176,96,255,0.4);
   border-radius: 10px;

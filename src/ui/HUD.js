@@ -63,12 +63,19 @@ class HUD {
     var worst = curses.length > 0 ? curses[0].stage.label : '';
     if (curses.length > 1) worst = curses.length + ' malédictions';
     var pct = Math.round((1 - mult) * 100);
-    // Build detailed tooltip for all curses
-    var curseTipHtml = curses.map(function(cu) {
-      var resolution = cu.def.ritual || 'Accomplir le rituel de ' + cu.def.god;
-      return '<div style="margin-bottom:6px"><b style="color:' + cu.def.color + '">' + cu.def.icon + ' ' + cu.def.god + '</b> — ' + cu.stage.label + '<br>' +
-             '<span style="font-size:10px;color:#e0c090">⚙️ Résolution : ' + resolution + '</span></div>';
+    // Build detailed tooltip — cause + resolution per curse
+    var curseTipHtml = '<div style="font-size:11px;color:#ff9090;font-weight:700;margin-bottom:6px">⚠️ Malédictions actives</div>';
+    curseTipHtml += curses.map(function(cu) {
+      var why  = cu.stage.desc  || ('La zone ' + (cu.def.god||'') + ' est maudite');
+      var how  = cu.def.ritual  || ('Accomplir le rituel de la zone ' + (cu.def.god||''));
+      var penalty = cu.stage.mult != null ? Math.round((1 - cu.stage.mult) * 100) : 0;
+      return '<div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(255,80,80,0.15)">' +
+        '<div style="color:' + (cu.def.color||'#ff8080') + ';font-weight:700;margin-bottom:3px">' + (cu.def.icon||'💀') + ' ' + (cu.def.god||'') + ' — ' + cu.stage.label + ' (-' + penalty + '%)</div>' +
+        '<div style="color:#c0a0d0;font-size:10px;margin-bottom:2px">📖 Pourquoi : ' + why + '</div>' +
+        '<div style="color:#90e890;font-size:10px">🔧 Résoudre : ' + how + '</div>' +
+        '</div>';
     }).join('');
+    curseTipHtml += '<div style="font-size:10px;color:#808080;margin-top:4px">Pénalité totale production : -' + Math.round((1-mult)*100) + '%</div>';
     el.innerHTML =
       '<span class="chb-curse-icon">💀</span>' +
       '<span class="chb-curse-label">' + worst + '</span>' +
