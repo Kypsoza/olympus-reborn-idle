@@ -544,6 +544,19 @@ class BuildingPanel {
     }
     var b = branches[0];
 
+    // Branch image map (ASCII filenames matching user's disk)
+    var BRANCH_IMG = {
+      'agriculture':   'assets/tabs/agriculture.jpg',
+      'sylviculture':  'assets/tabs/Sylviculture.jpg',
+      'metallurgie':   'assets/tabs/metallurgie.jpg',
+      'siderurgie':    'assets/tabs/siderurgie.jpg',
+      'population':    'assets/tabs/population.jpg',
+      'ingenierie':    'assets/tabs/Ingenierie.jpg',
+      'cartographie':  'assets/tabs/Cartographie.jpg',
+      'prestige_codex':'assets/tabs/Heritage.jpg',
+    };
+    var branchImg = BRANCH_IMG[branchId] || null;
+
     var COL_W = 200;
     var R     = 36;
     var SUB   = 50;
@@ -664,12 +677,13 @@ class BuildingPanel {
 
     var _dtSelected = null;
     function buildSVG() {
-      var s = '<svg id="dt-svg" xmlns="http://www.w3.org/2000/svg"'
+      var s = '<svg id="dt-svg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"'
         + ' width="' + VW + '" height="' + VH + '"'
-        + ' style="display:block;overflow:visible;background:transparent">';
+        + ' style="display:block;overflow:hidden;background:transparent">';
 
-      // Filters only — no background rect (image shows through from CSS)
+      // Defs with filters and clipPath for background image
       s += '<defs>'
+        + '<clipPath id="dt-clip"><rect width="' + VW + '" height="' + VH + '"/></clipPath>'
         + '<filter id="dt-gd" x="-80%" y="-80%" width="260%" height="260%">'
         + '<feGaussianBlur stdDeviation="6" result="b"/>'
         + '<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
@@ -678,8 +692,15 @@ class BuildingPanel {
         + '<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
         + '</defs>';
 
-      // Very subtle dark vignette to make text readable over image
-      s += '<rect width="' + VW + '" height="' + VH + '" fill="rgba(4,2,12,0.55)"/>';
+      // Background image fills SVG exactly
+      if (branchImg) {
+        s += '<image href="' + branchImg + '" xlink:href="' + branchImg + '" x="0" y="0"'
+          + ' width="' + VW + '" height="' + VH + '"'
+          + ' preserveAspectRatio="xMidYMid slice"'
+          + ' clip-path="url(#dt-clip)" opacity="0.6"/>';
+      }
+      // Dark overlay for readability
+      s += '<rect width="' + VW + '" height="' + VH + '" fill="rgba(4,2,12,0.48)"/>';
 
       // Thin golden méandre border frame (decorative only)
       s += '<rect x="4" y="4" width="' + (VW-8) + '" height="' + (VH-8) + '"'
@@ -776,10 +797,19 @@ class BuildingPanel {
     // Tooltip container
     var drachmes = self.rm ? Math.floor(self.rm.get('drachmes')) : 0;
     var fmt = function(v){ return v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3?(v/1e3).toFixed(1)+'k':''+v; };
+    // Build side detail panel (always visible)
+    var sideHtml = '<div id="dt-side-panel" class="dt-side-panel">'
+      + '<div id="dt-side-content" class="dt-side-empty">'
+      + '<div style="font-family:Cinzel,serif;font-size:14px;color:rgba(200,180,100,0.5);text-align:center;padding-top:40px;line-height:1.8">'
+      + '✨<br>Cliquez sur<br>un talent<br>pour voir<br>les détails'
+      + '</div></div></div>';
+
     el.innerHTML =
       '<div class="dt-drachmes-count">🪙 ' + fmt(drachmes) + ' Drachmes</div>' +
-      '<div id="dt-scroll-wrap"><div style="min-width:' + VW + 'px">' + buildSVG() + '</div></div>' +
-      '<div id="dt-tooltip" class="dt-branch-tt" style="display:none"></div>';
+      '<div class="dt-body-row">' +
+        '<div id="dt-scroll-wrap"><div style="min-width:' + VW + 'px">' + buildSVG() + '</div></div>' +
+        sideHtml +
+      '</div>';
 
     function buildTT(id) {
       var def = self.tm.getTalentDef(id);
@@ -799,32 +829,37 @@ class BuildingPanel {
     }
 
     var curNode  = null;
-    var ttBox    = document.getElementById('dt-tooltip');
-    var ttPinned = false;  // true quand l'utilisateur a cliqué sur un nœud
+    var ttBox    = null; // legacy - unused, side panel replaces it
+    var ttPinned = false;
+
+    function showSide(id) {
+      var side = document.getElementById('dt-side-content');
+      if (!side) return;
+      if (!id) {
+        side.className = 'dt-side-empty';
+        side.innerHTML = '<div style="font-family:Cinzel,serif;font-size:14px;color:rgba(200,180,100,0.5);text-align:center;padding-top:40px;line-height:1.8">✨<br>Cliquez sur<br>un talent<br>pour voir<br>les détails</div>';
+        return;
+      }
+      side.className = '';
+      side.innerHTML = buildTT(id);
+    }
 
     function bindSVG(svg) {
       if (!svg) return;
       svg.querySelectorAll('.dt-node').forEach(function(g) {
         g.addEventListener('mouseenter', function() {
-          if (ttPinned) return;
-          curNode = g.dataset.id;
-          ttBox.innerHTML = buildTT(curNode);
-          ttBox.style.display = 'block';
+          if (!_dtSelected) showSide(g.dataset.id);
         });
         g.addEventListener('mouseleave', function() {
-          if (ttPinned) return;
-          setTimeout(function() {
-            if (!ttBox.matches(':hover')) { ttBox.style.display = 'none'; curNode = null; }
-          }, 120);
+          if (!_dtSelected) showSide(null);
         });
         g.addEventListener('click', function(e) {
           e.stopPropagation();
-          ttPinned = true;
-          curNode = g.dataset.id;
-          _dtSelected = curNode;
-          ttBox.innerHTML = buildTT(curNode);
-          ttBox.style.display = 'block';
-          // Refresh SVG to show selection highlight
+          var wasSelected = (_dtSelected === g.dataset.id);
+          _dtSelected = wasSelected ? null : g.dataset.id;
+          curNode = _dtSelected;
+          showSide(_dtSelected);
+          // Refresh SVG for selection highlight
           var _sw = document.getElementById('dt-scroll-wrap');
           if (_sw) { _sw.innerHTML = '<div style="min-width:'+VW+'px">'+buildSVG()+'</div>'; bindSVG(_sw.querySelector('#dt-svg')); startRuneAnim(_sw.querySelector('#dt-svg')); }
         });
@@ -833,26 +868,32 @@ class BuildingPanel {
     bindSVG(el.querySelector('#dt-svg'));
     startRuneAnim(el.querySelector('#dt-svg'));
 
-    // Clic en dehors → dépingle
+    // Clic en dehors des nœuds → désélectionne
     document.addEventListener('click', function unpinHandler(e) {
-      if (!ttBox.contains(e.target) && !e.target.closest('.dt-node')) {
-        ttPinned = false;
-        ttBox.style.display = 'none';
-        curNode = null;
+      if (!e.target.closest('.dt-node') && !e.target.closest('#dt-side-panel')) {
+        if (_dtSelected) {
+          _dtSelected = null; curNode = null;
+          showSide(null);
+          var _sw = document.getElementById('dt-scroll-wrap');
+          if (_sw) { _sw.innerHTML = '<div style="min-width:'+VW+'px">'+buildSVG()+'</div>'; bindSVG(_sw.querySelector('#dt-svg')); startRuneAnim(_sw.querySelector('#dt-svg')); }
+        }
       }
     });
 
-    ttBox.addEventListener('click', function(e) {
+    // Buy button handler on the side panel
+    el.addEventListener('click', function(e) {
       var btn = e.target.closest('[data-learn]'); if (!btn) return;
       e.stopPropagation();
       if (!self.tm.learn(btn.dataset.learn)) return;
-      // Rebuild SVG in place
+      // Rebuild SVG + refresh side panel
       var scrollWrap = document.getElementById('dt-scroll-wrap');
-      stopRuneAnim();
-      scrollWrap.innerHTML = '<div style="min-width:' + VW + 'px">' + buildSVG() + '</div>';
-      bindSVG(scrollWrap.querySelector('#dt-svg'));
-      startRuneAnim(scrollWrap.querySelector('#dt-svg'));
-      if (curNode) { ttBox.innerHTML = buildTT(curNode); ttBox.style.display = 'block'; }
+      if (scrollWrap) {
+        stopRuneAnim();
+        scrollWrap.innerHTML = '<div style="min-width:' + VW + 'px">' + buildSVG() + '</div>';
+        bindSVG(scrollWrap.querySelector('#dt-svg'));
+        startRuneAnim(scrollWrap.querySelector('#dt-svg'));
+      }
+      if (curNode) showSide(curNode);
       var dNew = self.rm ? Math.floor(self.rm.get('drachmes')) : 0;
       var hdr  = el.querySelector('.dt-drachmes-count');
       if (hdr) hdr.textContent = '🪙 ' + fmt(dNew) + ' Drachmes';
@@ -2221,65 +2262,96 @@ class BuildingPanel {
 
       // Branch-specific style
       if (branchId==='zeus') {
-        // Pure jagged lightning
+        // Pure crackling lightning — multi-layer glow like reference
         var pts=[[x1,y1]], n=8;
         var rng=function(s){return(Math.sin(s*127.1+3.7)*0.5+0.5)*2-1;};
-        var nx=-dy/Math.hypot(dx,dy), ny=dx/Math.hypot(dx,dy);
+        var nxz=-dy/Math.hypot(dx,dy), nyz=dx/Math.hypot(dx,dy);
+        var amp0=active?20:12;
         for(var i=1;i<n;i++){
-          var t=i/n, amp=(i%2===0?14:-14)*(0.5+Math.abs(rng(i)));
-          pts.push([x1+t*dx+amp*nx, y1+t*dy+amp*ny]);
+          var t=i/n, amp=(i%2===0?amp0:-amp0)*(0.6+Math.abs(rng(i)));
+          pts.push([x1+t*dx+amp*nxz, y1+t*dy+amp*nyz]);
         }
         pts.push([x2,y2]);
         var d='M'+pts.map(function(p){return p[0].toFixed(1)+','+p[1].toFixed(1);}).join('L');
-        return '<path d="'+d+'" fill="none" stroke="'+col+'" stroke-width="'+sw+'" opacity="'+opacity+'" stroke-linecap="round"/>';
+        var glowOp = active?'0.35':halfway?'0.15':'0.06';
+        return '<path d="'+d+'" fill="none" stroke="rgba(180,220,255,'+glowOp+')" stroke-width="'+(sw*4)+'" stroke-linecap="round" filter="url(#glow-s)"/>'+
+               '<path d="'+d+'" fill="none" stroke="'+col+'" stroke-width="'+sw+'" opacity="'+opacity+'" stroke-linecap="round"/>'+
+               (active?'<path d="'+d+'" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="1" stroke-linecap="round"/>':'');
       }
       if (branchId==='demeter') {
-        // Organic vine — cubic bezier with branch points
+        // Glowing emerald vines like reference image
         var len=Math.hypot(dx,dy);
-        var nx2=-dy/len, ny2=dx/len;
-        var cp1x=x1+dx*0.3+nx2*28, cp1y=y1+dy*0.3+ny2*28;
-        var cp2x=x1+dx*0.7-nx2*28, cp2y=y1+dy*0.7-ny2*28;
+        var nxd=-dy/len, nyd=dx/len;
+        var amp=(active?30:16);
+        var cp1x=x1+dx*0.3+nxd*amp, cp1y=y1+dy*0.3+nyd*amp;
+        var cp2x=x1+dx*0.7-nxd*amp, cp2y=y1+dy*0.7-nyd*amp;
         var main='M'+x1.toFixed(1)+','+y1.toFixed(1)+' C'+cp1x.toFixed(1)+','+cp1y.toFixed(1)+' '+cp2x.toFixed(1)+','+cp2y.toFixed(1)+' '+x2.toFixed(1)+','+y2.toFixed(1);
-        // Second thinner brin
-        var cp3x=x1+dx*0.35+nx2*14, cp3y=y1+dy*0.35+ny2*14;
-        var cp4x=x1+dx*0.65-nx2*14, cp4y=y1+dy*0.65-ny2*14;
-        var brin2='M'+(x1+nx2*10).toFixed(1)+','+(y1+ny2*10).toFixed(1)+' C'+cp3x.toFixed(1)+','+cp3y.toFixed(1)+' '+cp4x.toFixed(1)+','+cp4y.toFixed(1)+' '+(x2+nx2*10).toFixed(1)+','+(y2+ny2*10).toFixed(1);
-        return '<path d="'+main+'" fill="none" stroke="'+col+'" stroke-width="'+(sw*1.2)+'" opacity="'+opacity+'"/>'
-             + '<path d="'+brin2+'" fill="none" stroke="'+col+'" stroke-width="'+(sw*0.6)+'" opacity="'+(parseFloat(opacity)*0.6)+'" />';
+        var cp3x=x1+dx*0.4+nxd*(amp*0.5), cp3y=y1+dy*0.4+nyd*(amp*0.5);
+        var cp4x=x1+dx*0.6-nxd*(amp*0.4), cp4y=y1+dy*0.6-nyd*(amp*0.4);
+        var brin2='M'+(x1+nxd*8).toFixed(1)+','+(y1+nyd*8).toFixed(1)+' C'+cp3x.toFixed(1)+','+cp3y.toFixed(1)+' '+cp4x.toFixed(1)+','+cp4y.toFixed(1)+' '+(x2+nxd*8).toFixed(1)+','+(y2+nyd*8).toFixed(1);
+        var glowCol = active?'rgba(100,255,120,0.22)':'rgba(60,180,80,0.07)';
+        return '<path d="'+main+'" fill="none" stroke="'+glowCol+'" stroke-width="'+(sw*6)+'" filter="url(#glow-s)"/>'+
+               '<path d="'+main+'" fill="none" stroke="'+col+'" stroke-width="'+(sw*1.3)+'" opacity="'+opacity+'" />'+
+               '<path d="'+brin2+'" fill="none" stroke="'+col+'" stroke-width="'+(sw*0.65)+'" opacity="'+(parseFloat(opacity)*0.65)+'" />';
       }
       if (branchId==='hephaïstos') {
-        // Chains — thick segments with gaps
-        return '<path d="M'+x1.toFixed(1)+','+y1.toFixed(1)+'L'+x2.toFixed(1)+','+y2.toFixed(1)+'" fill="none" stroke="'+col+'" stroke-width="'+(sw*1.3)+'" opacity="'+opacity+'" stroke-dasharray="10,6" stroke-linecap="round"/>';
+        // Molten chains with fire glow like reference
+        var fireGlow = active?'rgba(255,140,30,0.3)':'rgba(180,80,10,0.1)';
+        return '<path d="M'+x1.toFixed(1)+','+y1.toFixed(1)+'L'+x2.toFixed(1)+','+y2.toFixed(1)+'" fill="none" stroke="'+fireGlow+'" stroke-width="'+(sw*8)+'" filter="url(#glow-s)"/>'+
+               '<path d="M'+x1.toFixed(1)+','+y1.toFixed(1)+'L'+x2.toFixed(1)+','+y2.toFixed(1)+'" fill="none" stroke="'+col+'" stroke-width="'+(sw*1.5)+'" opacity="'+opacity+'" stroke-dasharray="12,5" stroke-linecap="round"/>'+
+               (active?'<path d="M'+x1.toFixed(1)+','+y1.toFixed(1)+'L'+x2.toFixed(1)+','+y2.toFixed(1)+'" fill="none" stroke="rgba(255,220,100,0.4)" stroke-width="1" stroke-dasharray="4,13" stroke-dashoffset="6"/>':'');
       }
       if (branchId==='aphrodite') {
-        // Silk ribbons — sinusoid
+        // Luminous silk ribbons — dual sinuous strands like reference image
         var len2=Math.hypot(dx,dy), nx3=-dy/len2, ny3=dx/len2;
-        var Nw=12, pts2=[[x1,y1]];
+        var Nw=16, pts2=[[x1,y1]], pts2b=[[x1,y1]];
+        var ampA=active?22:13;
         for(var iw=0;iw<Nw;iw++){
-          var tw=(iw+1)/(Nw+1), ww=Math.sin(tw*Math.PI*3)*18;
+          var tw=(iw+1)/(Nw+1);
+          var ww=Math.sin(tw*Math.PI*3.5)*ampA;
           pts2.push([x1+tw*dx+ww*nx3, y1+tw*dy+ww*ny3]);
+          var ww2=Math.sin(tw*Math.PI*3.5+1.2)*ampA*0.6;
+          pts2b.push([x1+tw*dx+ww2*nx3, y1+tw*dy+ww2*ny3]);
         }
-        pts2.push([x2,y2]);
+        pts2.push([x2,y2]); pts2b.push([x2,y2]);
         var d2='M'+pts2.map(function(p){return p[0].toFixed(1)+','+p[1].toFixed(1);}).join('L');
-        return '<path d="'+d2+'" fill="none" stroke="'+col+'" stroke-width="'+sw+'" opacity="'+opacity+'" stroke-linecap="round"/>'
-             + '<path d="'+d2+'" fill="none" stroke="'+col+'" stroke-width="'+(sw*0.4)+'" opacity="0.5" stroke-dasharray="none"/>';
+        var d2b='M'+pts2b.map(function(p){return p[0].toFixed(1)+','+p[1].toFixed(1);}).join('L');
+        var petalGlow = active?'rgba(255,150,200,0.22)':'rgba(200,80,120,0.07)';
+        return '<path d="'+d2+'" fill="none" stroke="'+petalGlow+'" stroke-width="'+(sw*6)+'" filter="url(#glow-s)"/>'+
+               '<path d="'+d2+'" fill="none" stroke="'+col+'" stroke-width="'+sw+'" opacity="'+opacity+'" stroke-linecap="round"/>'+
+               '<path d="'+d2b+'" fill="none" stroke="rgba(255,200,230,0.38)" stroke-width="'+(sw*0.55)+'" opacity="'+(parseFloat(opacity)*0.7)+'" stroke-linecap="round"/>';
       }
       if (branchId==='hades') {
-        // Dark veins — irregular with random drift
+        // Sapphire-shadow veins — dark fissures with deep violet glow
         var len3=Math.hypot(dx,dy), nx4=-dy/len3, ny4=dx/len3;
         var rng2=function(s){return Math.sin(s*231.7+5.1)*0.5;};
-        var pts3=[[x1,y1]], n3=10;
+        var pts3=[[x1,y1]], n3=12;
+        var ampH=active?16:9;
         for(var ij=1;ij<n3;ij++){
-          var tj=ij/n3, jj=(ij%2===0?1:-1)*(8+Math.abs(rng2(ij))*14);
+          var tj=ij/n3, jj=(ij%2===0?1:-1)*(ampH*0.6+Math.abs(rng2(ij))*ampH);
           pts3.push([x1+tj*dx+jj*nx4, y1+tj*dy+jj*ny4]);
         }
         pts3.push([x2,y2]);
         var d3='M'+pts3.map(function(p){return p[0].toFixed(1)+','+p[1].toFixed(1);}).join('L');
-        return '<path d="'+d3+'" fill="none" stroke="'+col+'" stroke-width="'+sw+'" opacity="'+opacity+'"/>';
+        var voidGlow = active?'rgba(100,40,180,0.35)':'rgba(60,20,100,0.12)';
+        return '<path d="'+d3+'" fill="none" stroke="'+voidGlow+'" stroke-width="'+(sw*5)+'" filter="url(#glow-s)"/>'+
+               '<path d="'+d3+'" fill="none" stroke="'+col+'" stroke-width="'+sw+'" opacity="'+opacity+'"/>'+
+               (active?'<path d="'+d3+'" fill="none" stroke="rgba(180,120,255,0.3)" stroke-width="1"/>':'');
       }
       if (branchId==='artemis') {
-        // Straight spectral arrows
-        return '<path d="M'+x1.toFixed(1)+','+y1.toFixed(1)+'L'+x2.toFixed(1)+','+y2.toFixed(1)+'" fill="none" stroke="'+col+'" stroke-width="'+sw+'" opacity="'+opacity+'" stroke-dasharray="12,5" stroke-linecap="butt"/>';
+        // Moonsilver spectral arrows with cool ethereal glow
+        var dx2=x2-x1, dy2=y2-y1, dist=Math.hypot(dx2,dy2);
+        var ax=dx2/dist, ay=dy2/dist;
+        var nxa=-dy2/dist, nya=dx2/dist;
+        // Arrowhead
+        var al=Math.min(10,dist*0.12);
+        var ah='M'+(x2-ax*al+nxa*4).toFixed(1)+','+(y2-ay*al+nya*4).toFixed(1)+
+               'L'+x2.toFixed(1)+','+y2.toFixed(1)+
+               'L'+(x2-ax*al-nxa*4).toFixed(1)+','+(y2-ay*al-nya*4).toFixed(1);
+        var moonGlow = active?'rgba(180,230,255,0.2)':'rgba(100,160,200,0.06)';
+        return '<path d="M'+x1.toFixed(1)+','+y1.toFixed(1)+'L'+x2.toFixed(1)+','+y2.toFixed(1)+'" fill="none" stroke="'+moonGlow+'" stroke-width="'+(sw*5)+'" filter="url(#glow-s)"/>'+
+               '<path d="M'+x1.toFixed(1)+','+y1.toFixed(1)+'L'+x2.toFixed(1)+','+y2.toFixed(1)+'" fill="none" stroke="'+col+'" stroke-width="'+sw+'" opacity="'+opacity+'" stroke-dasharray="'+(active?'none':'14,4')+'" stroke-linecap="butt"/>'+
+               '<path d="'+ah+'" fill="none" stroke="'+col+'" stroke-width="'+(sw*0.85)+'" opacity="'+opacity+'" stroke-linecap="round"/>';
       }
       // Default
       return '<path d="M'+x1.toFixed(1)+','+y1.toFixed(1)+'L'+x2.toFixed(1)+','+y2.toFixed(1)+'" fill="none" stroke="'+col+'" stroke-width="'+sw+'" opacity="'+opacity+'"/>';
@@ -2401,31 +2473,35 @@ class BuildingPanel {
         s += '<g data-nid="'+nid+'" style="cursor:pointer">';
 
         if (isSelected) {
-          // Pulsing selection ring
-          s += '<path d="'+hexP(pos.x,pos.y,NODE_R+14)+'" fill="rgba('+rgb+',0.15)" stroke="'+bc+'" stroke-width="2.5" filter="url(#glow-m)"/>';
+          s += '<path d="'+hexP(pos.x,pos.y,NODE_R+16)+'" fill="rgba('+rgb+',0.2)" stroke="'+bc+'" stroke-width="3" filter="url(#glow-m)"/>';
+          s += '<path d="'+hexP(pos.x,pos.y,NODE_R+22)+'" fill="none" stroke="rgba('+rgb+',0.3)" stroke-width="1.5" stroke-dasharray="4,4"/>';
         }
         if (isLearned) {
-          // Glow halo
-          s += '<path d="'+outer+'" fill="rgba('+rgb+',0.25)" stroke="none" filter="url(#glow-m)"/>';
-        }
-        if (isAvailable && !isLearned) {
-          s += '<path d="'+outer+'" fill="rgba('+rgb+',0.06)" stroke="none" filter="url(#glow-s)"/>';
+          // Strong outer glow matching reference image
+          s += '<path d="'+hexP(pos.x,pos.y,NODE_R+18)+'" fill="rgba('+rgb+',0.12)" stroke="none" filter="url(#glow-l)"/>';
+          s += '<path d="'+hexP(pos.x,pos.y,NODE_R+8)+'" fill="rgba('+rgb+',0.28)" stroke="none" filter="url(#glow-m)"/>';
+        } else if (isAvailable) {
+          s += '<path d="'+hexP(pos.x,pos.y,NODE_R+8)+'" fill="rgba('+rgb+',0.06)" stroke="rgba('+rgb+',0.25)" stroke-width="1" filter="url(#glow-s)"/>';
         }
 
-        // Main hex fill
-        var fillCol = isLearned   ? 'rgba('+rgb+',0.35)'
-                    : isAvailable ? 'rgba(20,15,40,0.95)'
-                    :               'rgba(8,6,18,0.95)';
+        // Main hex fill — matching reference: dark interior with bright colored border
+        var fillCol = isLearned   ? 'rgba('+rgb+',0.28)'
+                    : isAvailable ? 'rgba(12,8,28,0.92)'
+                    :               'rgba(6,4,14,0.92)';
         var strokeCol = isLearned   ? bc
-                      : isAvailable ? 'rgba(200,170,80,0.7)'
-                      :               'rgba(80,80,100,0.3)';
-        var strokeW = isLearned?2.5:isAvailable?2:1.2;
+                      : isAvailable ? 'rgba('+rgb+',0.65)'
+                      :               'rgba(60,60,80,0.35)';
+        var strokeW = isLearned?2.8:isAvailable?1.8:1.0;
 
         s += '<path d="'+inner+'" fill="'+fillCol+'" stroke="'+strokeCol+'" stroke-width="'+strokeW+'"/>';
+        // Inner ring for learned nodes (double-border effect)
+        if (isLearned) {
+          s += '<path d="'+hexP(pos.x,pos.y,NODE_R-3)+'" fill="none" stroke="rgba('+rgb+',0.4)" stroke-width="1"/>';
+        }
 
         // Check mark for learned
         if (isLearned) {
-          s += '<text x="'+pos.x+'" y="'+(pos.y-NODE_R*0.55).toFixed(1)+'" text-anchor="middle" font-size="10" fill="rgba(220,220,80,0.8)">✓</text>';
+          s += '<text x="'+pos.x+'" y="'+(pos.y-NODE_R*0.6).toFixed(1)+'" text-anchor="middle" font-size="9" fill="rgba(255,240,100,0.85)">✓</text>';
         }
         // Uncapped level badge
         if (nd.uncapped && pts2>1) {
@@ -2473,13 +2549,151 @@ class BuildingPanel {
 
     // Helper: direct edge between two absolute positions
     function makeEdgeDirect(x1,y1,x2,y2,branchId,st1,st2) {
-      var b=branchMap[branchId]||{color:'#888'};
-      var active=(st1==='learned'&&st2==='learned');
-      var half=(st1==='learned'&&st2!=='learned');
-      var op=active?'0.85':half?'0.4':'0.16';
-      var col=active?b.color:half?b.color:'rgba(100,100,120,1)';
-      var sw=active?2.5:half?1.5:1;
-      return '<path d="M'+x1.toFixed(1)+','+y1.toFixed(1)+'L'+x2.toFixed(1)+','+y2.toFixed(1)+'" fill="none" stroke="'+col+'" stroke-width="'+sw+'" opacity="'+op+'"/>';
+      var b = branchMap[branchId] || {color:'#888'};
+      var active = (st1==='learned' && st2==='learned');
+      var half   = (st1==='learned' && st2!=='learned');
+      var baseOp = active ? 1.0 : half ? 0.5 : 0.18;
+      var col    = active ? b.color : half ? b.color : 'rgba(80,80,110,1)';
+      var sw     = active ? 2.8 : half ? 1.6 : 1.0;
+      var dx = x2-x1, dy = y2-y1;
+      var mx = (x1+x2)/2, my = (y1+y2)/2;
+      var len = Math.sqrt(dx*dx+dy*dy);
+      var nx = -dy/len, ny = dx/len; // normal
+
+      // ── Per-deity visual style ──────────────────────────────────
+      if (branchId === 'zeus') {
+        // ⚡ Pure crackling lightning bolts — multi-segment zigzag
+        if (!active && !half) {
+          return '<path d="M'+x1.toFixed(1)+','+y1.toFixed(1)+'L'+x2.toFixed(1)+','+y2.toFixed(1)+'"'
+            + ' fill="none" stroke="rgba(80,80,110,0.15)" stroke-width="1"/>';
+        }
+        var segs = 8;
+        var pts = x1.toFixed(1)+','+y1.toFixed(1);
+        for (var zi=1; zi<segs; zi++) {
+          var t = zi/segs;
+          var bx = x1+dx*t, by = y1+dy*t;
+          var rnd = (((zi*1234567+branchId.length)*9301+49297)%233280)/233280-0.5;
+          var amp = active ? 18 : 10;
+          bx += nx*rnd*amp*2; by += ny*rnd*amp*2;
+          pts += ' '+bx.toFixed(1)+','+by.toFixed(1);
+        }
+        pts += ' '+x2.toFixed(1)+','+y2.toFixed(1);
+        var glowOp = active ? '0.35' : '0.15';
+        return '<polyline points="'+pts+'" fill="none" stroke="rgba(200,240,255,'+glowOp+')" stroke-width="'+(sw+6)+'" stroke-linecap="round"/>'
+          + '<polyline points="'+pts+'" fill="none" stroke="'+col+'" stroke-width="'+sw+'" opacity="'+baseOp+'" stroke-linecap="round"/>'
+          + (active ? '<polyline points="'+pts+'" fill="none" stroke="white" stroke-width="1" opacity="0.6" stroke-linecap="round"/>' : '');
+
+      } else if (branchId === 'demeter') {
+        // 🌿 Organic winding vines / roots
+        if (!active && !half) {
+          return '<path d="M'+x1.toFixed(1)+','+y1.toFixed(1)+'L'+x2.toFixed(1)+','+y2.toFixed(1)+'"'
+            + ' fill="none" stroke="rgba(60,90,60,0.15)" stroke-width="1"/>';
+        }
+        var amp2 = active ? 14 : 7;
+        var seed2 = (x1*13+y1*7)%100;
+        var cp1x = mx + nx*amp2*(0.6+(seed2%30)/100) + dx*0.1;
+        var cp1y = my + ny*amp2*(0.6+(seed2%30)/100) + dy*0.1;
+        var cp2x = mx - nx*amp2*(0.4+((seed2+17)%30)/100) - dx*0.1;
+        var cp2y = my - ny*amp2*(0.4+((seed2+17)%30)/100) - dy*0.1;
+        var mainPath = 'M'+x1.toFixed(1)+','+y1.toFixed(1)
+          +' C'+cp1x.toFixed(1)+','+cp1y.toFixed(1)
+          +' '+cp2x.toFixed(1)+','+cp2y.toFixed(1)
+          +' '+x2.toFixed(1)+','+y2.toFixed(1);
+        // second vine
+        var cp3x = mx + nx*amp2*(-0.5+(seed2%25)/100);
+        var cp3y = my + ny*amp2*(-0.5+(seed2%25)/100);
+        var brin = 'M'+x1.toFixed(1)+','+y1.toFixed(1)
+          +' Q'+cp3x.toFixed(1)+','+cp3y.toFixed(1)
+          +' '+x2.toFixed(1)+','+y2.toFixed(1);
+        return '<path d="'+mainPath+'" fill="none" stroke="'+col+'" stroke-width="'+(sw+4)+'" opacity="'+(baseOp*0.22)+'"/>'
+          + '<path d="'+mainPath+'" fill="none" stroke="'+col+'" stroke-width="'+sw+'" opacity="'+baseOp+'"/>'
+          + '<path d="'+brin+'" fill="none" stroke="rgba(150,255,100,0.3)" stroke-width="1" opacity="'+(active?0.6:0.2)+'"/>';
+
+      } else if (branchId === 'hephaïstos') {
+        // 🔥 Chains of molten iron — thick links with dashes
+        if (!active && !half) {
+          return '<path d="M'+x1.toFixed(1)+','+y1.toFixed(1)+'L'+x2.toFixed(1)+','+y2.toFixed(1)+'"'
+            + ' fill="none" stroke="rgba(80,30,10,0.15)" stroke-width="1"/>';
+        }
+        var glowCol = active ? 'rgba(255,160,50,0.25)' : 'rgba(180,80,20,0.12)';
+        return '<path d="M'+x1.toFixed(1)+','+y1.toFixed(1)+'L'+x2.toFixed(1)+','+y2.toFixed(1)+'"'
+          + ' fill="none" stroke="'+glowCol+'" stroke-width="'+(sw+10)+'"/>'
+          + '<path d="M'+x1.toFixed(1)+','+y1.toFixed(1)+'L'+x2.toFixed(1)+','+y2.toFixed(1)+'"'
+          + ' fill="none" stroke="'+col+'" stroke-width="'+(sw+2)+'" stroke-dasharray="10,5" opacity="'+baseOp+'"/>'
+          + '<path d="M'+x1.toFixed(1)+','+y1.toFixed(1)+'L'+x2.toFixed(1)+','+y2.toFixed(1)+'"'
+          + ' fill="none" stroke="rgba(255,220,100,'+(active?'0.6':'0.1')+')" stroke-width="1" stroke-dasharray="4,11" stroke-dashoffset="7"/>';
+
+      } else if (branchId === 'aphrodite') {
+        // 💗 Silk ribbons / petal trails — sinuous double ribbon
+        if (!active && !half) {
+          return '<path d="M'+x1.toFixed(1)+','+y1.toFixed(1)+'L'+x2.toFixed(1)+','+y2.toFixed(1)+'"'
+            + ' fill="none" stroke="rgba(150,50,80,0.12)" stroke-width="1"/>';
+        }
+        var amp3 = active ? 12 : 6;
+        var pts3 = '';
+        var n3 = 12;
+        for (var ai=0; ai<=n3; ai++) {
+          var t3 = ai/n3;
+          var px3 = x1+dx*t3 + nx*amp3*Math.sin(t3*Math.PI*2.5);
+          var py3 = y1+dy*t3 + ny*amp3*Math.sin(t3*Math.PI*2.5);
+          pts3 += (ai===0?'M':'L')+px3.toFixed(1)+','+py3.toFixed(1);
+        }
+        var pts3b = '';
+        for (var ai2=0; ai2<=n3; ai2++) {
+          var t3b = ai2/n3;
+          var px3b = x1+dx*t3b + nx*amp3*0.6*Math.sin(t3b*Math.PI*2.5+0.8);
+          var py3b = y1+dy*t3b + ny*amp3*0.6*Math.sin(t3b*Math.PI*2.5+0.8);
+          pts3b += (ai2===0?'M':'L')+px3b.toFixed(1)+','+py3b.toFixed(1);
+        }
+        return '<path d="'+pts3+'" fill="none" stroke="'+col+'" stroke-width="'+(sw+3)+'" opacity="'+(baseOp*0.3)+'"/>'
+          + '<path d="'+pts3+'" fill="none" stroke="'+col+'" stroke-width="'+sw+'" opacity="'+baseOp+'"/>'
+          + '<path d="'+pts3b+'" fill="none" stroke="rgba(255,200,220,0.4)" stroke-width="1" opacity="'+(active?0.7:0.2)+'"/>';
+
+      } else if (branchId === 'hades') {
+        // 💀 Dark fissures / sapphire shadow veins — jagged dark cracks
+        if (!active && !half) {
+          return '<path d="M'+x1.toFixed(1)+','+y1.toFixed(1)+'L'+x2.toFixed(1)+','+y2.toFixed(1)+'"'
+            + ' fill="none" stroke="rgba(30,10,50,0.18)" stroke-width="1"/>';
+        }
+        var segsH = 10;
+        var ptsH = x1.toFixed(1)+','+y1.toFixed(1);
+        for (var hi=1; hi<segsH; hi++) {
+          var th = hi/segsH;
+          var bxh = x1+dx*th, byh = y1+dy*th;
+          var rndH = (((hi*789123+13)%233)/233-0.5);
+          var ampH = active ? 11 : 6;
+          bxh += nx*rndH*ampH; byh += ny*rndH*ampH;
+          ptsH += ' '+bxh.toFixed(1)+','+byh.toFixed(1);
+        }
+        ptsH += ' '+x2.toFixed(1)+','+y2.toFixed(1);
+        return '<polyline points="'+ptsH+'" fill="none" stroke="rgba(60,20,100,0.4)" stroke-width="'+(sw+6)+'"/>'
+          + '<polyline points="'+ptsH+'" fill="none" stroke="'+col+'" stroke-width="'+sw+'" opacity="'+baseOp+'" stroke-linecap="square"/>'
+          + (active ? '<polyline points="'+ptsH+'" fill="none" stroke="rgba(180,120,255,0.25)" stroke-width="1"/>' : '');
+
+      } else if (branchId === 'artemis') {
+        // 🌙 Spectral arrows / moonbeams — thin straight with arrow heads
+        if (!active && !half) {
+          return '<path d="M'+x1.toFixed(1)+','+y1.toFixed(1)+'L'+x2.toFixed(1)+','+y2.toFixed(1)+'"'
+            + ' fill="none" stroke="rgba(40,80,100,0.12)" stroke-width="1"/>';
+        }
+        var arrowLen = Math.min(12, len*0.15);
+        var ax = dx/len, ay = dy/len;
+        // Arrow tip near x2,y2
+        var atx = x2 - ax*arrowLen*0.5, aty = y2 - ay*arrowLen*0.5;
+        var arrowHead = 'M'+(atx-nx*4+ax*arrowLen*0.5).toFixed(1)+','+(aty-ny*4+ay*arrowLen*0.5).toFixed(1)
+          +' L'+x2.toFixed(1)+','+y2.toFixed(1)
+          +' L'+(atx+nx*4+ax*arrowLen*0.5).toFixed(1)+','+(aty+ny*4+ay*arrowLen*0.5).toFixed(1);
+        var glowA = active ? 'rgba(100,200,255,0.2)' : 'rgba(60,120,160,0.08)';
+        return '<path d="M'+x1.toFixed(1)+','+y1.toFixed(1)+'L'+x2.toFixed(1)+','+y2.toFixed(1)+'"'
+          + ' fill="none" stroke="'+glowA+'" stroke-width="'+(sw+5)+'"/>'
+          + '<path d="M'+x1.toFixed(1)+','+y1.toFixed(1)+'L'+x2.toFixed(1)+','+y2.toFixed(1)+'"'
+          + ' fill="none" stroke="'+col+'" stroke-width="'+sw+'" stroke-dasharray="'+(active?'none':'12,5')+'" opacity="'+baseOp+'"/>'
+          + '<path d="'+arrowHead+'" fill="none" stroke="'+col+'" stroke-width="'+(sw*0.8)+'" opacity="'+(active?baseOp:baseOp*0.5)+'"/>';
+      }
+
+      // Fallback: simple line
+      return '<path d="M'+x1.toFixed(1)+','+y1.toFixed(1)+'L'+x2.toFixed(1)+','+y2.toFixed(1)+'"'
+        + ' fill="none" stroke="'+col+'" stroke-width="'+sw+'" opacity="'+baseOp+'"/>';
     }
 
     // ── DOM Setup ────────────────────────────────────────────────────────────
