@@ -11,6 +11,14 @@ class MapRenderer {
     this.selectedKey = null;
     this._scoutCell  = null; // case scout selectionnee
     this._initTooltip();
+  // Conversion écran → canvas (corrige CSS scaling / DPR)
+  _clientToCanvas(cx, cy) {
+    const rect = this.canvas.getBoundingClientRect();
+    const scaleX = this.canvas.width  / rect.width;
+    const scaleY = this.canvas.height / rect.height;
+    return { x: (cx - rect.left) * scaleX, y: (cy - rect.top) * scaleY };
+  }
+
     this._bindHover();
     this._bindClick();
     this._bindScoutEvents();
@@ -224,8 +232,8 @@ class MapRenderer {
     bodyGrad.addColorStop(1, colors.fill);
     ctx.fillStyle = bodyGrad; ctx.fill();
 
-    ctx.strokeStyle = isSelected ? '#f0c040' : isHovered ? '#8a7040' : colors.stroke;
-    ctx.lineWidth   = isSelected ? 2 : isHovered ? 1.5 : 0.8;
+    ctx.strokeStyle = isSelected ? '#f0c040' : isHovered ? '#ffe080' : colors.stroke;
+    ctx.lineWidth   = isSelected ? 2 : isHovered ? 2.0 : 0.8;
     ctx.stroke();
 
     // Overlay FIELD : teinture doree
@@ -299,7 +307,8 @@ class MapRenderer {
 
     if (isHovered && cell.type !== CELL_TYPE.BASE_MAIN) {
       this._hexPath(ctx, corners);
-      ctx.fillStyle = 'rgba(255,255,255,0.06)'; ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,200,0.10)'; ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,160,0.70)'; ctx.lineWidth = 2.0; ctx.stroke();
     }
     if (isSelected) {
       this._hexPath(ctx, corners);
@@ -718,8 +727,8 @@ class MapRenderer {
 
   _bindHover() {
     this.canvas.addEventListener('mousemove', e => {
-      const rect = this.canvas.getBoundingClientRect();
-      const world = this.camera.screenToWorld(e.clientX-rect.left, e.clientY-rect.top);
+      const { x: _hx, y: _hy } = this._clientToCanvas(e.clientX, e.clientY);
+      const world = this.camera.screenToWorld(_hx, _hy);
       const { q, r } = HexUtils.pixelToHex(world.x, world.y, this.hexSize);
       const key = HexUtils.hexKey(q, r);
       if (key !== this.hoveredKey) {
@@ -740,8 +749,8 @@ class MapRenderer {
     this.canvas.addEventListener('mouseup', e => {
       if (Date.now() - _lastTouch < 500) return; // ignore mouseup apres touchend
       if (Date.now()-_t0 < 300 && Math.hypot(e.clientX-_x0, e.clientY-_y0) < 8) {
-        const rect = this.canvas.getBoundingClientRect();
-        const world = this.camera.screenToWorld(e.clientX-rect.left, e.clientY-rect.top);
+        const { x: _mx, y: _my } = this._clientToCanvas(e.clientX, e.clientY);
+        const world = this.camera.screenToWorld(_mx, _my);
         const { q, r } = HexUtils.pixelToHex(world.x, world.y, this.hexSize);
         const cell = this.grid.getCell(q, r);
         if (cell) {
@@ -762,8 +771,8 @@ class MapRenderer {
       if (this.camera._pinchEndTime && Date.now() - this.camera._pinchEndTime < 300) return;
 
       const t = e.changedTouches[0];
-      const rect = this.canvas.getBoundingClientRect();
-      const world = this.camera.screenToWorld(t.clientX-rect.left, t.clientY-rect.top);
+      const { x: _tx, y: _ty } = this._clientToCanvas(t.clientX, t.clientY);
+      const world = this.camera.screenToWorld(_tx, _ty);
       const { q, r } = HexUtils.pixelToHex(world.x, world.y, this.hexSize);
       const cell = this.grid.getCell(q, r);
       if (cell) {
