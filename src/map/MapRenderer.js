@@ -11,14 +11,6 @@ class MapRenderer {
     this.selectedKey = null;
     this._scoutCell  = null; // case scout selectionnee
     this._initTooltip();
-  // Conversion écran → canvas (corrige CSS scaling / DPR)
-  _clientToCanvas(cx, cy) {
-    const rect = this.canvas.getBoundingClientRect();
-    const scaleX = this.canvas.width  / rect.width;
-    const scaleY = this.canvas.height / rect.height;
-    return { x: (cx - rect.left) * scaleX, y: (cy - rect.top) * scaleY };
-  }
-
     this._bindHover();
     this._bindClick();
     this._bindScoutEvents();
@@ -723,6 +715,14 @@ class MapRenderer {
     clearTimeout(this._ttTimer);
     this._ttKey = null;
     if (this._ttEl) this._ttEl.className = 'hex-tooltip';
+  }
+
+  // Conversion écran → canvas (corrige CSS scaling / DPR)
+  _clientToCanvas(cx, cy) {
+    const rect = this.canvas.getBoundingClientRect();
+    const scaleX = this.canvas.width  / rect.width;
+    const scaleY = this.canvas.height / rect.height;
+    return { x: (cx - rect.left) * scaleX, y: (cy - rect.top) * scaleY };
   }
 
   _bindHover() {
