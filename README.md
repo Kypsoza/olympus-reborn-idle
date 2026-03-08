@@ -135,7 +135,7 @@ Run → Révéler → Construire → Améliorer Ruines → Prestige
 | 6 | Codex Olympien | ✅ |
 | 7 | Panthéon Albion | ✅ |
 | 8 | Zones Divines | ✅ |
-| 9 | Modes de Jeu + Wiki | 🔜 |
+| 9 | Modes de Jeu + Wiki | ✅ |
 | 10 | Polish + Leaderboard + Achievements | 🔜 |
 
 ---

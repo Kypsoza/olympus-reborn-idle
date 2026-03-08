@@ -381,12 +381,13 @@ class BuildingPanel {
     if (btn) btn.addEventListener('click', () => this.toggleTalents());
   }
 
-  open(cell) {
+  open(cell, isNewCell) {
+    // isNewCell=true (defaut) → nouveau clic → reset onglet build bar
+    // isNewCell=false → refresh meme case → preserve l'onglet actif
+    if (isNewCell === undefined) isNewCell = true;
     this.currentCell = cell;
     document.getElementById('bp-title').textContent = cell.displayName + (cell.hasRoad ? ' 🛤️' : '');
     var body = document.getElementById('bp-body');
-    // FIX: toujours neutraliser body.onclick avant de reconstruire le DOM
-    // Évite qu'un ancien handler _renderEmptyUI survive au changement de case
     body.onclick = null;
     body.innerHTML = '';
     if      (cell.isHidden)                      this._renderDigUI(cell, body);
@@ -397,11 +398,10 @@ class BuildingPanel {
     else if (cell.type === CELL_TYPE.RUBBLE)       this._renderRubbleUI(cell, body);
     else if (cell.type === CELL_TYPE.TUNNEL)       this._renderTunnelUI(cell, body);
     else if (cell.building)                        this._renderBuildingUI(cell, body);
-    else                                           this._renderEmptyUI(cell, body, true);
+    else                                           this._renderEmptyUI(cell, body, isNewCell);
     this.drawer.classList.remove('bp-drawer-closed');
     this.drawer.classList.add('bp-drawer-open');
   }
-
   hide() {
     this.drawer.classList.remove('bp-drawer-open');
     this.drawer.classList.add('bp-drawer-closed');
@@ -435,7 +435,7 @@ class BuildingPanel {
     this._refreshPending = true;
     Promise.resolve().then(() => {
       this._refreshPending = false;
-      if (this.currentCell) this.open(this.currentCell);
+      if (this.currentCell) this.open(this.currentCell, false); // refresh: preserve active tab
     });
   }
 

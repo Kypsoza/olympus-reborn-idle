@@ -78,11 +78,18 @@ class GameLoop {
     if (savedData && savedData.hiddenAt) {
       this._hiddenAt = savedData.hiddenAt;
     }
+    // ── Exposition console debugging ────────────────────────
     window.game = window.game || {};
     window.game.prestigeManager = this.prestigeManager;
     window.game.codexManager    = this.codexManager;
     window.game.pantheonManager = this.pantheonManager;
     window.game.zoneManager     = this.zoneManager;
+    window.game.grid            = this.grid;
+    window.game.rm              = this.resources;
+    window.game.tm              = this.talentManager;
+    window.game.buildingManager = this.buildingManager;
+    window.game.scoutManager    = this.scoutManager;
+    window.game.saveNow         = () => this._doSave();
 
     this._loadProgress(75, 'Restauration de la civilisation...');
     await this._sleep(150);
