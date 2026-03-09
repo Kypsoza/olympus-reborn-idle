@@ -6,60 +6,41 @@
    ═══════════════════════════════════════════════════════════ */
 
 const ZONE_DEFS = [
+
+  // ══════════════════════════════════════════════════════════════
+  // Zone 1 — POSÉIDON 🌊 (5 conditions)
+  // ══════════════════════════════════════════════════════════════
   {
-    id: 'zeus',
-    zoneId: 1,
-    god: 'Zeus',
-    icon: '⚡',
-    color: '#ffd54f',
-    biome: 'Cimes de l\'Olympe',
-    desc: 'Le sommet de l\'Olympe. Zeus règne sur tous les dieux depuis ces hauteurs électrisées.',
-    resource: 'foudre',
-    resourceLabel: 'Foudre',
-    borderType: 'libre',
-    borderDesc: 'Frontière ouverte — accessible dès les conditions remplies',
-    // Conditions de déverrouillage
-    scoreThreshold: 1000,
-    // Clé Divine : ressources à crafter
-    keyIngredients: { nourr: 500, drachmes: 2000, ether: 30 },
-    keyCraftTime: 60,   // secondes
-    // Rituel narratif
-    ritual: 'Posséder 3 Pylônes actifs',
-    ritualType: 'buildingCount',
-    ritualBuilding: 'pylone',
-    ritualAmount: 3,
-    // Ressource produite dans la zone
-    zoneProduction: { foudre: 5, ether: 1 },  // par seconde quand active
-    // Pages Codex au déverrouillage
-    codexPages: 10,
-    // Malédiction (progressive)
-    curseLabel: 'Colère de Zeus',
-    curseStages: [
-      { minTime:  0, prodMult: 0.95, label: 'Éclairs lointains -5%' },
-      { minTime: 10, prodMult: 0.85, label: 'Tempête divine -15%' },
-      { minTime: 30, prodMult: 0.70, label: 'Foudre de l\'Olympe -30%' },
-      { minTime: 60, prodMult: 0.70, label: 'Apocalypse Céleste', demolishEvery: 5 },
-    ],
-  },
-  {
-    id: 'poseidon',
-    zoneId: 2,
-    god: 'Poséidon',
-    icon: '🌊',
-    color: '#29b6f6',
+    id: 'poseidon', zoneId: 1,
+    god: 'Poséidon', icon: '🌊', color: '#29b6f6',
     biome: 'Abysses Océaniques',
-    desc: 'Les profondeurs de l\'océan de Poséidon recèlent des trésors et des mystères engloutis.',
-    resource: 'nectar',
-    resourceLabel: 'Nectar des Mers',
+    desc: 'Les profondeurs de l\'océan recèlent des trésors et des mystères engloutis.',
+    resource: 'nectar', resourceLabel: 'Nectar des Mers',
+
+    // ── Condition 1 : Score ───────────────────────────────────
+    scoreThreshold: 2000,
+
+    // ── Condition 2 : Frontière ───────────────────────────────
     borderType: 'riviere',
-    borderDesc: 'Rivière Divine — construire un Pont (Route × 2 sur des cases Rivière)',
+    borderDesc: 'Rivière Divine — poser 2 Routes sur des cases Rivière',
     borderCondition: { terrain: 'river', roads: 2 },
-    scoreThreshold: 5000,
-    keyIngredients: { nourr: 800, bois: 300, drachmes: 5000 },
-    keyCraftTime: 120,
-    ritual: 'Révéler 30 cases de la carte',
+
+    // ── Condition 3 : Clé Divine ──────────────────────────────
+    keyIngredients: { nourr: 1200, bois: 400, drachmes: 3000 },
+    keyCraftTime: 90,
+
+    // ── Condition 4 : Rituel ──────────────────────────────────
+    ritual: 'Révéler 40 cases de la carte',
     ritualType: 'revealedCount',
-    ritualAmount: 30,
+    ritualAmount: 40,
+
+    // ── Condition 5 : Prestiges ───────────────────────────────
+    prestigeRequired: 1,
+
+    // Pas de dieu précédent requis (Zone 1)
+    requiredZone: null,
+
+    // Production & récompenses
     zoneProduction: { nectar: 4, nourr: 10 },
     codexPages: 10,
     curseLabel: 'Fureur de Poséidon',
@@ -70,84 +51,42 @@ const ZONE_DEFS = [
       { minTime: 60, prodMult: 0.70, label: 'Déluge de l\'Olympe', demolishEvery: 5 },
     ],
   },
+
+  // ══════════════════════════════════════════════════════════════
+  // Zone 2 — APOLLON ☀️ (6 conditions)
+  // ══════════════════════════════════════════════════════════════
   {
-    id: 'hades',
-    zoneId: 3,
-    god: 'Hadès',
-    icon: '💀',
-    color: '#7e57c2',
-    biome: 'Souterrains du Tartare',
-    desc: 'Les profondeurs obscures d\'Hadès recèlent l\'Orichalque, métal des âmes perdues.',
-    resource: 'orichalque',
-    resourceLabel: 'Orichalque',
-    borderType: 'gouffre',
-    borderDesc: 'Gouffre abyssal — construire 3 Mines de Fer',
-    borderCondition: { building: 'mine_iron', count: 3 },
-    scoreThreshold: 20000,
-    keyIngredients: { fer: 500, acier: 100, ether: 200 },
-    keyCraftTime: 200,
-    ritual: 'Effectuer 3 Prestiges',
-    ritualType: 'prestigeCount',
-    ritualAmount: 3,
-    zoneProduction: { orichalque: 1 },
-    codexPages: 10,
-    curseLabel: 'Malédiction d\'Hadès',
-    curseStages: [
-      { minTime:  0, prodMult: 0.95, label: 'Ombre du Tartare -5%' },
-      { minTime: 10, prodMult: 0.85, label: 'Malédiction des Âmes -15%' },
-      { minTime: 30, prodMult: 0.70, label: 'Jugement de Shéol -30%' },
-      { minTime: 60, prodMult: 0.70, label: 'Mort Progressive', demolishEvery: 5 },
-    ],
-  },
-  {
-    id: 'athena',
-    zoneId: 4,
-    god: 'Athéna',
-    icon: '🦉',
-    color: '#80cbc4',
-    biome: 'Bibliothèque Céleste d\'Athènes',
-    desc: 'La cité sacrée d\'Athéna où la sagesse et la stratégie règnent en maîtres absolus.',
-    resource: 'metal_divin',
-    resourceLabel: 'Métal Divin',
-    borderType: 'montagne',
-    borderDesc: 'Cité fortifiée — construire une Bibliothèque et une Forteresse',
-    borderCondition: { building: 'bibliotheque', count: 1 },
-    scoreThreshold: 5000,
-    keyIngredients: { drachmes: 8000, ambroisie: 100, fer: 300 },
-    keyCraftTime: 150,
-    ritual: 'Atteindre 1000 Drachmes/s de production',
-    ritualType: 'resourceRate',
-    ritualResource: 'drachmes',
-    ritualAmount: 1000,
-    zoneProduction: { metal_divin: 2, ether: 1 },
-    codexPages: 10,
-    curseLabel: 'Jugement d\'Athéna',
-    curseStages: [
-      { minTime:  0, prodMult: 0.95, label: 'Décret sévère -5%' },
-      { minTime: 10, prodMult: 0.85, label: 'Sanction divine -15%' },
-      { minTime: 30, prodMult: 0.70, label: 'Malédiction de la Chouette -30%' },
-      { minTime: 60, prodMult: 0.70, label: 'Égide Destructrice', demolishEvery: 5 },
-    ],
-  },
-  {
-    id: 'apollon',
-    zoneId: 5,
-    god: 'Apollon',
-    icon: '☀️',
-    color: '#ffb300',
+    id: 'apollon', zoneId: 2,
+    god: 'Apollon', icon: '☀️', color: '#ffb300',
     biome: 'Plaines Ensoleillées de Delphes',
-    desc: 'Les terres baignées de lumière d\'Apollon où les récoltes sont divines et les arts florissants.',
-    resource: 'ambroisie',
-    resourceLabel: 'Ambroisie',
+    desc: 'Les terres baignées de lumière où les récoltes sont divines et les arts florissants.',
+    resource: 'ambroisie', resourceLabel: 'Ambroisie',
+
+    // ── Condition 1 : Score ───────────────────────────────────
+    scoreThreshold: 8000,
+
+    // ── Condition 2 : Frontière ───────────────────────────────
     borderType: 'foret',
-    borderDesc: 'Forêt Sacrée — construire 5 bâtiments de Nature (Ferme, Verger, Jardins...)',
-    borderCondition: { building: 'farm,verger,jardins,bosquet', count: 5 },
-    scoreThreshold: 100000,
-    keyIngredients: { bois: 2000, ambroisie: 300, metal_divin: 20 },
-    keyCraftTime: 300,
-    ritual: 'Révéler 80 cases de la carte',
-    ritualType: 'revealedCount',
-    ritualAmount: 80,
+    borderDesc: 'Forêt Sacrée — 8 bâtiments de Nature connectés (Ferme, Verger, Jardins, Bosquet)',
+    borderCondition: { building: 'farm,verger,jardins,bosquet', count: 8, connected: true },
+
+    // ── Condition 3 : Clé Divine ──────────────────────────────
+    keyIngredients: { bois: 3000, ambroisie: 500, drachmes: 10000 },
+    keyCraftTime: 180,
+
+    // ── Condition 4 : Rituel ──────────────────────────────────
+    ritual: 'Atteindre 500 Nourriture/s',
+    ritualType: 'resourceRate',
+    ritualResource: 'nourr',
+    ritualAmount: 500,
+
+    // ── Condition 5 : Prestiges ───────────────────────────────
+    prestigeRequired: 2,
+
+    // ── Condition 6 : Dieu précédent ──────────────────────────
+    requiredZone: 'poseidon',
+    requiredZoneLabel: 'Poséidon conquis',
+
     zoneProduction: { ambroisie: 3, nourr: 20 },
     codexPages: 10,
     curseLabel: 'Éclipse d\'Apollon',
@@ -158,27 +97,209 @@ const ZONE_DEFS = [
       { minTime: 60, prodMult: 0.70, label: 'Famine Solaire', demolishEvery: 5 },
     ],
   },
+
+  // ══════════════════════════════════════════════════════════════
+  // Zone 3 — ATHÉNA 🦉 (7 conditions)
+  // ══════════════════════════════════════════════════════════════
   {
-    id: 'ares',
-    zoneId: 6,
-    god: 'Arès',
-    icon: '⚔️',
-    color: '#ef5350',
-    biome: 'Champs de Bataille Éternels',
-    desc: 'Les champs de guerre d\'Arès où la violence est perpétuelle et la victoire absolue.',
-    resource: 'amrita',
-    resourceLabel: 'Amrita de Guerre',
-    borderType: 'tempete',
-    borderDesc: 'Forteresse assiégée — construire une Forteresse et atteindre le Codex niveau 5',
-    borderCondition: { building: 'forteresse', count: 1 },
-    scoreThreshold: 500000,
-    keyIngredients: { ether: 1000, orichalque: 200, metal_divin: 100 },
-    keyCraftTime: 600,
-    ritual: 'Atteindre le Codex niveau 5',
-    ritualType: 'codexLevel',
-    ritualAmount: 5,
-    zoneProduction: { amrita: 2, foudre: 3 },
+    id: 'athena', zoneId: 3,
+    god: 'Athéna', icon: '🦉', color: '#80cbc4',
+    biome: 'Bibliothèque Céleste d\'Athènes',
+    desc: 'La cité sacrée où la sagesse et la stratégie règnent en maîtres absolus.',
+    resource: 'metal_divin', resourceLabel: 'Métal Divin',
+
+    // ── Condition 1 : Score ───────────────────────────────────
+    scoreThreshold: 25000,
+
+    // ── Condition 2 : Frontière ───────────────────────────────
+    borderType: 'montagne',
+    borderDesc: 'Cité fortifiée — Bibliothèque ET Agora, toutes deux connectées',
+    borderCondition: { building: 'bibliotheque,agora', count: 2, allTypes: true, connected: true },
+
+    // ── Condition 3 : Clé Divine ──────────────────────────────
+    keyIngredients: { drachmes: 15000, ambroisie: 200, fer: 500 },
+    keyCraftTime: 240,
+
+    // ── Condition 4 : Rituel ──────────────────────────────────
+    ritual: 'Atteindre 3 000 Drachmes/s',
+    ritualType: 'resourceRate',
+    ritualResource: 'drachmes',
+    ritualAmount: 3000,
+
+    // ── Condition 5 : Prestiges ───────────────────────────────
+    prestigeRequired: 4,
+
+    // ── Condition 6 : Dieu précédent ──────────────────────────
+    requiredZone: 'apollon',
+    requiredZoneLabel: 'Apollon conquis',
+
+    // ── Condition 7 : Extra ───────────────────────────────────
+    extraConditions: [
+      { type: 'revealedCount', amount: 80, label: 'Révéler 80 cases' },
+    ],
+
+    zoneProduction: { metal_divin: 2, ether: 1 },
+    codexPages: 15,
+    curseLabel: 'Jugement d\'Athéna',
+    curseStages: [
+      { minTime:  0, prodMult: 0.95, label: 'Décret sévère -5%' },
+      { minTime: 10, prodMult: 0.85, label: 'Sanction divine -15%' },
+      { minTime: 30, prodMult: 0.70, label: 'Malédiction de la Chouette -30%' },
+      { minTime: 60, prodMult: 0.70, label: 'Égide Destructrice', demolishEvery: 5 },
+    ],
+  },
+
+  // ══════════════════════════════════════════════════════════════
+  // Zone 4 — ZEUS ⚡ (8 conditions)
+  // ══════════════════════════════════════════════════════════════
+  {
+    id: 'zeus', zoneId: 4,
+    god: 'Zeus', icon: '⚡', color: '#ffd54f',
+    biome: 'Cimes de l\'Olympe',
+    desc: 'Le sommet de l\'Olympe. Zeus règne sur tous les dieux depuis ces hauteurs électrisées.',
+    resource: 'foudre', resourceLabel: 'Foudre Olympienne',
+
+    // ── Condition 1 : Score ───────────────────────────────────
+    scoreThreshold: 75000,
+
+    // ── Condition 2 : Frontière ───────────────────────────────
+    borderType: 'libre',
+    borderDesc: 'Frontière ouverte — Zeus accepte les héros qui ont prouvé leur valeur',
+
+    // ── Condition 3 : Clé Divine ──────────────────────────────
+    keyIngredients: { nourr: 1500, drachmes: 8000, ether: 100 },
+    keyCraftTime: 120,
+
+    // ── Condition 4 : Rituel ──────────────────────────────────
+    ritual: '3 Pylônes connectés et actifs',
+    ritualType: 'buildingCount',
+    ritualBuilding: 'pylone',
+    ritualAmount: 3,
+    ritualConnected: true,
+
+    // ── Condition 5 : Prestiges ───────────────────────────────
+    prestigeRequired: 6,
+
+    // ── Condition 6 : Dieu précédent ──────────────────────────
+    requiredZone: 'athena',
+    requiredZoneLabel: 'Athéna conquise',
+
+    // ── Conditions 7-8 : Extra ────────────────────────────────
+    extraConditions: [
+      { type: 'codexLevel',    amount: 3,    label: 'Codex niveau 3 atteint' },
+      { type: 'resourceStock', resource: 'foudre', amount: 200, label: 'Stocker 200 Foudre' },
+    ],
+
+    zoneProduction: { foudre: 8, ether: 3 },
     codexPages: 20,
+    curseLabel: 'Colère de Zeus',
+    curseStages: [
+      { minTime:  0, prodMult: 0.95, label: 'Éclairs lointains -5%' },
+      { minTime: 10, prodMult: 0.85, label: 'Tempête divine -15%' },
+      { minTime: 30, prodMult: 0.70, label: 'Foudre de l\'Olympe -30%' },
+      { minTime: 60, prodMult: 0.70, label: 'Apocalypse Céleste', demolishEvery: 5 },
+    ],
+  },
+
+  // ══════════════════════════════════════════════════════════════
+  // Zone 5 — HADÈS 💀 (9 conditions)
+  // ══════════════════════════════════════════════════════════════
+  {
+    id: 'hades', zoneId: 5,
+    god: 'Hadès', icon: '💀', color: '#7e57c2',
+    biome: 'Souterrains du Tartare',
+    desc: 'Les profondeurs obscures recèlent l\'Orichalque, métal des âmes perdues.',
+    resource: 'orichalque', resourceLabel: 'Orichalque',
+
+    // ── Condition 1 : Score ───────────────────────────────────
+    scoreThreshold: 200000,
+
+    // ── Condition 2 : Frontière ───────────────────────────────
+    borderType: 'gouffre',
+    borderDesc: 'Gouffre abyssal — construire 5 Mines de Fer connectées',
+    borderCondition: { building: 'mine_iron', count: 5, connected: true },
+
+    // ── Condition 3 : Clé Divine ──────────────────────────────
+    keyIngredients: { fer: 1000, acier: 300, ether: 500 },
+    keyCraftTime: 300,
+
+    // ── Condition 4 : Rituel ──────────────────────────────────
+    ritual: 'Effectuer 8 Prestiges',
+    ritualType: 'prestigeCount',
+    ritualAmount: 8,
+
+    // ── Condition 5 : Prestiges ───────────────────────────────
+    prestigeRequired: 8,
+
+    // ── Condition 6 : Dieu précédent ──────────────────────────
+    requiredZone: 'zeus',
+    requiredZoneLabel: 'Zeus conquis',
+
+    // ── Conditions 7-9 : Extra ────────────────────────────────
+    extraConditions: [
+      { type: 'codexLevel',    amount: 5,    label: 'Codex niveau 5 atteint' },
+      { type: 'revealedCount', amount: 120,  label: 'Révéler 120 cases' },
+      { type: 'resourceStock', resource: 'foudre', amount: 500, label: 'Stocker 500 Foudre' },
+    ],
+
+    zoneProduction: { orichalque: 1, ether: 2 },
+    codexPages: 20,
+    curseLabel: 'Malédiction d\'Hadès',
+    curseStages: [
+      { minTime:  0, prodMult: 0.95, label: 'Ombre du Tartare -5%' },
+      { minTime: 10, prodMult: 0.85, label: 'Malédiction des Âmes -15%' },
+      { minTime: 30, prodMult: 0.70, label: 'Jugement de Shéol -30%' },
+      { minTime: 60, prodMult: 0.70, label: 'Mort Progressive', demolishEvery: 5 },
+    ],
+  },
+
+  // ══════════════════════════════════════════════════════════════
+  // Zone 6 — ARÈS ⚔️ (10 conditions — endgame absolu)
+  // ══════════════════════════════════════════════════════════════
+  {
+    id: 'ares', zoneId: 6,
+    god: 'Arès', icon: '⚔️', color: '#ef5350',
+    biome: 'Champs de Bataille Éternels',
+    desc: 'Les champs de guerre où la violence est perpétuelle et la victoire absolue.',
+    resource: 'amrita', resourceLabel: 'Amrita de Guerre',
+
+    // ── Condition 1 : Score ───────────────────────────────────
+    scoreThreshold: 750000,
+
+    // ── Condition 2 : Frontière ───────────────────────────────
+    borderType: 'tempete',
+    borderDesc: 'Forteresse assiégée — Forteresse ET Sénat connectés',
+    borderCondition: { building: 'forteresse,senat', count: 2, allTypes: true, connected: true },
+
+    // ── Condition 3 : Clé Divine ──────────────────────────────
+    keyIngredients: { ether: 2000, orichalque: 400, metal_divin: 200 },
+    keyCraftTime: 600,
+
+    // ── Condition 4 : Rituel ──────────────────────────────────
+    ritual: 'Atteindre 3 000 Drachmes/s ET posséder 1 000 Éther',
+    ritualType: 'resourceRateAndStock',
+    ritualResource: 'drachmes',
+    ritualAmount: 3000,
+    ritualStockResource: 'ether',
+    ritualStockAmount: 1000,
+
+    // ── Condition 5 : Prestiges ───────────────────────────────
+    prestigeRequired: 12,
+
+    // ── Condition 6 : Dieu précédent ──────────────────────────
+    requiredZone: 'hades',
+    requiredZoneLabel: 'Hadès conquis',
+
+    // ── Conditions 7-10 : Extra ───────────────────────────────
+    extraConditions: [
+      { type: 'codexLevel',      amount: 7,   label: 'Codex niveau 7 atteint' },
+      { type: 'resourceStock',   resource: 'ether', amount: 1000, label: 'Posséder 1 000 Éther' },
+      { type: 'buildingCountEra3', amount: 10, label: '10 bâtiments Ère 3 construits et connectés' },
+      { type: 'maxLevelBuildings', building: 'forteresse,senat,palais', amount: 3, label: '3 bâtiments militaires au niveau max' },
+    ],
+
+    zoneProduction: { amrita: 2, foudre: 3 },
+    codexPages: 30,
     curseLabel: 'Rage d\'Arès',
     curseStages: [
       { minTime:  0, prodMult: 0.95, label: 'Escarmouches -5%' },
@@ -212,7 +333,7 @@ class ZoneManager {
         craftProgress: 0,    // secondes écoulées
         craftDone:     false,
         ritualDone:    false,
-        borderCleared: (z.borderType === 'libre'), // Déméter est libre
+        borderCleared: (z.borderType === 'libre'), // Zeus est libre — pas de frontière physique
         curseStart:    null, // timestamp ms quand la zone a été révélée (non conquise)
         curseMinutes:  0,    // minutes depuis que la zone est active
         residualCurse: false,
@@ -247,53 +368,126 @@ class ZoneManager {
     const state = this.getState(zoneId);
     if (!def || !state) return { canUnlock: false, conditions: [] };
 
-    const pm = this.pm;
-    const cm = this.cm;
-    const rm = this.rm;
+    const pm = this.pm, cm = this.cm, rm = this.rm;
+    const conds = [];
 
-    // 1. Score Renaissance
-    const score     = pm ? pm.getLiveScore() : 0;
-    const scoreOk   = score >= def.scoreThreshold;
+    // ── C1 : Score Renaissance ──
+    const score   = pm ? pm.getLiveScore() : 0;
+    const scoreOk = score >= def.scoreThreshold;
+    conds.push({ label: 'Score ≥ ' + def.scoreThreshold.toLocaleString(), ok: scoreOk, value: score.toLocaleString() });
 
-    // 2. Frontière détruite
-    const borderOk  = state.borderCleared;
+    // ── C2 : Frontière ──
+    const borderOk = state.borderCleared;
+    conds.push({ label: 'Frontière : ' + def.borderDesc.split('—')[0].trim(), ok: borderOk });
 
-    // 3. Clé Divine craftée
-    const keyOk     = state.craftDone;
+    // ── C3 : Clé Divine ──
+    const keyOk = state.craftDone;
+    conds.push({ label: 'Clé Divine craftée', ok: keyOk, crafting: state.craftStarted && !state.craftDone, progress: state.craftProgress, total: def.keyCraftTime });
 
-    // 4. Rituel accompli
-    const ritualOk  = this._checkRitual(def, state);
+    // ── C4 : Rituel ──
+    const ritualOk = this._checkRitual(def, state);
+    conds.push({ label: 'Rituel : ' + def.ritual, ok: ritualOk });
 
-    const canUnlock = scoreOk && borderOk && keyOk && ritualOk && !state.unlocked;
+    // ── C5 : Prestiges requis ──
+    const prestigeCount = pm ? (pm.prestigeCount || 0) : 0;
+    const prestigeOk    = def.prestigeRequired ? (prestigeCount >= def.prestigeRequired) : true;
+    if (def.prestigeRequired) {
+      conds.push({ label: 'Prestiges ≥ ' + def.prestigeRequired + '  (actuel : ' + prestigeCount + ')', ok: prestigeOk });
+    }
 
-    return {
-      canUnlock,
-      conditions: [
-        { label: 'Score Renaissance ≥ ' + def.scoreThreshold.toLocaleString(), ok: scoreOk, value: score.toLocaleString() },
-        { label: 'Frontière ' + def.borderDesc.split('—')[0].trim(), ok: borderOk },
-        { label: 'Clé Divine craftée', ok: keyOk, crafting: state.craftStarted && !state.craftDone, progress: state.craftProgress, total: def.keyCraftTime },
-        { label: 'Rituel : ' + def.ritual, ok: ritualOk },
-      ],
-    };
+    // ── C6 : Zone précédente conquise ──
+    let prevZoneOk = true;
+    if (def.requiredZone) {
+      prevZoneOk = this.isUnlocked(def.requiredZone);
+      const prevDef = this.getDef(def.requiredZone);
+      conds.push({ label: def.requiredZoneLabel || (prevDef ? prevDef.icon + ' ' + prevDef.god + ' conquis' : def.requiredZone), ok: prevZoneOk });
+    }
+
+    // ── C7+ : Conditions extra ──
+    const extraOks = [];
+    if (def.extraConditions) {
+      def.extraConditions.forEach(ec => {
+        const ok = this._checkExtraCondition(ec);
+        extraOks.push(ok);
+        conds.push({ label: ec.label, ok });
+      });
+    }
+
+    const allOk    = scoreOk && borderOk && keyOk && ritualOk && prestigeOk && prevZoneOk && extraOks.every(Boolean);
+    const canUnlock = allOk && !state.unlocked;
+    return { canUnlock, conditions: conds };
+  }
+
+  // ── Vérifier une condition extra ──────────────────────────
+  _checkExtraCondition(ec) {
+    const rm = this.rm, cm = this.cm, pm = this.pm;
+    switch (ec.type) {
+      case 'codexLevel':
+        return cm ? (cm.codexLevel >= ec.amount) : false;
+      case 'revealedCount': {
+        let cnt = 0;
+        this.grid.cells.forEach(c => { if (c.isRevealed) cnt++; });
+        return cnt >= ec.amount;
+      }
+      case 'resourceStock':
+        return rm ? (rm.get(ec.resource) >= ec.amount) : false;
+      case 'buildingCountEra3': {
+        const ERA3 = ['jardins','bosquet','tresor','forge_divine','palais','senat','noeud_olympien','autel_fusion','distillerie','fontaine'];
+        let cnt = 0;
+        this.grid.cells.forEach(cell => {
+          if (!cell.isRevealed || !cell.building || !cell.isConnected) return;
+          if (ERA3.includes(cell.building)) cnt++;
+        });
+        return cnt >= ec.amount;
+      }
+      case 'maxLevelBuildings': {
+        const types = ec.building ? ec.building.split(',') : [];
+        let cnt = 0;
+        this.grid.cells.forEach(cell => {
+          if (!cell.isRevealed || !cell.building || !cell.isConnected) return;
+          if (types.length && !types.includes(cell.building)) return;
+          const bdef  = this.bm ? this.bm.getBuildingDef(cell.building) : null;
+          const maxLv = bdef ? bdef.maxLevel : 50;
+          if ((cell.buildingLevel || 1) >= maxLv) cnt++;
+        });
+        return cnt >= ec.amount;
+      }
+      case 'prestigeCount':
+        return pm ? ((pm.prestigeCount || 0) >= ec.amount) : false;
+      default:
+        return false;
+    }
   }
 
   _checkRitual(def, state) {
     if (state.ritualDone) return true;
-    const pm = this.pm;
-    const rm = this.rm;
-    const cm = this.cm;
+    const pm = this.pm, rm = this.rm, cm = this.cm;
 
     switch (def.ritualType) {
       case 'resourceRate': {
         const rate = rm ? rm.getRate(def.ritualResource) : 0;
         return (rate || 0) >= def.ritualAmount;
       }
-      case 'maxLevelBuildings': {
-        // Compter les bâtiments au niveau max parmi les types listés
+      case 'resourceRateAndStock': {
+        const rate  = rm ? (rm.getRate(def.ritualResource) || 0) : 0;
+        const stock = rm ? (rm.get(def.ritualStockResource) || 0) : 0;
+        return rate >= def.ritualAmount && stock >= def.ritualStockAmount;
+      }
+      case 'buildingCount': {
         const types = def.ritualBuilding.split(',');
         let count = 0;
         this.grid.cells.forEach(cell => {
           if (!cell.isRevealed || !cell.building) return;
+          if (def.ritualConnected && !cell.isConnected) return;
+          if (types.includes(cell.building)) count++;
+        });
+        return count >= def.ritualAmount;
+      }
+      case 'maxLevelBuildings': {
+        const types = def.ritualBuilding.split(',');
+        let count = 0;
+        this.grid.cells.forEach(cell => {
+          if (!cell.isRevealed || !cell.building || !cell.isConnected) return;
           if (!types.includes(cell.building)) return;
           const bdef  = this.bm ? this.bm.getBuildingDef(cell.building) : null;
           const maxLv = bdef ? bdef.maxLevel : 50;
@@ -302,7 +496,7 @@ class ZoneManager {
         return count >= def.ritualAmount;
       }
       case 'prestigeCount':
-        return pm ? (pm.prestigeCount >= def.ritualAmount) : false;
+        return pm ? ((pm.prestigeCount || 0) >= def.ritualAmount) : false;
       case 'revealedCount': {
         let count = 0;
         this.grid.cells.forEach(c => { if (c.isRevealed) count++; });
@@ -310,12 +504,13 @@ class ZoneManager {
       }
       case 'codexLevel':
         return cm ? (cm.codexLevel >= def.ritualAmount) : false;
+
       default:
         return false;
     }
   }
 
-  // ── Démarrer le craft d'une Clé Divine ─────────────────
+  // ── Démarrer le craft────────
   startCraft(zoneId, slotIndex) {
     const def   = this.getDef(zoneId);
     const state = this.getState(zoneId);
@@ -537,16 +732,29 @@ class ZoneManager {
       let ok = false;
 
       if (cond.building) {
-        // Compter les bâtiments du type requis
         const types = cond.building.split(',');
-        let count = 0;
-        this.grid.cells.forEach(cell => {
-          if (!cell.isRevealed || !cell.building) return;
-          if (types.includes(cell.building)) count++;
-        });
-        ok = count >= (cond.count || 1);
+
+        if (cond.allTypes) {
+          // Chaque type distinct doit être présent ET connecté
+          const found = new Set();
+          this.grid.cells.forEach(cell => {
+            if (!cell.isRevealed || !cell.building) return;
+            if (cond.connected && !cell.isConnected) return;
+            if (types.includes(cell.building)) found.add(cell.building);
+          });
+          ok = found.size >= types.length;
+        } else {
+          // Compter les bâtiments du type requis (optionnellement connectés)
+          let count = 0;
+          this.grid.cells.forEach(cell => {
+            if (!cell.isRevealed || !cell.building) return;
+            if (cond.connected && !cell.isConnected) return;
+            if (types.includes(cell.building)) count++;
+          });
+          ok = count >= (cond.count || 1);
+        }
+
       } else if (cond.terrain === 'river' && cond.roads) {
-        // Compter les cases Rivière avec route
         let count = 0;
         this.grid.cells.forEach(cell => {
           if (!cell.isRevealed) return;

@@ -46,12 +46,12 @@ const WIKI_INDEX = [
   { tab:'pantheon', section:'pan-ares',    title:'Branche Arès ⚔️',            icon:'⚔️', keywords:'ares guerre vitesse scouts score combat militaire' },
   { tab:'pantheon', section:'pan-supreme', title:'Nœuds Suprêmes ♾️',          icon:'♾️', keywords:'suprême sans plafond infini palier investissement éther illimité' },
   { tab:'zones',   section:'z-overview', title:'Zones Divines',icon:'🌍', keywords:'zone divine biome phase8 déverrouiller malédiction' },
-  { tab:'zones',   section:'z-zeus',     title:'Zone Zeus ⚡',                 icon:'⚡', keywords:'zeus zone olympe foudre pylône premier score' },
-  { tab:'zones',   section:'z-poseidon', title:'Zone Poséidon 🌊',             icon:'🌊', keywords:'poseidon zone mer nectar rivière révélation' },
-  { tab:'zones',   section:'z-hades',    title:'Zone Hadès 💀',                icon:'💀', keywords:'hades zone souterrain orichalque prestige' },
-  { tab:'zones',   section:'z-athena',   title:'Zone Athéna 🦉',               icon:'🦉', keywords:'athena zone sagesse métal divin bibliothèque drachmes' },
-  { tab:'zones',   section:'z-apollon',  title:'Zone Apollon ☀️',              icon:'☀️', keywords:'apollon zone soleil ambroisie forêt révélation' },
-  { tab:'zones',   section:'z-ares',     title:'Zone Arès ⚔️',                 icon:'⚔️', keywords:'ares zone guerre amrita forteresse codex' },
+  { tab:'zones',   section:'z-poseidon', title:'Zone 1 — Poséidon 🌊',         icon:'🌊', keywords:'poseidon zone mer nectar rivière révélation exploration' },
+  { tab:'zones',   section:'z-apollon',  title:'Zone 2 — Apollon ☀️',          icon:'☀️', keywords:'apollon zone soleil ambroisie agriculture nourriture prestige' },
+  { tab:'zones',   section:'z-athena',   title:'Zone 3 — Athéna 🦉',           icon:'🦉', keywords:'athena zone sagesse métal divin bibliothèque drachmes agora' },
+  { tab:'zones',   section:'z-hades',    title:'Zone 4 — Hadès 💀',            icon:'💀', keywords:'hades zone souterrain orichalque prestige mines' },
+  { tab:'zones',   section:'z-ares',     title:'Zone 5 — Arès ⚔️',             icon:'⚔️', keywords:'ares zone guerre amrita forteresse sénat codex' },
+  { tab:'zones',   section:'z-zeus',     title:'Zone 6 — Zeus ⚡ FINALE',      icon:'⚡', keywords:'zeus zone olympe foudre pylône dernier score final légendaire roi' },
   { tab:'zones',   section:'z-unlock',   title:'Système de Déverrouillage',   icon:'🗝️', keywords:'déverrouiller conditions score clé divine rituel frontière craft' },
   { tab:'zones',   section:'z-curses',   title:'Malédictions Progressives',   icon:'💀', keywords:'malédiction stade production pénalité démolition zone' },
   { tab:'modes',   section:'m-pantheon', title:'Mode Panthéon',               icon:'⚡', keywords:'mode panthéon défaut city builder idle' },
@@ -710,12 +710,12 @@ class HelpPanel {
   _tabZones() {
     var self = this;
     var zones = [
-      { id:'z-zeus',     icon:'⚡', god:'Zeus',     color:'#ffd54f', biome:'Cimes de l\'Olympe', resource:'Foudre +5/s + Éther', score:'1 000',   frontier:'Frontière ouverte', key:'500 Nourr + 2 000🪙 + 30 Éther — 60s', ritual:'3 Pylônes actifs', curse:'Colère de Zeus (-5%/-15%/-30%/démolition)' },
-      { id:'z-poseidon', icon:'🌊', god:'Poséidon', color:'#29b6f6', biome:'Abysses Océaniques', resource:'Nectar +4/s + Nourr', score:'5 000',   frontier:'2 Routes sur cases Rivière', key:'800 Nourr + 300 Bois + 5 000🪙 — 120s', ritual:'Révéler 30 cases', curse:'Fureur de Poséidon (-5%/-15%/-30%/démolition)' },
-      { id:'z-hades',    icon:'💀', god:'Hadès',    color:'#7e57c2', biome:'Souterrains du Tartare', resource:'Orichalque +1/s', score:'20 000',  frontier:'3 Mines de Fer', key:'500 Fer + 100 Acier + 200 Éther — 200s', ritual:'3 Prestiges accomplis', curse:'Malédiction d\'Hadès (-5%/-15%/-30%/démolition)' },
-      { id:'z-athena',   icon:'🦉', god:'Athéna',   color:'#80cbc4', biome:'Bibliothèque Céleste', resource:'Métal Divin +2/s + Éther', score:'5 000', frontier:'1 Bibliothèque', key:'8 000🪙 + 100 Ambroisie + 300 Fer — 150s', ritual:'1 000 Drachmes/s de production', curse:'Jugement d\'Athéna (-5%/-15%/-30%/démolition)' },
-      { id:'z-apollon',  icon:'☀️', god:'Apollon',  color:'#ffb300', biome:'Plaines de Delphes', resource:'Ambroisie +3/s + Nourr', score:'100 000', frontier:'5 bâtiments Agricoles', key:'2 000 Bois + 300 Ambroisie + 20 Métal Divin — 300s', ritual:'Révéler 80 cases', curse:'Éclipse d\'Apollon (-5%/-15%/-30%/démolition)' },
-      { id:'z-ares',     icon:'⚔️', god:'Arès',     color:'#ef5350', biome:'Champs de Bataille Éternels', resource:'Amrita +2/s + Foudre', score:'500 000', frontier:'1 Forteresse', key:'1 000 Éther + 200 Orichalque + 100 Métal Divin — 600s', ritual:'Codex Niveau 5', curse:'Rage d\'Arès (-5%/-15%/-30%/démolition)' },
+      { id:'z-poseidon', icon:'🌊', god:'Poséidon', color:'#29b6f6', biome:'Abysses Océaniques', resource:'Nectar +4/s + Nourr', score:'2 000',   frontier:'2 Routes sur cases Rivière', key:'1 200 Nourr + 400 Bois + 3 000🪙 — 90s', ritual:'Révéler 40 cases', curse:'Fureur de Poséidon (-5%/-15%/-30%/démolition)' },
+      { id:'z-apollon',  icon:'☀️', god:'Apollon',  color:'#ffb300', biome:'Plaines de Delphes', resource:'Ambroisie +3/s + Nourr', score:'8 000', frontier:'8 bâtiments Nature connectés', key:'3 000 Bois + 500 Ambroisie + 10 000🪙 — 180s', ritual:'500 Nourr/s + 1 Prestige', curse:'Éclipse d\'Apollon (-5%/-15%/-30%/démolition)' },
+      { id:'z-athena',   icon:'🦉', god:'Athéna',   color:'#80cbc4', biome:'Bibliothèque Céleste', resource:'Métal Divin +2/s + Éther', score:'25 000', frontier:'1 Bibliothèque + 1 Agora connectées', key:'15 000🪙 + 200 Ambroisie + 500 Fer — 240s', ritual:'3 000 Drachmes/s', curse:'Jugement d\'Athéna (-5%/-15%/-30%/démolition)' },
+      { id:'z-hades',    icon:'💀', god:'Hadès',    color:'#7e57c2', biome:'Souterrains du Tartare', resource:'Orichalque +1/s + Éther', score:'100 000', frontier:'5 Mines de Fer connectées', key:'1 000 Fer + 300 Acier + 500 Éther — 300s', ritual:'5 Prestiges', curse:'Malédiction d\'Hadès (-5%/-15%/-30%/démolition)' },
+      { id:'z-ares',     icon:'⚔️', god:'Arès',     color:'#ef5350', biome:'Champs de Bataille Éternels', resource:'Amrita +2/s + Foudre', score:'300 000', frontier:'1 Forteresse + 1 Sénat connectés', key:'1 500 Éther + 400 Orichalque + 150 Métal Divin — 480s', ritual:'Codex Niveau 7', curse:'Rage d\'Arès (-5%/-15%/-30%/démolition)' },
+      { id:'z-zeus',     icon:'⚡', god:'Zeus',     color:'#ffd54f', biome:'Cimes de l\'Olympe', resource:'Foudre +8/s + Éther', score:'750 000', frontier:'Libre (conditions légendaires)', key:'3 000 Éther + 500 Orichalque + 300 Métal Divin — 480s', ritual:'3 Pylônes connectés + Codex niv.5 + 8 Prestiges + Hadès & Arès conquis', curse:'Colère de Zeus (-5%/-15%/-30%/démolition)' },
     ];
 
     var html =
