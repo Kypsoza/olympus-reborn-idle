@@ -1901,18 +1901,6 @@ class BuildingPanel {
           html += '<div class="zn-key-ready">🗝️ Clé Divine prête !</div>';
         }
 
-        // Rituel Déméter
-        if (def.id === 'demeter' && !state.ritualDone) {
-          var hasAmbroisie = rm ? rm.canAfford({ ambroisie: def.ritualAmount }) : false;
-          html +=
-            '<div class="zn-ritual-section">' +
-              '<div class="zn-ritual-label">🕯️ ' + def.ritual + '</div>' +
-              '<button class="zn-btn' + (hasAmbroisie ? '' : ' zn-btn-disabled') + '" data-zone-ritual="demeter">' +
-                (hasAmbroisie ? '🌿 Accomplir le Rituel (-' + def.ritualAmount + ' Ambroisie)' : '🔒 ' + def.ritualAmount + ' Ambroisie requise') +
-              '</button>' +
-            '</div>';
-        }
-
         // Bouton déverrouillage
         if (z.canUnlock) {
           html +=
@@ -2187,14 +2175,14 @@ class BuildingPanel {
       return parseInt(hex.slice(1,3),16)+','+parseInt(hex.slice(3,5),16)+','+parseInt(hex.slice(5,7),16);
     }
 
-    // ── 6 branches divines seulement (cartographie et héritage → Drachmes) ──
+    // ── 6 branches divines ────────────────────────────────────────────────────
     var BRANCHES = [
-      { id:'zeus',       label:'Zeus',       icon:'⚡', color:'#ffd54f', angle:0   },
-      { id:'demeter',    label:'Déméter',    icon:'🌾', color:'#8bc34a', angle:60  },
-      { id:'aphrodite',  label:'Aphrodite',  icon:'💫', color:'#f48fb1', angle:120 },
-      { id:'artemis',    label:'Artémis',    icon:'🌙', color:'#4fc3f7', angle:180 },
-      { id:'hades',      label:'Hadès',      icon:'💀', color:'#9575cd', angle:240 },
-      { id:'hephaïstos', label:'Héphaïstos', icon:'🔨', color:'#ff7043', angle:300 },
+      { id:'zeus',     label:'Zeus',     icon:'⚡',  color:'#ffd54f', angle:0   },
+      { id:'poseidon', label:'Poséidon', icon:'🌊', color:'#29b6f6', angle:60  },
+      { id:'hades',    label:'Hadès',    icon:'💀', color:'#7e57c2', angle:120 },
+      { id:'athena',   label:'Athéna',   icon:'🦉', color:'#80cbc4', angle:180 },
+      { id:'apollon',  label:'Apollon',  icon:'☀️',  color:'#ffb300', angle:240 },
+      { id:'ares',     label:'Arès',     icon:'⚔️',  color:'#ef5350', angle:300 },
     ];
     var branchMap = {};
     BRANCHES.forEach(function(b){ branchMap[b.id]=b; });
@@ -2204,18 +2192,18 @@ class BuildingPanel {
     var CX=800, CY=500;
     // Ellipse stretch
     var EX=1.40, EY=0.78;
-    // Ring radii — increased to prevent overlap with spread=40°
-    var R1=220, R2=360, R3=490;
-    var RING_RADII = [0, R1, R2, R3];
-    var NODE_R = 22; // hex radius (slightly smaller for spacing)
-    var SLOTS = { 1:5, 2:5, 3:5 };
-    var SPREAD = 40; // ±degrees around branch angle
+    // Ring radii — arbre binaire : niveaux 1-2-3-4
+    var R1=150, R2=280, R3=400, R4=520;
+    var RING_RADII = [0, R1, R2, R3, R4];
+    var NODE_R = 20;
+    var SLOTS = { 1:1, 2:2, 3:4, 4:8 };
+    var SPREAD = 42; // ±degrees around branch angle
 
     // ── Ellipse-mapped position for a node ───────────────────────────────────
-    function nodePos(angleDeg, ring, slot) {
-      var r = RING_RADII[ring] || R1;
-      var n = SLOTS[ring] || 5;
-      var step = (SPREAD * 2) / (n - 1);
+    function nodePos(angleDeg, level, slot) {
+      var r = RING_RADII[level] || R1;
+      var n = SLOTS[level] || 1;
+      var step = n > 1 ? (SPREAD * 2) / (n - 1) : 0;
       var slotAngle = angleDeg + (slot - (n-1)/2) * step;
       var rad = slotAngle * Math.PI / 180;
       return {
@@ -2226,27 +2214,26 @@ class BuildingPanel {
 
     // ── Gather nodes by branch ───────────────────────────────────────────────
     var nodesByBranch = {};
-    BRANCHES.forEach(function(b){ nodesByBranch[b.id] = {1:[],2:[],3:[]}; });
+    BRANCHES.forEach(function(b){ nodesByBranch[b.id] = {1:[],2:[],3:[],4:[]}; });
     Object.keys(PN).forEach(function(nid) {
       var nd = PN[nid];
       if (!nd) return;
-      if (!nodesByBranch[nd.branch]) return; // skip cartographie/héritage
-      var ring = nd.ring || 1;
-      if (!nodesByBranch[nd.branch][ring]) nodesByBranch[nd.branch][ring] = [];
-      nodesByBranch[nd.branch][ring].push(nid);
+      if (!nodesByBranch[nd.branch]) return;
+      var lv = nd.level || nd.ring || 1;
+      if (!nodesByBranch[nd.branch][lv]) nodesByBranch[nd.branch][lv] = [];
+      nodesByBranch[nd.branch][lv].push(nid);
     });
 
     // ── Compute node positions ───────────────────────────────────────────────
     var nodePositions = {}; // nid → {x, y}
     BRANCHES.forEach(function(b) {
-      [1,2,3].forEach(function(ring) {
-        var nodes = nodesByBranch[b.id][ring] || [];
+      [1,2,3,4].forEach(function(lv) {
+        var nodes = nodesByBranch[b.id][lv] || [];
         nodes.forEach(function(nid, si) {
-          nodePositions[nid] = nodePos(b.angle, ring, si);
+          nodePositions[nid] = nodePos(b.angle, lv, si);
         });
       });
     });
-
     // ── Edge style per branch ────────────────────────────────────────────────
     function makeEdge(nid1, nid2, branchId, state1, state2) {
       var p1 = nodePositions[nid1], p2 = nodePositions[nid2];
@@ -2262,7 +2249,7 @@ class BuildingPanel {
 
       // Branch-specific style
       if (branchId==='zeus') {
-        // Pure crackling lightning — multi-layer glow like reference
+        // Foudre crépitante
         var pts=[[x1,y1]], n=8;
         var rng=function(s){return(Math.sin(s*127.1+3.7)*0.5+0.5)*2-1;};
         var nxz=-dy/Math.hypot(dx,dy), nyz=dx/Math.hypot(dx,dy);
@@ -2278,80 +2265,63 @@ class BuildingPanel {
                '<path d="'+d+'" fill="none" stroke="'+col+'" stroke-width="'+sw+'" opacity="'+opacity+'" stroke-linecap="round"/>'+
                (active?'<path d="'+d+'" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="1" stroke-linecap="round"/>':'');
       }
-      if (branchId==='demeter') {
-        // Glowing emerald vines like reference image
-        var len=Math.hypot(dx,dy);
-        var nxd=-dy/len, nyd=dx/len;
-        var amp=(active?30:16);
-        var cp1x=x1+dx*0.3+nxd*amp, cp1y=y1+dy*0.3+nyd*amp;
-        var cp2x=x1+dx*0.7-nxd*amp, cp2y=y1+dy*0.7-nyd*amp;
-        var main='M'+x1.toFixed(1)+','+y1.toFixed(1)+' C'+cp1x.toFixed(1)+','+cp1y.toFixed(1)+' '+cp2x.toFixed(1)+','+cp2y.toFixed(1)+' '+x2.toFixed(1)+','+y2.toFixed(1);
-        var cp3x=x1+dx*0.4+nxd*(amp*0.5), cp3y=y1+dy*0.4+nyd*(amp*0.5);
-        var cp4x=x1+dx*0.6-nxd*(amp*0.4), cp4y=y1+dy*0.6-nyd*(amp*0.4);
-        var brin2='M'+(x1+nxd*8).toFixed(1)+','+(y1+nyd*8).toFixed(1)+' C'+cp3x.toFixed(1)+','+cp3y.toFixed(1)+' '+cp4x.toFixed(1)+','+cp4y.toFixed(1)+' '+(x2+nxd*8).toFixed(1)+','+(y2+nyd*8).toFixed(1);
-        var glowCol = active?'rgba(100,255,120,0.22)':'rgba(60,180,80,0.07)';
-        return '<path d="'+main+'" fill="none" stroke="'+glowCol+'" stroke-width="'+(sw*6)+'" filter="url(#glow-s)"/>'+
-               '<path d="'+main+'" fill="none" stroke="'+col+'" stroke-width="'+(sw*1.3)+'" opacity="'+opacity+'" />'+
-               '<path d="'+brin2+'" fill="none" stroke="'+col+'" stroke-width="'+(sw*0.65)+'" opacity="'+(parseFloat(opacity)*0.65)+'" />';
-      }
-      if (branchId==='hephaïstos') {
-        // Molten chains with fire glow like reference
-        var fireGlow = active?'rgba(255,140,30,0.3)':'rgba(180,80,10,0.1)';
-        return '<path d="M'+x1.toFixed(1)+','+y1.toFixed(1)+'L'+x2.toFixed(1)+','+y2.toFixed(1)+'" fill="none" stroke="'+fireGlow+'" stroke-width="'+(sw*8)+'" filter="url(#glow-s)"/>'+
-               '<path d="M'+x1.toFixed(1)+','+y1.toFixed(1)+'L'+x2.toFixed(1)+','+y2.toFixed(1)+'" fill="none" stroke="'+col+'" stroke-width="'+(sw*1.5)+'" opacity="'+opacity+'" stroke-dasharray="12,5" stroke-linecap="round"/>'+
-               (active?'<path d="M'+x1.toFixed(1)+','+y1.toFixed(1)+'L'+x2.toFixed(1)+','+y2.toFixed(1)+'" fill="none" stroke="rgba(255,220,100,0.4)" stroke-width="1" stroke-dasharray="4,13" stroke-dashoffset="6"/>':'');
-      }
-      if (branchId==='aphrodite') {
-        // Luminous silk ribbons — dual sinuous strands like reference image
-        var len2=Math.hypot(dx,dy), nx3=-dy/len2, ny3=dx/len2;
-        var Nw=16, pts2=[[x1,y1]], pts2b=[[x1,y1]];
-        var ampA=active?22:13;
-        for(var iw=0;iw<Nw;iw++){
-          var tw=(iw+1)/(Nw+1);
-          var ww=Math.sin(tw*Math.PI*3.5)*ampA;
-          pts2.push([x1+tw*dx+ww*nx3, y1+tw*dy+ww*ny3]);
-          var ww2=Math.sin(tw*Math.PI*3.5+1.2)*ampA*0.6;
-          pts2b.push([x1+tw*dx+ww2*nx3, y1+tw*dy+ww2*ny3]);
+      if (branchId==='poseidon') {
+        // Vague sinueuse bleue
+        var lenP=Math.hypot(dx,dy), nxP=-dy/lenP, nyP=dx/lenP;
+        var NwP=16, ptsP=[[x1,y1]], ampP=active?22:13;
+        for(var iP=0;iP<NwP;iP++){
+          var tP=(iP+1)/(NwP+1), wP=Math.sin(tP*Math.PI*3)*ampP;
+          ptsP.push([x1+tP*dx+wP*nxP, y1+tP*dy+wP*nyP]);
         }
-        pts2.push([x2,y2]); pts2b.push([x2,y2]);
-        var d2='M'+pts2.map(function(p){return p[0].toFixed(1)+','+p[1].toFixed(1);}).join('L');
-        var d2b='M'+pts2b.map(function(p){return p[0].toFixed(1)+','+p[1].toFixed(1);}).join('L');
-        var petalGlow = active?'rgba(255,150,200,0.22)':'rgba(200,80,120,0.07)';
-        return '<path d="'+d2+'" fill="none" stroke="'+petalGlow+'" stroke-width="'+(sw*6)+'" filter="url(#glow-s)"/>'+
-               '<path d="'+d2+'" fill="none" stroke="'+col+'" stroke-width="'+sw+'" opacity="'+opacity+'" stroke-linecap="round"/>'+
-               '<path d="'+d2b+'" fill="none" stroke="rgba(255,200,230,0.38)" stroke-width="'+(sw*0.55)+'" opacity="'+(parseFloat(opacity)*0.7)+'" stroke-linecap="round"/>';
+        ptsP.push([x2,y2]);
+        var dP='M'+ptsP.map(function(p){return p[0].toFixed(1)+','+p[1].toFixed(1);}).join('L');
+        var waveGlow=active?'rgba(40,180,255,0.25)':'rgba(20,100,180,0.08)';
+        return '<path d="'+dP+'" fill="none" stroke="'+waveGlow+'" stroke-width="'+(sw*6)+'" filter="url(#glow-s)"/>'+
+               '<path d="'+dP+'" fill="none" stroke="'+col+'" stroke-width="'+sw+'" opacity="'+opacity+'" stroke-linecap="round"/>';
       }
       if (branchId==='hades') {
-        // Sapphire-shadow veins — dark fissures with deep violet glow
-        var len3=Math.hypot(dx,dy), nx4=-dy/len3, ny4=dx/len3;
+        // Veines ombres violettes craquelées
+        var lenH=Math.hypot(dx,dy), nxH=-dy/lenH, nyH=dx/lenH;
         var rng2=function(s){return Math.sin(s*231.7+5.1)*0.5;};
-        var pts3=[[x1,y1]], n3=12;
-        var ampH=active?16:9;
-        for(var ij=1;ij<n3;ij++){
-          var tj=ij/n3, jj=(ij%2===0?1:-1)*(ampH*0.6+Math.abs(rng2(ij))*ampH);
-          pts3.push([x1+tj*dx+jj*nx4, y1+tj*dy+jj*ny4]);
+        var ptsH=[[x1,y1]], nH=12, ampH=active?16:9;
+        for(var iH=1;iH<nH;iH++){
+          var tH=iH/nH, jH=(iH%2===0?1:-1)*(ampH*0.6+Math.abs(rng2(iH))*ampH);
+          ptsH.push([x1+tH*dx+jH*nxH, y1+tH*dy+jH*nyH]);
         }
-        pts3.push([x2,y2]);
-        var d3='M'+pts3.map(function(p){return p[0].toFixed(1)+','+p[1].toFixed(1);}).join('L');
-        var voidGlow = active?'rgba(100,40,180,0.35)':'rgba(60,20,100,0.12)';
-        return '<path d="'+d3+'" fill="none" stroke="'+voidGlow+'" stroke-width="'+(sw*5)+'" filter="url(#glow-s)"/>'+
-               '<path d="'+d3+'" fill="none" stroke="'+col+'" stroke-width="'+sw+'" opacity="'+opacity+'"/>'+
-               (active?'<path d="'+d3+'" fill="none" stroke="rgba(180,120,255,0.3)" stroke-width="1"/>':'');
+        ptsH.push([x2,y2]);
+        var dH='M'+ptsH.map(function(p){return p[0].toFixed(1)+','+p[1].toFixed(1);}).join('L');
+        var voidGlow=active?'rgba(100,40,180,0.35)':'rgba(60,20,100,0.12)';
+        return '<path d="'+dH+'" fill="none" stroke="'+voidGlow+'" stroke-width="'+(sw*5)+'" filter="url(#glow-s)"/>'+
+               '<path d="'+dH+'" fill="none" stroke="'+col+'" stroke-width="'+sw+'" opacity="'+opacity+'" />'+
+               (active?'<path d="'+dH+'" fill="none" stroke="rgba(180,120,255,0.3)" stroke-width="1"/>':'');
       }
-      if (branchId==='artemis') {
-        // Moonsilver spectral arrows with cool ethereal glow
-        var dx2=x2-x1, dy2=y2-y1, dist=Math.hypot(dx2,dy2);
-        var ax=dx2/dist, ay=dy2/dist;
-        var nxa=-dy2/dist, nya=dx2/dist;
-        // Arrowhead
-        var al=Math.min(10,dist*0.12);
-        var ah='M'+(x2-ax*al+nxa*4).toFixed(1)+','+(y2-ay*al+nya*4).toFixed(1)+
-               'L'+x2.toFixed(1)+','+y2.toFixed(1)+
-               'L'+(x2-ax*al-nxa*4).toFixed(1)+','+(y2-ay*al-nya*4).toFixed(1);
-        var moonGlow = active?'rgba(180,230,255,0.2)':'rgba(100,160,200,0.06)';
-        return '<path d="M'+x1.toFixed(1)+','+y1.toFixed(1)+'L'+x2.toFixed(1)+','+y2.toFixed(1)+'" fill="none" stroke="'+moonGlow+'" stroke-width="'+(sw*5)+'" filter="url(#glow-s)"/>'+
-               '<path d="M'+x1.toFixed(1)+','+y1.toFixed(1)+'L'+x2.toFixed(1)+','+y2.toFixed(1)+'" fill="none" stroke="'+col+'" stroke-width="'+sw+'" opacity="'+opacity+'" stroke-dasharray="'+(active?'none':'14,4')+'" stroke-linecap="butt"/>'+
-               '<path d="'+ah+'" fill="none" stroke="'+col+'" stroke-width="'+(sw*0.85)+'" opacity="'+opacity+'" stroke-linecap="round"/>';
+      if (branchId==='athena') {
+        // Lignes géométriques turquoise avec pointillés
+        var athGlow=active?'rgba(128,203,196,0.25)':'rgba(60,130,120,0.08)';
+        return '<path d="M'+x1.toFixed(1)+','+y1.toFixed(1)+'L'+x2.toFixed(1)+','+y2.toFixed(1)+'" fill="none" stroke="'+athGlow+'" stroke-width="'+(sw*6)+'" filter="url(#glow-s)"/>'+
+               '<path d="M'+x1.toFixed(1)+','+y1.toFixed(1)+'L'+x2.toFixed(1)+','+y2.toFixed(1)+'" fill="none" stroke="'+col+'" stroke-width="'+(sw*1.3)+'" opacity="'+opacity+'" stroke-dasharray="'+(active?'none':'16,4')+'" />'+
+               (active?'<path d="M'+x1.toFixed(1)+','+y1.toFixed(1)+'L'+x2.toFixed(1)+','+y2.toFixed(1)+'" fill="none" stroke="rgba(255,255,220,0.25)" stroke-width="1"/>':'');
+      }
+      if (branchId==='apollon') {
+        // Rayons solaires dorés ondulés
+        var lenA=Math.hypot(dx,dy), nxA=-dy/lenA, nyA=dx/lenA;
+        var ptsA=[[x1,y1]], ampA2=active?18:10;
+        for(var iA=0;iA<12;iA++){
+          var tA=(iA+1)/13, wA=Math.sin(tA*Math.PI*2.5)*ampA2;
+          ptsA.push([x1+tA*dx+wA*nxA, y1+tA*dy+wA*nyA]);
+        }
+        ptsA.push([x2,y2]);
+        var dA='M'+ptsA.map(function(p){return p[0].toFixed(1)+','+p[1].toFixed(1);}).join('L');
+        var sunGlow=active?'rgba(255,180,0,0.28)':'rgba(180,120,0,0.09)';
+        return '<path d="'+dA+'" fill="none" stroke="'+sunGlow+'" stroke-width="'+(sw*7)+'" filter="url(#glow-s)"/>'+
+               '<path d="'+dA+'" fill="none" stroke="'+col+'" stroke-width="'+(sw*1.2)+'" opacity="'+opacity+'" stroke-linecap="round"/>';
+      }
+      if (branchId==='ares') {
+        // Chaînes de métal rouge — tirets épais
+        var fireGlow2=active?'rgba(240,80,50,0.3)':'rgba(160,40,20,0.1)';
+        return '<path d="M'+x1.toFixed(1)+','+y1.toFixed(1)+'L'+x2.toFixed(1)+','+y2.toFixed(1)+'" fill="none" stroke="'+fireGlow2+'" stroke-width="'+(sw*8)+'" filter="url(#glow-s)"/>'+
+               '<path d="M'+x1.toFixed(1)+','+y1.toFixed(1)+'L'+x2.toFixed(1)+','+y2.toFixed(1)+'" fill="none" stroke="'+col+'" stroke-width="'+(sw*1.5)+'" opacity="'+opacity+'" stroke-dasharray="12,5" stroke-linecap="round"/>'+
+               (active?'<path d="M'+x1.toFixed(1)+','+y1.toFixed(1)+'L'+x2.toFixed(1)+','+y2.toFixed(1)+'" fill="none" stroke="rgba(255,200,100,0.4)" stroke-width="1" stroke-dasharray="4,13" stroke-dashoffset="6"/>':'');
       }
       // Default
       return '<path d="M'+x1.toFixed(1)+','+y1.toFixed(1)+'L'+x2.toFixed(1)+','+y2.toFixed(1)+'" fill="none" stroke="'+col+'" stroke-width="'+sw+'" opacity="'+opacity+'"/>';
@@ -2584,8 +2554,8 @@ class BuildingPanel {
              + (halfway?'<path d="'+pts2+'" fill="none" stroke="rgba(255,200,60,0.22)" stroke-width="0.8" stroke-linecap="round"/>':'');
       }
 
-      // ── DEMETER — vignes entrelacées émeraude ───────────────────────────
-      if(branchId==='demeter'){
+      // ── POSÉIDON — vagues entrelacées océan ────────────────────────────
+      if(branchId==='poseidon'){
         var amp2=active?32:halfway?20:11;
         var cp1x=x1+dx*0.28+nx*amp2, cp1y=y1+dy*0.28+ny*amp2;
         var cp2x=x1+dx*0.72-nx*amp2, cp2y=y1+dy*0.72-ny*amp2;
@@ -2598,58 +2568,15 @@ class BuildingPanel {
         // root tendrils: small knot at midpoint
         var mx2=(x1+x2)/2+nx*8, my2=(y1+y2)/2+ny*8;
         var knot=active?'<circle cx="'+mx2.toFixed(1)+'" cy="'+my2.toFixed(1)+'" r="3" fill="rgba(80,200,80,0.55)" filter="url(#glow-s)"/>':'';
-        return '<path d="'+main+'" fill="none" stroke="rgba(40,200,60,'+(active?'0.28':halfway?'0.14':'0.05')+')" stroke-width="'+(sw*7.5)+'" filter="url(#glow-s)" class="edge-dem-glow"/>'
+        return '<path d="'+main+'" fill="none" stroke="rgba(40,200,60,'+(active?'0.28':halfway?'0.14':'0.05')+')" stroke-width="'+(sw*7.5)+'" filter="url(#glow-s)" class="edge-pos-glow"/>'
              + '<path d="'+main+'" fill="none" stroke="'+col+'" stroke-width="'+(sw*1.6)+'" opacity="'+op+'" stroke-linecap="round"/>'
              + '<path d="'+brin+'" fill="none" stroke="'+col+'" stroke-width="'+(sw*0.8)+'" opacity="'+(op*0.62).toFixed(2)+'" stroke-linecap="round"/>'
              + (active?'<path d="'+main+'" fill="none" stroke="rgba(140,255,100,0.28)" stroke-width="1.2" stroke-dasharray="3,6"/>':'')
              + knot;
       }
 
-      // ── HEPHAÏSTOS — chaînes incandescentes rouge-orange ────────────────
-      if(branchId==='hephaïstos'){
-        var fireGlow=active?'rgba(255,110,10,0.35)':halfway?'rgba(200,70,5,0.18)':'rgba(130,40,5,0.07)';
-        var embers=active?'rgba(255,230,70,0.55)':halfway?'rgba(255,170,40,0.28)':'rgba(0,0,0,0)';
-        // Chain: thick dashes with ember sparks
-        var chainLen=Math.sqrt(dx*dx+dy*dy);
-        var sparkPts='';
-        if(active){
-          var ax2=dx/len,ay2=dy/len;
-          for(var ci=1;ci<4;ci++){
-            var ct=ci/4;
-            var spx=(x1+ct*dx+nx*(ci%2===0?6:-6)).toFixed(1);
-            var spy=(y1+ct*dy+ny*(ci%2===0?6:-6)).toFixed(1);
-            sparkPts+='<circle cx="'+spx+'" cy="'+spy+'" r="2.5" fill="rgba(255,200,50,0.7)" filter="url(#glow-s)"/>';
-          }
-        }
-        return '<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="'+fireGlow+'" stroke-width="'+(sw*9)+'" filter="url(#glow-s)"/>'
-             + '<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="'+col+'" stroke-width="'+(sw*2)+'" opacity="'+op+'" stroke-dasharray="12,5" stroke-linecap="round"/>'
-             + '<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="'+embers+'" stroke-width="1.8" stroke-dasharray="4,13" stroke-dashoffset="8" class="edge-hep-ember"/>'
-             + sparkPts;
-      }
 
-      // ── APHRODITE — rubans de soie sinusoïdaux ──────────────────────────
-      if(branchId==='aphrodite'){
-        var ampA=active?24:halfway?15:8;
-        var N=20, pts1='', pts2='';
-        for(var ia=0;ia<=N;ia++){
-          var ta2=ia/N;
-          var w1=Math.sin(ta2*Math.PI*3.8)*ampA;
-          var w2=Math.sin(ta2*Math.PI*3.8+Math.PI*0.45)*ampA*0.52;
-          pts1+=(ia===0?'M':'L')+(x1+ta2*dx+w1*nx).toFixed(1)+','+(y1+ta2*dy+w1*ny).toFixed(1);
-          pts2+=(ia===0?'M':'L')+(x1+ta2*dx+w2*nx).toFixed(1)+','+(y1+ta2*dy+w2*ny).toFixed(1);
-        }
-        // petal sparkle at midpoint
-        var pmx=(x1+x2)/2, pmy=(y1+y2)/2;
-        var petalSpark=active?'<circle cx="'+pmx.toFixed(1)+'" cy="'+pmy.toFixed(1)+'" r="3.5" fill="rgba(255,180,220,0.65)" filter="url(#glow-m)"/>':'';
-        var petalGlow=active?'rgba(255,130,180,0.30)':halfway?'rgba(210,85,130,0.15)':'rgba(150,55,85,0.06)';
-        return '<path d="'+pts1+'" fill="none" stroke="'+petalGlow+'" stroke-width="'+(sw*7)+'" filter="url(#glow-s)"/>'
-             + '<path d="'+pts1+'" fill="none" stroke="'+col+'" stroke-width="'+sw+'" opacity="'+op+'" stroke-linecap="round"/>'
-             + '<path d="'+pts2+'" fill="none" stroke="rgba(255,215,235,0.42)" stroke-width="'+(sw*0.55)+'" opacity="'+(op*0.65).toFixed(2)+'" stroke-linecap="round"/>'
-             + (active?'<path d="'+pts1+'" fill="none" stroke="rgba(255,240,250,0.20)" stroke-width="0.8" stroke-dasharray="2,4"/>':'')
-             + petalSpark;
-      }
-
-      // ── HADES — veines d'ombre saphir ───────────────────────────────────
+      // ── HADÈS — veines d'ombre saphir ───────────────────────────────────
       if(branchId==='hades'){
         var rngH=function(s){return Math.sin(s*193.1+3.7)*0.5+Math.sin(s*47.3+1.2)*0.3;};
         var ampH=active?16:halfway?10:5;
@@ -2659,36 +2586,55 @@ class BuildingPanel {
           var jH=(ih>0&&ih<nH)?(ih%2===0?1:-1)*(ampH*0.5+Math.abs(rngH(ih))*ampH):0;
           ptsH+=(ih===0?'M':'L')+(x1+thH*dx+jH*nx).toFixed(1)+','+(y1+thH*dy+jH*ny).toFixed(1);
         }
-        // fissure cracks (secondary jagged path, perpendicular offset)
         var ptsH2='';
         for(var ih2=0;ih2<=nH;ih2++){
           var thH2=ih2/nH;
           var jH2=(ih2>0&&ih2<nH)?(ih2%2===0?-1:1)*(ampH*0.4+Math.abs(rngH(ih2+2.5))*ampH*0.6):0;
           ptsH2+=(ih2===0?'M':'L')+(x1+thH2*dx+jH2*nx+nx*6).toFixed(1)+','+(y1+thH2*dy+jH2*ny+ny*6).toFixed(1);
         }
-        return '<path d="'+ptsH+'" fill="none" stroke="rgba(80,20,170,'+(active?'0.38':halfway?'0.18':'0.06')+')" stroke-width="'+(sw*6)+'" filter="url(#glow-s)"/>'
-             + '<path d="'+ptsH+'" fill="none" stroke="'+col+'" stroke-width="'+sw+'" opacity="'+op+'" stroke-linecap="square"/>'
-             + (active?'<path d="'+ptsH+'" fill="none" stroke="rgba(180,120,255,0.32)" stroke-width="1.2"/>':'')
-             + (active?'<path d="'+ptsH2+'" fill="none" stroke="rgba(100,50,200,0.22)" stroke-width="0.8" stroke-dasharray="2,5"/>':'')
-             + (halfway?'<path d="'+ptsH2+'" fill="none" stroke="rgba(80,30,150,0.15)" stroke-width="0.7" stroke-dasharray="2,6"/>':'');
+        return '<path d="'+ptsH+'" fill="none" stroke="rgba(80,20,170,'+(active?'0.38':halfway?'0.18':'0.06')+')" stroke-width="'+(sw*6)+'" filter="url(#glow-s)"/>'             + '<path d="'+ptsH+'" fill="none" stroke="'+col+'" stroke-width="'+sw+'" opacity="'+op+'" stroke-linecap="square"/>'             + (active?'<path d="'+ptsH+'" fill="none" stroke="rgba(180,120,255,0.32)" stroke-width="1.2"/>':'')             + (active?'<path d="'+ptsH2+'" fill="none" stroke="rgba(100,50,200,0.22)" stroke-width="0.8" stroke-dasharray="2,5"/>':'')             + (halfway?'<path d="'+ptsH2+'" fill="none" stroke="rgba(80,30,150,0.15)" stroke-width="0.7" stroke-dasharray="2,6"/>':'');
       }
 
-      // ── ARTEMIS — flèches spectrales lunaires ───────────────────────────
-      if(branchId==='artemis'){
-        var ax3=dx/len,ay3=dy/len;
-        var al=Math.min(12,len*0.13);
-        // Arrowhead
-        var ah='M'+(x2-ax3*al+nx*4.5).toFixed(1)+','+(y2-ay3*al+ny*4.5).toFixed(1)
-              +' L'+x2.toFixed(1)+','+y2.toFixed(1)
-              +' L'+(x2-ax3*al-nx*4.5).toFixed(1)+','+(y2-ay3*al-ny*4.5).toFixed(1);
-        // Secondary parallel ray
-        var off2=nx*8,ofy2=ny*8;
-        var moonGlow=active?'rgba(150,215,255,0.28)':halfway?'rgba(90,165,220,0.14)':'rgba(50,90,135,0.06)';
-        return '<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="'+moonGlow+'" stroke-width="'+(sw*6)+'" filter="url(#glow-s)"/>'
-             + '<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="'+col+'" stroke-width="'+sw+'" opacity="'+op+'" stroke-dasharray="'+(active?'none':halfway?'16,4':'9,6')+'" stroke-linecap="butt" class="'+(active?'edge-art-flow':'')+'"/>'
-             + '<path d="'+ah+'" fill="none" stroke="'+col+'" stroke-width="'+(sw*0.9)+'" opacity="'+op+'" stroke-linecap="round"/>'
-             + (active?'<line x1="'+(x1+off2).toFixed(1)+'" y1="'+(y1+ofy2).toFixed(1)+'" x2="'+(x2+off2).toFixed(1)+'" y2="'+(y2+ofy2).toFixed(1)+'" stroke="rgba(180,230,255,0.22)" stroke-width="0.8" stroke-dasharray="6,5"/>':'');
+      // ── ATHÉNA — lignes géométriques sarcelles ──────────────────────────
+      if(branchId==='athena'){
+        var tickPts='';
+        for(var it=1;it<5;it++){
+          var tt=it/5;
+          var tx2=x1+tt*dx, ty2=y1+tt*dy;
+          tickPts+='<line x1="'+(tx2+nx*5).toFixed(1)+'" y1="'+(ty2+ny*5).toFixed(1)+'" x2="'+(tx2-nx*5).toFixed(1)+'" y2="'+(ty2-ny*5).toFixed(1)+'" stroke="'+col+'" stroke-width="0.9" opacity="'+(op*0.7).toFixed(2)+'"/>';
+        }
+        var owlGlow=active?'rgba(100,210,190,0.28)':halfway?'rgba(60,160,145,0.14)':'rgba(30,90,85,0.06)';
+        return '<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="'+owlGlow+'" stroke-width="'+(sw*7)+'" filter="url(#glow-s)"/>'             + '<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="'+col+'" stroke-width="'+(sw*1.5)+'" opacity="'+op+'" stroke-linecap="square"/>'             + tickPts             + (active?'<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="rgba(180,255,240,0.20)" stroke-width="0.8" stroke-dasharray="5,4"/>':'');
       }
+
+      // ── APOLLON — rayons solaires dorés ─────────────────────────────────
+      if(branchId==='apollon'){
+        var sunGlow=active?'rgba(255,190,0,0.32)':halfway?'rgba(200,140,0,0.16)':'rgba(130,90,0,0.07)';
+        var rayBurst='';
+        if(active){
+          for(var ir=1;ir<4;ir++){
+            var tr2=ir/4;
+            var rx=x1+tr2*dx, ry=y1+tr2*dy;
+            rayBurst+='<circle cx="'+rx.toFixed(1)+'" cy="'+ry.toFixed(1)+'" r="2.2" fill="rgba(255,230,80,0.65)" filter="url(#glow-s)"/>';
+            rayBurst+='<line x1="'+(rx+nx*7).toFixed(1)+'" y1="'+(ry+ny*7).toFixed(1)+'" x2="'+(rx-nx*7).toFixed(1)+'" y2="'+(ry-ny*7).toFixed(1)+'" stroke="rgba(255,240,100,0.30)" stroke-width="0.8"/>';
+          }
+        }
+        return '<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="'+sunGlow+'" stroke-width="'+(sw*7)+'" filter="url(#glow-m)"/>'             + '<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="'+col+'" stroke-width="'+(sw*2)+'" opacity="'+op+'" stroke-linecap="round"/>'             + '<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="rgba(255,248,180,0.45)" stroke-width="0.9" opacity="'+op+'" stroke-dasharray="'+(active?'none':'8,5')+'"/>'             + rayBurst;
+      }
+
+      // ── ARÈS — lames dentelées rouge sang ───────────────────────────────
+      if(branchId==='ares'){
+        var nA=10, ptsA='';
+        for(var ia2=0;ia2<=nA;ia2++){
+          var ta3=ia2/nA;
+          var jA=(ia2>0&&ia2<nA)?(ia2%2===0?1:-1)*(active?14:halfway?8:4):0;
+          ptsA+=(ia2===0?'M':'L')+(x1+ta3*dx+jA*nx).toFixed(1)+','+(y1+ta3*dy+jA*ny).toFixed(1);
+        }
+        var bladeGlow=active?'rgba(220,40,40,0.32)':halfway?'rgba(160,20,20,0.15)':'rgba(100,10,10,0.06)';
+        var bloodDrop=active?'<circle cx="'+(((x1+x2)/2)+nx*14).toFixed(1)+'" cy="'+(((y1+y2)/2)+ny*14).toFixed(1)+'" r="2.5" fill="rgba(200,30,30,0.55)" filter="url(#glow-s)"/>':'';
+        return '<path d="'+ptsA+'" fill="none" stroke="'+bladeGlow+'" stroke-width="'+(sw*7)+'" filter="url(#glow-s)"/>'             + '<path d="'+ptsA+'" fill="none" stroke="'+col+'" stroke-width="'+(sw*1.8)+'" opacity="'+op+'" stroke-linecap="square"/>'             + (active?'<path d="'+ptsA+'" fill="none" stroke="rgba(255,140,140,0.25)" stroke-width="1.0" stroke-dasharray="3,4"/>':'')             + bloodDrop;
+      }
+
 
       // Fallback
       return '<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="'+col+'" stroke-width="'+sw+'" opacity="'+op+'"/>';

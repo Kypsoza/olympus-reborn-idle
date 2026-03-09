@@ -1,506 +1,721 @@
 /* ═══════════════════════════════════════════════════════════
-   PantheonManager.js — v0.7.0 — Phase 7 : Panthéon
-   Arbre de talents permanent style Albion Online.
-   8 branches × 15 nœuds = 120 nœuds total.
-   Payés en Éther. Certains nœuds sont sans plafond.
-   Les 6 branches divines sont débloquées en Phase 8.
-   Les 2 branches transversales sont disponibles dès le 1er Prestige.
+   PantheonManager.js — v1.0.0
+   6 dieux : Zeus, Poséidon, Hadès, Athéna, Apollon, Arès
+   Structure : arbre binaire 1-2-4-8 = 15 nœuds par dieu
+   Chaque nœud : 5 rangs séquentiels (invested[id] = 0..5)
+   Déverrouillage : compléter la zone du dieu correspondant
    ═══════════════════════════════════════════════════════════ */
 
-// ── Définition des branches ──────────────────────────────────
+// ── Branches ────────────────────────────────────────────────
 const PANTHEON_BRANCHES = [
-  // ── Branches transversales (disponibles Phase 7) ──────────
-  {
-    id: 'cartographie', label: 'Cartographie', icon: '🗺️', color: '#60c8a0',
-    angle: -Math.PI * 0.5,  // haut
-    unlocked: true,          // disponible dès Phase 7
-    desc: 'Maîtrise de la carte et de l\'exploration'
-  },
-  {
-    id: 'prestige_codex', label: 'Héritage', icon: '📜', color: '#c080f0',
-    angle: Math.PI * 0.5,   // bas
-    unlocked: true,
-    desc: 'Amplification du Codex et du Prestige'
-  },
-  // ── 6 Branches divines (verrouillées jusqu'à Phase 8) ─────
-  {
-    id: 'demeter',    label: 'Déméter',    icon: '🌾', color: '#8bc34a',
-    angle: -Math.PI * (1/6),  // haut-droite
-    unlocked: false, zoneId: 1,
-    desc: 'Production alimentaire et population'
-  },
-  {
-    id: 'hephaïstos', label: 'Héphaïstos', icon: '🔨', color: '#ff7043',
-    angle:  Math.PI * (1/6),  // bas-droite
-    unlocked: false, zoneId: 2,
-    desc: 'Forge, métaux et bâtiments'
-  },
-  {
-    id: 'aphrodite',  label: 'Aphrodite',  icon: '💫', color: '#f48fb1',
-    angle: -Math.PI * (5/6),  // haut-gauche
-    unlocked: false, zoneId: 3,
-    desc: 'Drachmes, bonheur et commerce'
-  },
-  {
-    id: 'hades',      label: 'Hadès',      icon: '💀', color: '#7e57c2',
-    angle:  Math.PI * (5/6),  // bas-gauche
-    unlocked: false, zoneId: 4,
-    desc: 'Prestige, Éther et Codex'
-  },
-  {
-    id: 'artemis',    label: 'Artémis',    icon: '🌙', color: '#4fc3f7',
-    angle:  Math.PI,          // gauche
-    unlocked: false, zoneId: 5,
-    desc: 'Exploration, forêts et scouts'
-  },
-  {
-    id: 'zeus',       label: 'Zeus',       icon: '⚡', color: '#ffd54f',
-    angle:  0,                // droite
-    unlocked: false, zoneId: 6,
-    desc: 'Pouvoir absolu — Fin de jeu'
-  },
+  { id:'zeus',     label:'Zeus',     icon:'⚡',  color:'#ffd54f', angle:0,   zoneId:'zeus',
+    desc:'Roi des dieux, maître du ciel et de la foudre.' },
+  { id:'poseidon', label:'Poséidon', icon:'🌊', color:'#29b6f6', angle:60,  zoneId:'poseidon',
+    desc:'Dieu de la mer, des océans et des tremblements de terre.' },
+  { id:'hades',    label:'Hadès',    icon:'💀', color:'#7e57c2', angle:120, zoneId:'hades',
+    desc:'Dieu des enfers et souverain du royaume des morts.' },
+  { id:'athena',   label:'Athéna',   icon:'🦉', color:'#80cbc4', angle:180, zoneId:'athena',
+    desc:'Déesse de la sagesse, de la stratégie militaire et de la justice.' },
+  { id:'apollon',  label:'Apollon',  icon:'☀️', color:'#ffb300', angle:240, zoneId:'apollon',
+    desc:'Dieu du soleil, de la musique, de la médecine et de la prophétie.' },
+  { id:'ares',     label:'Arès',     icon:'⚔️',  color:'#ef5350', angle:300, zoneId:'ares',
+    desc:'Dieu de la guerre et de la violence des combats.' },
 ];
 
-// ── Définition des 120 nœuds (15 par branche) ───────────────
-// Format : id, branch, ring (1-3), slot (0-4), name, desc, icon, cost, effect, requires
-// ring 1 (dist 130) : effets simples, ring 2 (dist 260) : synergies, ring 3 (dist 390) : sans plafond
-
-const PANTHEON_NODES = {
-  // ════════════════════════════════════════════════════════
-  //  CARTOGRAPHIE (transversale, disponible Phase 7)
-  // ════════════════════════════════════════════════════════
-  cart_r1_0: { branch:'cartographie', ring:1, slot:0, name:'Premiers Pas',      icon:'👣', cost:30,
-    desc:'+10% vitesse de révélation des cases',
-    effect:{ type:'revealSpeed', value:10 }, requires:[] },
-  cart_r1_1: { branch:'cartographie', ring:1, slot:1, name:'Œil de Lynx',       icon:'👁️', cost:30,
-    desc:'Halos visibles à +2 cases de distance (total 7)',
-    effect:{ type:'haloRange', value:2 }, requires:[] },
-  cart_r1_2: { branch:'cartographie', ring:1, slot:2, name:'Terrains Familiers', icon:'🏔️', cost:30,
-    desc:'Fouille -10% plus chère',
-    effect:{ type:'digCostPct', value:-10 }, requires:[] },
-  cart_r1_3: { branch:'cartographie', ring:1, slot:3, name:'Cartographe',        icon:'📐', cost:30,
-    desc:'+2 cases révélées en anneau 1 au début',
-    effect:{ type:'startReveal', value:2 }, requires:[] },
-  cart_r1_4: { branch:'cartographie', ring:1, slot:4, name:'Scout Rapide',       icon:'🏃', cost:30,
-    desc:'Scouts 20% plus rapides',
-    effect:{ type:'scoutSpeedPct', value:20 }, requires:[] },
-
-  cart_r2_0: { branch:'cartographie', ring:2, slot:0, name:'Géographie Sacrée',  icon:'🗾', cost:80,
-    desc:'Fouille -25% plus chère',
-    effect:{ type:'digCostPct', value:-25 }, requires:['cart_r1_2'] },
-  cart_r2_1: { branch:'cartographie', ring:2, slot:1, name:'Vision Céleste',      icon:'🔭', cost:80,
-    desc:'Halos visibles à +4 cases de distance (total 9)',
-    effect:{ type:'haloRange', value:4 }, requires:['cart_r1_1'] },
-  cart_r2_2: { branch:'cartographie', ring:2, slot:2, name:'Mémorisation',        icon:'🧠', cost:80,
-    desc:'+5% production par case révélée (max +25%)',
-    effect:{ type:'prodPerReveal', value:5, cap:25 }, requires:['cart_r1_0'] },
-  cart_r2_3: { branch:'cartographie', ring:2, slot:3, name:'Éclaireur d\'Élite',  icon:'⚔️', cost:80,
-    desc:'Scouts révèlent +1 case voisine supplémentaire',
-    effect:{ type:'scoutExtraReveal', value:1 }, requires:['cart_r1_4'] },
-  cart_r2_4: { branch:'cartographie', ring:2, slot:4, name:'Avant-Poste',         icon:'🏕️', cost:80,
-    desc:'+20% production dans les cases à portée de Scout',
-    effect:{ type:'scoutAuraProd', value:20 }, requires:['cart_r1_4'] },
-
-  cart_r3_0: { branch:'cartographie', ring:3, slot:0, name:'Maître Cartographe',  icon:'🌍', cost:200, uncapped:true,
-    desc:'+0.5% toute production par 200 Éther investi (sans plafond)',
-    effect:{ type:'uncappedProdPer', ethPerPoint:200, valuePerPoint:0.5 }, requires:['cart_r2_2'] },
-  cart_r3_1: { branch:'cartographie', ring:3, slot:1, name:'Terrain Conquis',     icon:'🏹', cost:200, uncapped:true,
-    desc:'-0.5% coût fouille par 200 Éther investi (sans plafond)',
-    effect:{ type:'uncappedDigCostPer', ethPerPoint:200, valuePerPoint:0.5 }, requires:['cart_r2_0','cart_r2_1'] },
-  cart_r3_2: { branch:'cartographie', ring:3, slot:2, name:'Oracle',              icon:'🔮', cost:200,
-    desc:'Révèle l\'emplacement de toutes les Bases Cachées au début',
-    effect:{ type:'revealBasesOnStart', value:true }, requires:['cart_r2_1'] },
-  cart_r3_3: { branch:'cartographie', ring:3, slot:3, name:'Légion de Scouts',    icon:'⚔️', cost:200,
-    desc:'+2 scouts simultanés (total 3)',
-    effect:{ type:'scoutSlots', value:2 }, requires:['cart_r2_3','cart_r2_4'] },
-  cart_r3_4: { branch:'cartographie', ring:3, slot:4, name:'Domination Totale',   icon:'👑', cost:300,
-    desc:'Fouille révèle aussi les voisins directs (-50% HP)',
-    effect:{ type:'chainReveal', value:0.5 }, requires:['cart_r3_0','cart_r3_1'] },
-
-  // ════════════════════════════════════════════════════════
-  //  HÉRITAGE / PRESTIGE-CODEX (transversale, Phase 7)
-  // ════════════════════════════════════════════════════════
-  her_r1_0: { branch:'prestige_codex', ring:1, slot:0, name:'Mémoire Ancienne',  icon:'📖', cost:30,
-    desc:'+10% Éther gagné à chaque Prestige',
-    effect:{ type:'etherGainPct', value:10 }, requires:[] },
-  her_r1_1: { branch:'prestige_codex', ring:1, slot:1, name:'Encrier Doré',      icon:'✍️', cost:30,
-    desc:'+15 Pages Codex à chaque Prestige',
-    effect:{ type:'bonusPages', value:15 }, requires:[] },
-  her_r1_2: { branch:'prestige_codex', ring:1, slot:2, name:'Héritage',          icon:'🏛️', cost:30,
-    desc:'Les Bases conservées au Prestige gardent +1 niveau bonus',
-    effect:{ type:'heritageBonus', value:1 }, requires:[] },
-  her_r1_3: { branch:'prestige_codex', ring:1, slot:3, name:'Renaissance Vive',  icon:'🌅', cost:30,
-    desc:'+10% Score de Renaissance',
-    effect:{ type:'scoreMultPct', value:10 }, requires:[] },
-  her_r1_4: { branch:'prestige_codex', ring:1, slot:4, name:'Ressources Initiales', icon:'💰', cost:30,
-    desc:'+200 de chaque ressource de base au départ',
-    effect:{ type:'startBonus', value:200 }, requires:[] },
-
-  her_r2_0: { branch:'prestige_codex', ring:2, slot:0, name:'Amplificateur',     icon:'⚡', cost:80,
-    desc:'+25% Éther gagné à chaque Prestige',
-    effect:{ type:'etherGainPct', value:25 }, requires:['her_r1_0'] },
-  her_r2_1: { branch:'prestige_codex', ring:2, slot:1, name:'Codex Vivant',      icon:'📚', cost:80,
-    desc:'Pages Codex ×1.5 à chaque Prestige',
-    effect:{ type:'codexPagesMult', value:50 }, requires:['her_r1_1'] },
-  her_r2_2: { branch:'prestige_codex', ring:2, slot:2, name:'Mémoire du Titan',  icon:'🗿', cost:80,
-    desc:'Les talents Drachmes se réinitialisent à 50% de leur coût (au lieu de 100%)',
-    effect:{ type:'talentCostOnReset', value:50 }, requires:['her_r1_2'] },
-  her_r2_3: { branch:'prestige_codex', ring:2, slot:3, name:'Gloire Éternelle',  icon:'🌟', cost:80,
-    desc:'+25% Score de Renaissance',
-    effect:{ type:'scoreMultPct', value:25 }, requires:['her_r1_3'] },
-  her_r2_4: { branch:'prestige_codex', ring:2, slot:4, name:'Trésor des Âges',   icon:'💎', cost:80,
-    desc:'+500 de toutes les ressources de base au départ',
-    effect:{ type:'startBonus', value:500 }, requires:['her_r1_4'] },
-
-  her_r3_0: { branch:'prestige_codex', ring:3, slot:0, name:'Ascension',          icon:'🌌', cost:200, uncapped:true,
-    desc:'+1% Éther par 100 Éther investi (sans plafond)',
-    effect:{ type:'uncappedEtherGainPer', ethPerPoint:100, valuePerPoint:1 }, requires:['her_r2_0'] },
-  her_r3_1: { branch:'prestige_codex', ring:3, slot:1, name:'Codex Olympien',     icon:'📖', cost:200, uncapped:true,
-    desc:'+0.5% Pages Codex par 100 Éther investi (sans plafond)',
-    effect:{ type:'uncappedPagesMult', ethPerPoint:100, valuePerPoint:0.5 }, requires:['her_r2_1'] },
-  her_r3_2: { branch:'prestige_codex', ring:3, slot:2, name:'Legs Divin',         icon:'⚜️', cost:200,
-    desc:'Commence chaque run avec les 5 premiers talents Drachmes déjà appris',
-    effect:{ type:'startWithTalents', value:5 }, requires:['her_r2_2','her_r2_3'] },
-  her_r3_3: { branch:'prestige_codex', ring:3, slot:3, name:'Mémoire Olympique',  icon:'🏆', cost:200,
-    desc:'+50% Score de Renaissance + Éther gagné',
-    effect:{ type:'grandMult', value:50 }, requires:['her_r2_3','her_r2_0'] },
-  her_r3_4: { branch:'prestige_codex', ring:3, slot:4, name:'Éternité',           icon:'♾️', cost:300,
-    desc:'Aucune réinitialisation des ressources au Prestige (conserve 25% de tout)',
-    effect:{ type:'keepResourcesPct', value:25 }, requires:['her_r3_2','her_r3_3'] },
-
-  // ════════════════════════════════════════════════════════
-  //  DÉMÉTER 🌾 (Zone 1 — Production alimentaire)
-  // ════════════════════════════════════════════════════════
-  dem_r1_0: { branch:'demeter', ring:1, slot:0, name:'Bénédiction des Champs', icon:'🌾', cost:50,
-    desc:'+30% production Fermes et Vergers',
-    effect:{ type:'prodBonus', building:'farm,verger,jardins', value:30 }, requires:[] },
-  dem_r1_1: { branch:'demeter', ring:1, slot:1, name:'Terre Fertile',          icon:'🌱', cost:50,
-    desc:'+2 niveaux max Fermes et Vergers',
-    effect:{ type:'maxLevelBonus', building:'farm,verger,jardins', value:2 }, requires:[] },
-  dem_r1_2: { branch:'demeter', ring:1, slot:2, name:'Abondance',             icon:'🍇', cost:50,
-    desc:'Nourr produite compte 2× pour les conditions de population',
-    effect:{ type:'nourEfficiency', value:2 }, requires:[] },
-  dem_r1_3: { branch:'demeter', ring:1, slot:3, name:'Moisson Perpétuelle',   icon:'🌻', cost:50,
-    desc:'+20% production tout bâtiment adjacent à une Ferme',
-    effect:{ type:'farmAdjacencyBonus', value:20 }, requires:[] },
-  dem_r1_4: { branch:'demeter', ring:1, slot:4, name:'Gardiens des Récoltes', icon:'🧺', cost:50,
-    desc:'+15% population max (Maisons et Grandes Demeures)',
-    effect:{ type:'popCapPct', value:15 }, requires:[] },
-
-  dem_r2_0: { branch:'demeter', ring:2, slot:0, name:'Grâce de Déméter',      icon:'🌸', cost:120,
-    desc:'+70% production Fermes et Vergers',
-    effect:{ type:'prodBonus', building:'farm,verger,jardins', value:70 }, requires:['dem_r1_0'] },
-  dem_r2_1: { branch:'demeter', ring:2, slot:1, name:'Synergie Nourricière',   icon:'🌿', cost:120,
-    desc:'Nourr produite augmente la production de toutes les ressources +1%/100 Nourr',
-    effect:{ type:'nourProdSynergy', value:1, per:100 }, requires:['dem_r1_0', 'dem_r1_1'] },
-  dem_r2_2: { branch:'demeter', ring:2, slot:2, name:'Champs Sacrés',         icon:'🏕️', cost:120,
-    desc:'Cases adjacentes à une Ferme produisent +5 Drachmes/s',
-    effect:{ type:'farmAdjDrachmes', value:5 }, requires:['dem_r1_2'] },
-  dem_r2_3: { branch:'demeter', ring:2, slot:3, name:'Cité Nourricière',       icon:'🏘️', cost:120,
-    desc:'+30% population max',
-    effect:{ type:'popCapPct', value:30 }, requires:['dem_r1_3', 'dem_r1_4'] },
-  dem_r2_4: { branch:'demeter', ring:2, slot:4, name:'Semences Divines',       icon:'🌰', cost:120,
-    desc:'Fermes niveau max produisent +100% bonus',
-    effect:{ type:'maxLevelProdBonus', building:'farm,verger', value:100 }, requires:['dem_r1_4'] },
-
-  dem_r3_0: { branch:'demeter', ring:3, slot:0, name:'Cornucopia',            icon:'🎑', cost:250, uncapped:true,
-    desc:'+1% prod Fermes/Vergers par 200 Éther (sans plafond)',
-    effect:{ type:'uncappedProdBonusPer', building:'farm,verger,jardins', ethPerPoint:200, valuePerPoint:1 }, requires:['dem_r2_0'] },
-  dem_r3_1: { branch:'demeter', ring:3, slot:1, name:'Déesse Mère',           icon:'👑', cost:250,
-    desc:'Toute la production ×1.5 si Pop ≥ 80% de la capacité',
-    effect:{ type:'highPopProdMult', threshold:80, value:1.5 }, requires:['dem_r2_0', 'dem_r2_1'] },
-  dem_r3_2: { branch:'demeter', ring:3, slot:2, name:'Cycle Éternel',         icon:'♻️', cost:250,
-    desc:'Nourr non consommée est convertie en Drachmes (10%)',
-    effect:{ type:'nourToDrachmes', value:10 }, requires:['dem_r2_2'] },
-  dem_r3_3: { branch:'demeter', ring:3, slot:3, name:'Bénédiction Divine',    icon:'✨', cost:250, uncapped:true,
-    desc:'+0.5% toute production par 150 Éther (sans plafond)',
-    effect:{ type:'uncappedProdPer', ethPerPoint:150, valuePerPoint:0.5 }, requires:['dem_r2_3', 'dem_r2_4'] },
-  dem_r3_4: { branch:'demeter', ring:3, slot:4, name:'Âge d\'Or',             icon:'🌞', cost:350,
-    desc:'Population génère +5 Éther par prestige par tranche de 50 habitants',
-    effect:{ type:'popEtherBonus', value:5, per:50 }, requires:['dem_r2_4'] },
-
-  // ════════════════════════════════════════════════════════
-  //  HÉPHAÏSTOS 🔨 (Zone 2 — Forge et bâtiments)
-  // ════════════════════════════════════════════════════════
-  hep_r1_0: { branch:'hephaïstos', ring:1, slot:0, name:'Forgeron Apprenti',   icon:'⚒️', cost:50,
-    desc:'+30% production Mines de Fer et Fonderies',
-    effect:{ type:'prodBonus', building:'mine_iron,fonderie_celeste,forge_divine', value:30 }, requires:[] },
-  hep_r1_1: { branch:'hephaïstos', ring:1, slot:1, name:'Outils Améliorés',   icon:'🔧', cost:50,
-    desc:'-20% coût construction tous bâtiments',
-    effect:{ type:'buildCostPct', value:-20 }, requires:[] },
-  hep_r1_2: { branch:'hephaïstos', ring:1, slot:2, name:'Métal Précieux',      icon:'⚙️', cost:50,
-    desc:'Fer produit compte 2× pour les coûts d\'amélioration',
-    effect:{ type:'ferEfficiency', value:2 }, requires:[] },
-  hep_r1_3: { branch:'hephaïstos', ring:1, slot:3, name:'Architecte',          icon:'📐', cost:50,
-    desc:'+2 niveaux max tous bâtiments',
-    effect:{ type:'maxLevelBonusAll', value:2 }, requires:[] },
-  hep_r1_4: { branch:'hephaïstos', ring:1, slot:4, name:'Efficacité',          icon:'⚡', cost:50,
-    desc:'+20% production Mines de Cuivre et Ateliers',
-    effect:{ type:'prodBonus', building:'mine_copper,atelier_forgeron,tresor', value:20 }, requires:[] },
-
-  hep_r2_0: { branch:'hephaïstos', ring:2, slot:0, name:'Grand Forgeron',      icon:'🔨', cost:120,
-    desc:'+70% production Mines de Fer et Fonderies',
-    effect:{ type:'prodBonus', building:'mine_iron,fonderie_celeste,forge_divine', value:70 }, requires:['hep_r1_0'] },
-  hep_r2_1: { branch:'hephaïstos', ring:2, slot:1, name:'Bâtisseur Divin',     icon:'🏗️', cost:120,
-    desc:'-35% coût construction + -20% coût amélioration',
-    effect:{ type:'buildAndUpgradeCostPct', value:-35 }, requires:['hep_r1_0', 'hep_r1_1'] },
-  hep_r2_2: { branch:'hephaïstos', ring:2, slot:2, name:'Alliage Sacré',       icon:'🌡️', cost:120,
-    desc:'Les bâtiments adjacents à une Forge gagnent +15% production',
-    effect:{ type:'forgeAdjacencyBonus', value:15 }, requires:['hep_r1_2'] },
-  hep_r2_3: { branch:'hephaïstos', ring:2, slot:3, name:'Métal Divin',         icon:'✨', cost:120,
-    desc:'+50% production Mines de Cuivre et Ateliers',
-    effect:{ type:'prodBonus', building:'mine_copper,atelier_forgeron,tresor', value:50 }, requires:['hep_r1_3', 'hep_r1_4'] },
-  hep_r2_4: { branch:'hephaïstos', ring:2, slot:4, name:'Titan de l\'Industrie', icon:'🏭', cost:120,
-    desc:'Bâtiments niveau max coûtent -50% à améliorer',
-    effect:{ type:'maxLevelUpgradeCost', value:-50 }, requires:['hep_r1_4'] },
-
-  hep_r3_0: { branch:'hephaïstos', ring:3, slot:0, name:'Enclume Céleste',     icon:'⚜️', cost:250, uncapped:true,
-    desc:'+1% prod Forges/Mines par 200 Éther (sans plafond)',
-    effect:{ type:'uncappedProdBonusPer', building:'mine_iron,fonderie_celeste,mine_copper', ethPerPoint:200, valuePerPoint:1 }, requires:['hep_r2_0'] },
-  hep_r3_1: { branch:'hephaïstos', ring:3, slot:1, name:'Monument Éternel',    icon:'🏛️', cost:250,
-    desc:'Démolition d\'un bâtiment rembourse 80% des ressources',
-    effect:{ type:'demolishRefund', value:80 }, requires:['hep_r2_0', 'hep_r2_1'] },
-  hep_r3_2: { branch:'hephaïstos', ring:3, slot:2, name:'Réseau Industriel',   icon:'🕸️', cost:250,
-    desc:'Chaque bâtiment connecté ajoute +0.5% à la production globale',
-    effect:{ type:'connectedBuildingBonus', value:0.5 }, requires:['hep_r2_2'] },
-  hep_r3_3: { branch:'hephaïstos', ring:3, slot:3, name:'Dieu de la Forge',    icon:'🔥', cost:250, uncapped:true,
-    desc:'+0.5% prod toute ressource métallique par 150 Éther (sans plafond)',
-    effect:{ type:'uncappedProdPer', ethPerPoint:150, valuePerPoint:0.5 }, requires:['hep_r2_3', 'hep_r2_4'] },
-  hep_r3_4: { branch:'hephaïstos', ring:3, slot:4, name:'Volcan Sacré',        icon:'🌋', cost:350,
-    desc:'Bâtiments de type Métal génèrent +10 Éther par Prestige',
-    effect:{ type:'metalBuildingEther', value:10 }, requires:['hep_r2_4'] },
-
-  // ════════════════════════════════════════════════════════
-  //  APHRODITE 💫 (Zone 3 — Commerce)
-  // ════════════════════════════════════════════════════════
-  aph_r1_0: { branch:'aphrodite', ring:1, slot:0, name:'Charme Commercial',    icon:'💰', cost:50,
-    desc:'+20% production de Drachmes',
-    effect:{ type:'prodBonus', building:'drachmes', value:20 }, requires:[] },
-  aph_r1_1: { branch:'aphrodite', ring:1, slot:1, name:'Sourire Divin',         icon:'😊', cost:50,
-    desc:'+5% bonheur permanent',
-    effect:{ type:'happinessBonus', value:5 }, requires:[] },
-  aph_r1_2: { branch:'aphrodite', ring:1, slot:2, name:'Commerce Florissant',  icon:'🏪', cost:50,
-    desc:'Trésor et bâtiments commerciaux +30% production',
-    effect:{ type:'prodBonus', building:'tresor,marche', value:30 }, requires:[] },
-  aph_r1_3: { branch:'aphrodite', ring:1, slot:3, name:'Popularité',           icon:'⭐', cost:50,
-    desc:'Bonheur élevé (>80%) donne +10% toute production',
-    effect:{ type:'happinessThreshProd', threshold:80, value:10 }, requires:['aph_r1_1'] },
-  aph_r1_4: { branch:'aphrodite', ring:1, slot:4, name:'Diplomatie',           icon:'🤝', cost:50,
-    desc:'+500 Drachmes de départ à chaque nouveau run',
-    effect:{ type:'startBonusDrachmes', value:500 }, requires:[] },
-
-  aph_r2_0: { branch:'aphrodite', ring:2, slot:0, name:'Beauté Divine',        icon:'💎', cost:120,
-    desc:'+50% production de Drachmes',
-    effect:{ type:'prodBonus', building:'drachmes', value:50 }, requires:['aph_r1_0'] },
-  aph_r2_1: { branch:'aphrodite', ring:2, slot:1, name:'Festivité',            icon:'🎉', cost:120,
-    desc:'Bonheur >60% : +20% production toutes ressources',
-    effect:{ type:'happinessThreshProd', threshold:60, value:20 }, requires:['aph_r1_0', 'aph_r1_1'] },
-  aph_r2_2: { branch:'aphrodite', ring:2, slot:2, name:'Marché des Dieux',     icon:'🏛️', cost:120,
-    desc:'Drachmes en excès se convertissent en Score Renaissance (+1/1000 Dr)',
-    effect:{ type:'drToScore', value:1, per:1000 }, requires:['aph_r1_2'] },
-  aph_r2_3: { branch:'aphrodite', ring:2, slot:3, name:'Séduction Économique', icon:'💸', cost:120,
-    desc:'+1000 Drachmes de départ + les Bases Niv.2+ donnent +20 Dr/s bonus',
-    effect:{ type:'baseGoldBonus', value:20 }, requires:['aph_r1_3', 'aph_r1_4'] },
-  aph_r2_4: { branch:'aphrodite', ring:2, slot:4, name:'Ambroisie Commerciale', icon:'🍯', cost:120,
-    desc:'Ambroisie produite accélère la production de Drachmes (+10% par unité/s)',
-    effect:{ type:'ambroisieToGold', value:10 }, requires:['aph_r1_4'] },
-
-  aph_r3_0: { branch:'aphrodite', ring:3, slot:0, name:'Déesse des Richesses', icon:'👸', cost:250, uncapped:true,
-    desc:'+1% Drachmes par 100 Éther investi (sans plafond)',
-    effect:{ type:'uncappedDrachmesPer', ethPerPoint:100, valuePerPoint:1 }, requires:['aph_r2_0'] },
-  aph_r3_1: { branch:'aphrodite', ring:3, slot:1, name:'Extase Collective',    icon:'🌈', cost:250,
-    desc:'Bonheur ne peut descendre en dessous de 50%',
-    effect:{ type:'happinessFloor', value:50 }, requires:['aph_r2_0', 'aph_r2_1'] },
-  aph_r3_2: { branch:'aphrodite', ring:3, slot:2, name:'Empire Commercial',    icon:'🌐', cost:250,
-    desc:'Chaque 1000 Drachmes en caisse = +1% toute production (max +50%)',
-    effect:{ type:'drToGlobalProd', per:1000, value:1, cap:50 }, requires:['aph_r2_2'] },
-  aph_r3_3: { branch:'aphrodite', ring:3, slot:3, name:'Charme Olympien',      icon:'💫', cost:250, uncapped:true,
-    desc:'+0.5% prod globale par 200 Éther, si bonheur > 70%',
-    effect:{ type:'uncappedHappyProdPer', ethPerPoint:200, valuePerPoint:0.5, minHappy:70 }, requires:['aph_r2_3', 'aph_r2_4'] },
-  aph_r3_4: { branch:'aphrodite', ring:3, slot:4, name:'Âge de l\'Amour',      icon:'❤️', cost:350,
-    desc:'Toutes les ressources +20% si bonheur ≥ 90%',
-    effect:{ type:'happinessThreshProd', threshold:90, value:20 }, requires:['aph_r2_4'] },
-
-  // ════════════════════════════════════════════════════════
-  //  HADÈS 💀 (Zone 4 — Prestige et Éther)
-  // ════════════════════════════════════════════════════════
-  had_r1_0: { branch:'hades', ring:1, slot:0, name:'Ombre du Shéol',          icon:'🌑', cost:50,
-    desc:'+20% Éther gagné au Prestige',
-    effect:{ type:'etherGainPct', value:20 }, requires:[] },
-  had_r1_1: { branch:'hades', ring:1, slot:1, name:'Âme Persistante',          icon:'👻', cost:50,
-    desc:'Les Spectres d\'Héritage ont +5% de production bonus',
-    effect:{ type:'heritageSpectreProd', value:5 }, requires:[] },
-  had_r1_2: { branch:'hades', ring:1, slot:2, name:'Pacte de l\'Ombre',        icon:'🤝', cost:50,
-    desc:'+20 Pages Codex au Prestige',
-    effect:{ type:'bonusPages', value:20 }, requires:[] },
-  had_r1_3: { branch:'hades', ring:1, slot:3, name:'Boucle Infernale',         icon:'🔄', cost:50,
-    desc:'Chaque Prestige effectué augmente le multiplicateur Codex de +2%',
-    effect:{ type:'prestigeCodexMult', value:2 }, requires:[] },
-  had_r1_4: { branch:'hades', ring:1, slot:4, name:'Rivière du Styx',          icon:'🌊', cost:50,
-    desc:'-30% temps de réinitialisation entre prestiges (si applicables timers futurs)',
-    effect:{ type:'resetTimerPct', value:-30 }, requires:[] },
-
-  had_r2_0: { branch:'hades', ring:2, slot:0, name:'Maître des Âmes',          icon:'💀', cost:120,
-    desc:'+50% Éther gagné au Prestige',
-    effect:{ type:'etherGainPct', value:50 }, requires:['had_r1_0'] },
-  had_r2_1: { branch:'hades', ring:2, slot:1, name:'Royaume des Morts',        icon:'🏰', cost:120,
-    desc:'Les Spectres d\'Héritage produisent comme des bâtiments normaux (×0.5)',
-    effect:{ type:'heritageSpectreHalfProd', value:0.5 }, requires:['had_r1_0', 'had_r1_1'] },
-  had_r2_2: { branch:'hades', ring:2, slot:2, name:'Pacte Éternel',            icon:'📜', cost:120,
-    desc:'Pages Codex ×2 au Prestige si Score > 5000',
-    effect:{ type:'codexPagesMult2Threshold', value:2, threshold:5000 }, requires:['had_r1_2'] },
-  had_r2_3: { branch:'hades', ring:2, slot:3, name:'Obole de Charon',          icon:'🪙', cost:120,
-    desc:'Éther en caisse génère +0.1% production (max +20%)',
-    effect:{ type:'etherToProd', value:0.1, cap:20 }, requires:['had_r1_3', 'had_r1_4'] },
-  had_r2_4: { branch:'hades', ring:2, slot:4, name:'Jugement des Âmes',        icon:'⚖️', cost:120,
-    desc:'Score Renaissance ×1.3 si Ère 3 atteinte',
-    effect:{ type:'era3ScoreMult', value:1.3 }, requires:['had_r1_4'] },
-
-  had_r3_0: { branch:'hades', ring:3, slot:0, name:'Dieu de la Mort',          icon:'🌘', cost:250, uncapped:true,
-    desc:'+1% Éther gagné par 100 Éther investi (sans plafond)',
-    effect:{ type:'uncappedEtherGainPer', ethPerPoint:100, valuePerPoint:1 }, requires:['had_r2_0'] },
-  had_r3_1: { branch:'hades', ring:3, slot:1, name:'Armée des Ombres',         icon:'⚔️', cost:250,
-    desc:'Jusqu\'à 6 Spectres d\'Héritage conservés (au lieu de 3)',
-    effect:{ type:'heritageSpecterSlots', value:6 }, requires:['had_r2_0', 'had_r2_1'] },
-  had_r3_2: { branch:'hades', ring:3, slot:2, name:'Nécropole',                icon:'🏚️', cost:250,
-    desc:'Les Bases Niv.5 survivent à 2 Prestiges consécutifs',
-    effect:{ type:'base5Persistence', value:2 }, requires:['had_r2_2'] },
-  had_r3_3: { branch:'hades', ring:3, slot:3, name:'Boucle Perpétuelle',       icon:'♾️', cost:250, uncapped:true,
-    desc:'+0.5% Éther et Pages Codex par 150 Éther (sans plafond)',
-    effect:{ type:'uncappedEtherAndPagesPer', ethPerPoint:150, valuePerPoint:0.5 }, requires:['had_r2_3', 'had_r2_4'] },
-  had_r3_4: { branch:'hades', ring:3, slot:4, name:'Maître de l\'Éternité',    icon:'👁️', cost:350,
-    desc:'L\'Éther n\'est jamais perdu entre les prestiges, il s\'accumule',
-    effect:{ type:'etherAccumulate', value:true }, requires:['had_r2_4'] },
-
-  // ════════════════════════════════════════════════════════
-  //  ARTÉMIS 🌙 (Zone 5 — Exploration)
-  // ════════════════════════════════════════════════════════
-  art_r1_0: { branch:'artemis', ring:1, slot:0, name:'Chasseresse',            icon:'🏹', cost:50,
-    desc:'Scouts 30% plus rapides',
-    effect:{ type:'scoutSpeedPct', value:30 }, requires:[] },
-  art_r1_1: { branch:'artemis', ring:1, slot:1, name:'Forêt Primordiale',      icon:'🌲', cost:50,
-    desc:'+30% production Bûcherons et Halles Forestières',
-    effect:{ type:'prodBonus', building:'lumber,halle,bosquet', value:30 }, requires:[] },
-  art_r1_2: { branch:'artemis', ring:1, slot:2, name:'Nuit de Lune',           icon:'🌕', cost:50,
-    desc:'Fouille coûte -15% (réduit coût en Drachmes)',
-    effect:{ type:'digCostPct', value:-15 }, requires:[] },
-  art_r1_3: { branch:'artemis', ring:1, slot:3, name:'Piste Forestière',       icon:'🍃', cost:50,
-    desc:'Routes construites en forêt coûtent -50%',
-    effect:{ type:'forestRoadCostPct', value:-50 }, requires:[] },
-  art_r1_4: { branch:'artemis', ring:1, slot:4, name:'Sens Animal',            icon:'🦅', cost:50,
-    desc:'Cases Marécage et Ruines révèlent leurs voisins directs',
-    effect:{ type:'specialRevealNeighbors', value:true }, requires:[] },
-
-  art_r2_0: { branch:'artemis', ring:2, slot:0, name:'Meute de Loups',         icon:'🐺', cost:120,
-    desc:'Scouts 60% plus rapides + révèlent +1 case voisine',
-    effect:{ type:'scoutSpeedAndReveal', speed:60, reveal:1 }, requires:['art_r1_0'] },
-  art_r2_1: { branch:'artemis', ring:2, slot:1, name:'Sylvestre Sacrée',       icon:'🌳', cost:120,
-    desc:'+70% production Bûcherons, Halles et Bosquets',
-    effect:{ type:'prodBonus', building:'lumber,halle,bosquet', value:70 }, requires:['art_r1_0', 'art_r1_1'] },
-  art_r2_2: { branch:'artemis', ring:2, slot:2, name:'Guet-Apens',             icon:'🎯', cost:120,
-    desc:'Chaque case révélée donne +2 Drachmes/s permanent (max +40)',
-    effect:{ type:'revealDrachmePerm', value:2, cap:40 }, requires:['art_r1_2'] },
-  art_r2_3: { branch:'artemis', ring:2, slot:3, name:'Refuge Naturel',         icon:'🏔️', cost:120,
-    desc:'Bâtiments construits sur Terrain naturel (Forêt, Montagne) +20% prod',
-    effect:{ type:'naturalTerrainBonus', value:20 }, requires:['art_r1_3', 'art_r1_4'] },
-  art_r2_4: { branch:'artemis', ring:2, slot:4, name:'Traque Divine',          icon:'🌀', cost:120,
-    desc:'La fouille ne coûte aucune Drachme si la case est adjacente à un Scout',
-    effect:{ type:'freeDigNearScout', value:true }, requires:['art_r1_4'] },
-
-  art_r3_0: { branch:'artemis', ring:3, slot:0, name:'Déesse de la Chasse',    icon:'🌙', cost:250, uncapped:true,
-    desc:'+1% prod Forêt/Exploration par 150 Éther (sans plafond)',
-    effect:{ type:'uncappedProdBonusPer', building:'lumber,halle,bosquet', ethPerPoint:150, valuePerPoint:1 }, requires:['art_r2_0'] },
-  art_r3_1: { branch:'artemis', ring:3, slot:1, name:'Armée de la Nuit',       icon:'🌑', cost:250,
-    desc:'Jusqu\'à 3 Scouts simultanés',
-    effect:{ type:'scoutSlots', value:3 }, requires:['art_r2_0', 'art_r2_1'] },
-  art_r3_2: { branch:'artemis', ring:3, slot:2, name:'Forêt Enchantée',        icon:'🧝', cost:250,
-    desc:'Bûcherons/Bosquets produisent aussi +10 Éther par prestige chacun',
-    effect:{ type:'lumberEtherBonus', value:10 }, requires:['art_r2_2'] },
-  art_r3_3: { branch:'artemis', ring:3, slot:3, name:'Maîtresse de l\'Aube',   icon:'🌅', cost:250, uncapped:true,
-    desc:'+0.5% prod globale par 200 Éther si ≥ 60 cases révélées',
-    effect:{ type:'uncappedRevealProdPer', ethPerPoint:200, valuePerPoint:0.5, minReveal:60 }, requires:['art_r2_3', 'art_r2_4'] },
-  art_r3_4: { branch:'artemis', ring:3, slot:4, name:'Traque Éternelle',        icon:'🏹', cost:350,
-    desc:'Chaque run commence avec 3 Scouts actifs et 10 cases pré-révélées',
-    effect:{ type:'startWithScoutsAndReveal', scouts:3, reveal:10 }, requires:['art_r2_4'] },
-
-  // ════════════════════════════════════════════════════════
-  //  ZEUS ⚡ (Zone 6 — Fin de jeu)
-  // ════════════════════════════════════════════════════════
-  zeus_r1_0: { branch:'zeus', ring:1, slot:0, name:'Tonnerre',                 icon:'⚡', cost:100,
-    desc:'+15% toute production globale',
-    effect:{ type:'prodBonusAll', value:15 }, requires:[] },
-  zeus_r1_1: { branch:'zeus', ring:1, slot:1, name:'Foudre Dorée',             icon:'💛', cost:100,
-    desc:'+30% Éther gagné au Prestige',
-    effect:{ type:'etherGainPct', value:30 }, requires:[] },
-  zeus_r1_2: { branch:'zeus', ring:1, slot:2, name:'Olympe Naissant',          icon:'🏔️', cost:100,
-    desc:'+30 Pages Codex au Prestige',
-    effect:{ type:'bonusPages', value:30 }, requires:[] },
-  zeus_r1_3: { branch:'zeus', ring:1, slot:3, name:'Égide',                    icon:'🛡️', cost:100,
-    desc:'-20% coût tous talents Drachmes',
-    effect:{ type:'drachmeTalentCostPct', value:-20 }, requires:[] },
-  zeus_r1_4: { branch:'zeus', ring:1, slot:4, name:'Maître de l\'Olympe',      icon:'👑', cost:100,
-    desc:'Score Renaissance ×1.5',
-    effect:{ type:'scoreMultPct', value:50 }, requires:[] },
-
-  zeus_r2_0: { branch:'zeus', ring:2, slot:0, name:'Tempête Divine',           icon:'🌩️', cost:250,
-    desc:'+35% toute production globale',
-    effect:{ type:'prodBonusAll', value:35 }, requires:['zeus_r1_0'] },
-  zeus_r2_1: { branch:'zeus', ring:2, slot:1, name:'Décret Olympien',          icon:'📜', cost:250,
-    desc:'Débloque la 3ème Ère sans condition (automatiquement)',
-    effect:{ type:'autoUnlockEra3', value:true }, requires:['zeus_r1_0', 'zeus_r1_1'] },
-  zeus_r2_2: { branch:'zeus', ring:2, slot:2, name:'Jugement de Zeus',         icon:'⚖️', cost:250,
-    desc:'Score Renaissance ×2.0',
-    effect:{ type:'scoreMultPct', value:100 }, requires:['zeus_r1_2'] },
-  zeus_r2_3: { branch:'zeus', ring:2, slot:3, name:'Éclat Céleste',            icon:'🌟', cost:250,
-    desc:'Toutes les branches du Panthéon débloquées ont +20% d\'efficacité',
-    effect:{ type:'pantheonBranchBonus', value:20 }, requires:['zeus_r1_3', 'zeus_r1_4'] },
-  zeus_r2_4: { branch:'zeus', ring:2, slot:4, name:'Pouvoir Absolu',           icon:'🌌', cost:250,
-    desc:'Multiplicateur Codex ×2',
-    effect:{ type:'codexMultBonus', value:2 }, requires:['zeus_r1_4'] },
-
-  zeus_r3_0: { branch:'zeus', ring:3, slot:0, name:'Dieu des Dieux',           icon:'⚡', cost:500, uncapped:true,
-    desc:'+1% toute production par 100 Éther investi (sans plafond)',
-    effect:{ type:'uncappedProdPer', ethPerPoint:100, valuePerPoint:1 }, requires:['zeus_r2_0'] },
-  zeus_r3_1: { branch:'zeus', ring:3, slot:1, name:'Âge de l\'Olympe',         icon:'🌅', cost:500,
-    desc:'Toute production ×3 (une seule fois, condition fin de jeu)',
-    effect:{ type:'finalMult', value:3 }, requires:['zeus_r2_0', 'zeus_r2_1'] },
-  zeus_r3_2: { branch:'zeus', ring:3, slot:2, name:'Maître du Destin',         icon:'🔮', cost:500,
-    desc:'Conditions de Prestige réduites à 40 cases et 2 Bases Niv.5',
-    effect:{ type:'prestigeCondReduce', revealed:40, bases:2 }, requires:['zeus_r2_2'] },
-  zeus_r3_3: { branch:'zeus', ring:3, slot:3, name:'Volonté Olympienne',       icon:'💎', cost:500, uncapped:true,
-    desc:'+2% tout multiplicateur par 200 Éther investi (sans plafond)',
-    effect:{ type:'uncappedAllMultPer', ethPerPoint:200, valuePerPoint:2 }, requires:['zeus_r2_3', 'zeus_r2_4'] },
-  zeus_r3_4: { branch:'zeus', ring:3, slot:4, name:'Éternité Olympique',       icon:'♾️', cost:1000,
-    desc:'FIN DE JEU : Tous les multiplicateurs ×2 permanent. Déblocage Leaderboard.',
-    effect:{ type:'gameEnd', value:2 }, requires:['zeus_r2_4'] },
-};
-
-// ── Expose globals for cross-script access ──────────────
-if (typeof window !== 'undefined') {
-  window.PANTHEON_NODES    = PANTHEON_NODES;
-  window.PANTHEON_BRANCHES = PANTHEON_BRANCHES;
+// ── Helper constructeur de nœud ──────────────────────────────
+function _n(id, branch, level, slot, parent, baseCost, ranks) {
+  return { id, branch, level, slot, parent: parent || null, baseCost, maxRank: ranks.length, ranks };
 }
 
-// ── PantheonManager ─────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════
+// ZEUS ⚡  foudre · score · production globale · prestige
+// ══════════════════════════════════════════════════════════════
+const ZEUS_NODES = {
+  zeus_L1_0: _n('zeus_L1_0','zeus',1,0,null,50,[
+    {name:'Présence Olympienne I',  desc:'+5% production globale',              effect:{type:'prodBonusAll',value:5}},
+    {name:'Présence Olympienne II', desc:'+5% production globale',              effect:{type:'prodBonusAll',value:5}},
+    {name:'Aura de Zeus I',         desc:'+8% score de Renaissance',            effect:{type:'scoreMultPct',value:8}},
+    {name:'Aura de Zeus II',        desc:'+12% score de Renaissance',           effect:{type:'scoreMultPct',value:12}},
+    {name:'Majesté Divine',         desc:'+20% production, +15% score',         effect:{type:'prodBonusAll',value:20}},
+  ]),
+  zeus_L2_0: _n('zeus_L2_0','zeus',2,0,'zeus_L1_0',100,[
+    {name:'Foudre I',           desc:'+15% prod Foudre & Pylônes',              effect:{type:'prodBonus',building:'pylone,noeud_olympien',value:15}},
+    {name:'Foudre II',          desc:'+15% prod Foudre & Pylônes',              effect:{type:'prodBonus',building:'pylone,noeud_olympien',value:15}},
+    {name:'Orage Sacré',        desc:'+10% production globale',                 effect:{type:'prodBonusAll',value:10}},
+    {name:'Tempête Divine',     desc:'+5% gain d\'Éther',                       effect:{type:'etherGainPct',value:5}},
+    {name:'Maître de l\'Orage', desc:'+25% prod Pylônes, +15% prod globale',    effect:{type:'prodBonusAll',value:15}},
+  ]),
+  zeus_L2_1: _n('zeus_L2_1','zeus',2,1,'zeus_L1_0',100,[
+    {name:'Gouvernance I',    desc:'-10% coût des bâtiments',                   effect:{type:'buildCostPct',value:-10}},
+    {name:'Gouvernance II',   desc:'-10% coût des bâtiments',                   effect:{type:'buildCostPct',value:-10}},
+    {name:'Loi Olympienne',   desc:'+15% score de Renaissance',                 effect:{type:'scoreMultPct',value:15}},
+    {name:'Décret Divin',     desc:'+10% production globale',                   effect:{type:'prodBonusAll',value:10}},
+    {name:'Roi des Dieux',    desc:'-20% coûts bâtiments, +20% score',          effect:{type:'buildCostPct',value:-20}},
+  ]),
+  zeus_L3_0: _n('zeus_L3_0','zeus',3,0,'zeus_L2_0',180,[
+    {name:'Éclair Persistant I',  desc:'+20% prod Pylônes',                     effect:{type:'prodBonus',building:'pylone,noeud_olympien',value:20}},
+    {name:'Éclair Persistant II', desc:'+20% prod Pylônes',                     effect:{type:'prodBonus',building:'pylone,noeud_olympien',value:20}},
+    {name:'Conducteur Divin',     desc:'+2 portée des Pylônes',                 effect:{type:'haloRange',value:2}},
+    {name:'Réseau Électrique',    desc:'+10% production globale',               effect:{type:'prodBonusAll',value:10}},
+    {name:'Tonnerre Éternel',     desc:'+50% prod Pylônes, +3 portée',          effect:{type:'prodBonus',building:'pylone,noeud_olympien',value:50}},
+  ]),
+  zeus_L3_1: _n('zeus_L3_1','zeus',3,1,'zeus_L2_0',180,[
+    {name:'Prestige Olympien I',  desc:'+10% gain Éther',                       effect:{type:'etherGainPct',value:10}},
+    {name:'Prestige Olympien II', desc:'+10% gain Éther',                       effect:{type:'etherGainPct',value:10}},
+    {name:'Mémoire Divine I',     desc:'+8% Pages Codex bonus',                 effect:{type:'bonusPages',value:8}},
+    {name:'Mémoire Divine II',    desc:'+12% Pages Codex bonus',                effect:{type:'bonusPages',value:12}},
+    {name:'Gloire Céleste',       desc:'+25% Éther, +20 Pages Codex',           effect:{type:'etherGainPct',value:25}},
+  ]),
+  zeus_L3_2: _n('zeus_L3_2','zeus',3,2,'zeus_L2_1',180,[
+    {name:'Architecte Divin I',  desc:'-8% coût bâtiments',                     effect:{type:'buildCostPct',value:-8}},
+    {name:'Architecte Divin II', desc:'-8% coût bâtiments',                     effect:{type:'buildCostPct',value:-8}},
+    {name:'Efficacité Sacrée',   desc:'+2 niveaux max tous bâtiments',           effect:{type:'maxLevelBonusAll',value:2}},
+    {name:'Prospérité Olympe',   desc:'+15% score Renaissance',                 effect:{type:'scoreMultPct',value:15}},
+    {name:'Ordre Céleste',       desc:'-20% coûts, +2 niveaux max',             effect:{type:'maxLevelBonusAll',value:2}},
+  ]),
+  zeus_L3_3: _n('zeus_L3_3','zeus',3,3,'zeus_L2_1',180,[
+    {name:'Aigle Sacré I',  desc:'+15% vitesse Éclaireurs',                     effect:{type:'scoutSpeedPct',value:15}},
+    {name:'Aigle Sacré II', desc:'+15% vitesse Éclaireurs',                     effect:{type:'scoutSpeedPct',value:15}},
+    {name:'Vue Perçante',   desc:'+2 portée révélation',                        effect:{type:'haloRange',value:2}},
+    {name:'Messager Ailé',  desc:'+1 slot Éclaireur',                           effect:{type:'scoutSlots',value:1}},
+    {name:'Légion Olympe',  desc:'+30% vitesse, +1 slot Éclaireur',             effect:{type:'scoutSpeedPct',value:30}},
+  ]),
+  zeus_L4_0: _n('zeus_L4_0','zeus',4,0,'zeus_L3_0',280,[
+    {name:'Apothéose I',   desc:'+15% production globale',                      effect:{type:'prodBonusAll',value:15}},
+    {name:'Apothéose II',  desc:'+15% production globale',                      effect:{type:'prodBonusAll',value:15}},
+    {name:'Apothéose III', desc:'+10% score Renaissance',                       effect:{type:'scoreMultPct',value:10}},
+    {name:'Apothéose IV',  desc:'+10% gain Éther',                              effect:{type:'etherGainPct',value:10}},
+    {name:'Transcendance', desc:'+30% prod globale, +20% score',                effect:{type:'prodBonusAll',value:30}},
+  ]),
+  zeus_L4_1: _n('zeus_L4_1','zeus',4,1,'zeus_L3_0',280,[
+    {name:'Tonnerre Absolu I',  desc:'+30% prod Pylônes',                       effect:{type:'prodBonus',building:'pylone,noeud_olympien',value:30}},
+    {name:'Tonnerre Absolu II', desc:'+30% prod Pylônes',                       effect:{type:'prodBonus',building:'pylone,noeud_olympien',value:30}},
+    {name:'Déflagration',       desc:'+20% score Renaissance',                  effect:{type:'scoreMultPct',value:20}},
+    {name:'Coup de Foudre',     desc:'+4 portée Pylônes',                       effect:{type:'haloRange',value:4}},
+    {name:'Maître du Ciel',     desc:'+60% Pylônes, +4 portée',                 effect:{type:'prodBonus',building:'pylone,noeud_olympien',value:60}},
+  ]),
+  zeus_L4_2: _n('zeus_L4_2','zeus',4,2,'zeus_L3_1',280,[
+    {name:'Roi Éternel I',   desc:'+15% gain Éther',                            effect:{type:'etherGainPct',value:15}},
+    {name:'Roi Éternel II',  desc:'+15% gain Éther',                            effect:{type:'etherGainPct',value:15}},
+    {name:'Héritage Sacré',  desc:'+20 Pages Codex bonus',                      effect:{type:'bonusPages',value:20}},
+    {name:'Couronne d\'Or',  desc:'+25% score Renaissance',                     effect:{type:'scoreMultPct',value:25}},
+    {name:'Zeus Omnipotent', desc:'+35% Éther, +30% score',                     effect:{type:'etherGainPct',value:35}},
+  ]),
+  zeus_L4_3: _n('zeus_L4_3','zeus',4,3,'zeus_L3_1',280,[
+    {name:'Éclairs en Chaîne I',  desc:'+10% gain Éther',                       effect:{type:'etherGainPct',value:10}},
+    {name:'Éclairs en Chaîne II', desc:'+10% gain Éther',                       effect:{type:'etherGainPct',value:10}},
+    {name:'Foudre Perpétuelle',   desc:'+20% prod Pylônes',                     effect:{type:'prodBonus',building:'pylone,noeud_olympien',value:20}},
+    {name:'Cycle Électrique',     desc:'+15% production globale',               effect:{type:'prodBonusAll',value:15}},
+    {name:'Tempête Sans Fin',     desc:'+25% Éther, +25% prod Pylônes',         effect:{type:'etherGainPct',value:25}},
+  ]),
+  zeus_L4_4: _n('zeus_L4_4','zeus',4,4,'zeus_L3_2',280,[
+    {name:'Volonté Divine I',   desc:'+20% production globale',                 effect:{type:'prodBonusAll',value:20}},
+    {name:'Volonté Divine II',  desc:'+20% production globale',                 effect:{type:'prodBonusAll',value:20}},
+    {name:'Force Immuable',     desc:'+3 niveaux max tous bâtiments',           effect:{type:'maxLevelBonusAll',value:3}},
+    {name:'Décision Absolue',   desc:'-15% coûts bâtiments',                   effect:{type:'buildCostPct',value:-15}},
+    {name:'Zeus Architecte',    desc:'+40% prod, +5 niveaux max',               effect:{type:'maxLevelBonusAll',value:5}},
+  ]),
+  zeus_L4_5: _n('zeus_L4_5','zeus',4,5,'zeus_L3_2',280,[
+    {name:'Olympe Radieux I',  desc:'+20% score Renaissance',                   effect:{type:'scoreMultPct',value:20}},
+    {name:'Olympe Radieux II', desc:'+20% score Renaissance',                   effect:{type:'scoreMultPct',value:20}},
+    {name:'Rayonnement Divin', desc:'+15% prod globale',                        effect:{type:'prodBonusAll',value:15}},
+    {name:'Gloire Olympienne', desc:'+5% gain Éther',                           effect:{type:'etherGainPct',value:5}},
+    {name:'Sommet Absolu',     desc:'+50% score, +20% prod',                    effect:{type:'scoreMultPct',value:50}},
+  ]),
+  zeus_L4_6: _n('zeus_L4_6','zeus',4,6,'zeus_L3_3',280,[
+    {name:'Puissance Brute I',  desc:'+3 niveaux max tous bâtiments',           effect:{type:'maxLevelBonusAll',value:3}},
+    {name:'Puissance Brute II', desc:'+3 niveaux max tous bâtiments',           effect:{type:'maxLevelBonusAll',value:3}},
+    {name:'Colosse Divin',      desc:'+20% prod globale',                       effect:{type:'prodBonusAll',value:20}},
+    {name:'Titan de Guerre',    desc:'-10% coûts bâtiments',                    effect:{type:'buildCostPct',value:-10}},
+    {name:'Démesure Olympe',    desc:'+8 niveaux max, +25% prod',               effect:{type:'maxLevelBonusAll',value:8}},
+  ]),
+  zeus_L4_7: _n('zeus_L4_7','zeus',4,7,'zeus_L3_3',280,[
+    {name:'Ascension Finale I',   desc:'+1 slot Éclaireur',                     effect:{type:'scoutSlots',value:1}},
+    {name:'Ascension Finale II',  desc:'+25% vitesse Éclaireurs',               effect:{type:'scoutSpeedPct',value:25}},
+    {name:'Porte des Olympiens',  desc:'+3 portée révélation',                  effect:{type:'haloRange',value:3}},
+    {name:'Envoyé du Ciel',       desc:'+1 révélation supplémentaire',           effect:{type:'scoutExtraReveal',value:1}},
+    {name:'Héraut Divin',         desc:'+50% vitesse, +2 slots scouts',         effect:{type:'scoutSlots',value:2}},
+  ]),
+};
+
+// ══════════════════════════════════════════════════════════════
+// POSÉIDON 🌊  exploration · fouille · mines · rivières
+// ══════════════════════════════════════════════════════════════
+const POSEIDON_NODES = {
+  pos_L1_0: _n('pos_L1_0','poseidon',1,0,null,50,[
+    {name:'Appel des Profondeurs I',  desc:'+1 portée révélation',              effect:{type:'haloRange',value:1}},
+    {name:'Appel des Profondeurs II', desc:'+1 portée révélation',              effect:{type:'haloRange',value:1}},
+    {name:'Maître des Mers I',        desc:'-10% coût fouille',                 effect:{type:'digCostPct',value:-10}},
+    {name:'Maître des Mers II',       desc:'-10% coût fouille',                 effect:{type:'digCostPct',value:-10}},
+    {name:'Seigneur de l\'Océan',     desc:'+3 portée révélation, -20% fouille',effect:{type:'haloRange',value:3}},
+  ]),
+  pos_L2_0: _n('pos_L2_0','poseidon',2,0,'pos_L1_0',100,[
+    {name:'Trident I',     desc:'+20% vitesse de révélation',                   effect:{type:'revealSpeed',value:20}},
+    {name:'Trident II',    desc:'+20% vitesse de révélation',                   effect:{type:'revealSpeed',value:20}},
+    {name:'Vague Sacrée',  desc:'-15% coût fouille',                            effect:{type:'digCostPct',value:-15}},
+    {name:'Courant Fort',  desc:'+15% vitesse Éclaireurs',                      effect:{type:'scoutSpeedPct',value:15}},
+    {name:'Trident Sacré', desc:'+40% révélation, -30% fouille',                effect:{type:'digCostPct',value:-30}},
+  ]),
+  pos_L2_1: _n('pos_L2_1','poseidon',2,1,'pos_L1_0',100,[
+    {name:'Vagues Porteuses I',  desc:'+15% prod Nourriture',                   effect:{type:'prodBonus',building:'farm,verger,jardins',value:15}},
+    {name:'Vagues Porteuses II', desc:'+15% prod Nourriture',                   effect:{type:'prodBonus',building:'farm,verger,jardins',value:15}},
+    {name:'Rivière Sacrée',      desc:'+10% production globale',                effect:{type:'prodBonusAll',value:10}},
+    {name:'Don des Flots',       desc:'+20% prod Bois',                         effect:{type:'prodBonus',building:'lumber',value:20}},
+    {name:'Bénédiction Marine',  desc:'+30% Nourr, +20% prod globale',          effect:{type:'prodBonusAll',value:20}},
+  ]),
+  pos_L3_0: _n('pos_L3_0','poseidon',3,0,'pos_L2_0',180,[
+    {name:'Tsunami I',     desc:'+2 portée révélation',                         effect:{type:'haloRange',value:2}},
+    {name:'Tsunami II',    desc:'+2 portée révélation',                         effect:{type:'haloRange',value:2}},
+    {name:'Vague Géante',  desc:'+1 révélation par scout',                      effect:{type:'scoutExtraReveal',value:1}},
+    {name:'Raz-de-Marée',  desc:'-20% coût fouille',                            effect:{type:'digCostPct',value:-20}},
+    {name:'Déluge Divin',  desc:'+4 portée, +2 révélations scouts',             effect:{type:'haloRange',value:4}},
+  ]),
+  pos_L3_1: _n('pos_L3_1','poseidon',3,1,'pos_L2_0',180,[
+    {name:'Séisme I',        desc:'-15% coût fouille',                          effect:{type:'digCostPct',value:-15}},
+    {name:'Séisme II',       desc:'-15% coût fouille',                          effect:{type:'digCostPct',value:-15}},
+    {name:'Fissure Sacrée',  desc:'+20% prod mines',                            effect:{type:'prodBonus',building:'mine_copper,mine_iron',value:20}},
+    {name:'Terremoto',       desc:'+15% production globale',                    effect:{type:'prodBonusAll',value:15}},
+    {name:'Rupture Divine',  desc:'-30% fouille, +30% mines',                   effect:{type:'prodBonus',building:'mine_copper,mine_iron',value:30}},
+  ]),
+  pos_L3_2: _n('pos_L3_2','poseidon',3,2,'pos_L2_1',180,[
+    {name:'Courant Divin I',  desc:'+15% production globale',                   effect:{type:'prodBonusAll',value:15}},
+    {name:'Courant Divin II', desc:'+15% production globale',                   effect:{type:'prodBonusAll',value:15}},
+    {name:'Flots Nourriciers',desc:'+25% production Nourriture',                effect:{type:'prodBonus',building:'farm,verger,jardins',value:25}},
+    {name:'Marée Haute',      desc:'+10% score Renaissance',                    effect:{type:'scoreMultPct',value:10}},
+    {name:'Fleuve Divin',     desc:'+30% prod globale, +15% score',             effect:{type:'prodBonusAll',value:30}},
+  ]),
+  pos_L3_3: _n('pos_L3_3','poseidon',3,3,'pos_L2_1',180,[
+    {name:'Navigation I',       desc:'+1 slot Éclaireur',                       effect:{type:'scoutSlots',value:1}},
+    {name:'Navigation II',      desc:'+20% vitesse Éclaireurs',                 effect:{type:'scoutSpeedPct',value:20}},
+    {name:'Cap Sacré',          desc:'+2 portée révélation',                    effect:{type:'haloRange',value:2}},
+    {name:'Marin Divin',        desc:'+15% production globale',                 effect:{type:'prodBonusAll',value:15}},
+    {name:'Maître Navigateur',  desc:'+1 slot, +40% vitesse scouts',            effect:{type:'scoutSlots',value:1}},
+  ]),
+  pos_L4_0: _n('pos_L4_0','poseidon',4,0,'pos_L3_0',280,[
+    {name:'Vague Primordiale I',  desc:'+25% vitesse révélation',               effect:{type:'revealSpeed',value:25}},
+    {name:'Vague Primordiale II', desc:'+25% vitesse révélation',               effect:{type:'revealSpeed',value:25}},
+    {name:'Horizon Divin',        desc:'+3 portée révélation',                  effect:{type:'haloRange',value:3}},
+    {name:'Vue des Abysses',      desc:'+2 révélations par scout',              effect:{type:'scoutExtraReveal',value:2}},
+    {name:'Œil de l\'Océan',     desc:'+50% révélation, +4 portée',            effect:{type:'haloRange',value:5}},
+  ]),
+  pos_L4_1: _n('pos_L4_1','poseidon',4,1,'pos_L3_0',280,[
+    {name:'Abysses Sacrées I',  desc:'-20% coût fouille',                       effect:{type:'digCostPct',value:-20}},
+    {name:'Abysses Sacrées II', desc:'-20% coût fouille',                       effect:{type:'digCostPct',value:-20}},
+    {name:'Profondeur Infinie', desc:'+30% prod mines',                         effect:{type:'prodBonus',building:'mine_copper,mine_iron',value:30}},
+    {name:'Trésor Englouti',    desc:'+15% production globale',                 effect:{type:'prodBonusAll',value:15}},
+    {name:'Cœur des Mers',      desc:'-40% fouille, +40% mines',               effect:{type:'digCostPct',value:-40}},
+  ]),
+  pos_L4_2: _n('pos_L4_2','poseidon',4,2,'pos_L3_1',280,[
+    {name:'Trident Légendaire I',  desc:'+30% vitesse révélation',              effect:{type:'revealSpeed',value:30}},
+    {name:'Trident Légendaire II', desc:'-20% coût fouille',                    effect:{type:'digCostPct',value:-20}},
+    {name:'Frappe Océanique',      desc:'+20% production globale',              effect:{type:'prodBonusAll',value:20}},
+    {name:'Tempête de l\'Abîsse', desc:'+15% score',                           effect:{type:'scoreMultPct',value:15}},
+    {name:'Poséidon Absolu',       desc:'+40% révélation, +25% prod',           effect:{type:'prodBonusAll',value:25}},
+  ]),
+  pos_L4_3: _n('pos_L4_3','poseidon',4,3,'pos_L3_1',280,[
+    {name:'Séisme Divin I',        desc:'-15% coût fouille',                    effect:{type:'digCostPct',value:-15}},
+    {name:'Séisme Divin II',       desc:'+25% prod mines',                      effect:{type:'prodBonus',building:'mine_copper,mine_iron',value:25}},
+    {name:'Rupture Sacrée',        desc:'+20% production globale',              effect:{type:'prodBonusAll',value:20}},
+    {name:'Fracture du Monde',     desc:'+3 niveaux max mines',                 effect:{type:'maxLevelBonus',building:'mine_copper,mine_iron',value:3}},
+    {name:'Apocalypse Tellurique', desc:'-30% fouille, +3 niveaux mines',       effect:{type:'maxLevelBonus',building:'mine_copper,mine_iron',value:3}},
+  ]),
+  pos_L4_4: _n('pos_L4_4','poseidon',4,4,'pos_L3_2',280,[
+    {name:'Rivière Olympienne I',  desc:'+20% prod Nourriture',                 effect:{type:'prodBonus',building:'farm,verger,jardins',value:20}},
+    {name:'Rivière Olympienne II', desc:'+20% prod Nourriture',                 effect:{type:'prodBonus',building:'farm,verger,jardins',value:20}},
+    {name:'Delta Sacré',           desc:'+20% production globale',              effect:{type:'prodBonusAll',value:20}},
+    {name:'Source Éternelle',      desc:'+10% gain Éther',                      effect:{type:'etherGainPct',value:10}},
+    {name:'Fleuve Immortel',       desc:'+40% Nourr, +25% prod globale',        effect:{type:'prodBonusAll',value:25}},
+  ]),
+  pos_L4_5: _n('pos_L4_5','poseidon',4,5,'pos_L3_2',280,[
+    {name:'Marée Cosmique I',  desc:'+20% score Renaissance',                   effect:{type:'scoreMultPct',value:20}},
+    {name:'Marée Cosmique II', desc:'+20% score Renaissance',                   effect:{type:'scoreMultPct',value:20}},
+    {name:'Cycle des Mers',    desc:'+15% production globale',                  effect:{type:'prodBonusAll',value:15}},
+    {name:'Reflux Éternel',    desc:'+10% gain Éther',                          effect:{type:'etherGainPct',value:10}},
+    {name:'Maître des Marées', desc:'+40% score, +20% prod',                    effect:{type:'scoreMultPct',value:40}},
+  ]),
+  pos_L4_6: _n('pos_L4_6','poseidon',4,6,'pos_L3_3',280,[
+    {name:'Armada Divine I',     desc:'+1 slot Éclaireur',                      effect:{type:'scoutSlots',value:1}},
+    {name:'Armada Divine II',    desc:'+30% vitesse Éclaireurs',                effect:{type:'scoutSpeedPct',value:30}},
+    {name:'Flotte Sacrée',       desc:'+3 portée révélation',                   effect:{type:'haloRange',value:3}},
+    {name:'Navigation Parfaite', desc:'+2 révélations scouts',                  effect:{type:'scoutExtraReveal',value:2}},
+    {name:'Conquête Navale',     desc:'+60% vitesse, +2 slots scouts',          effect:{type:'scoutSlots',value:2}},
+  ]),
+  pos_L4_7: _n('pos_L4_7','poseidon',4,7,'pos_L3_3',280,[
+    {name:'Emprise Océanique I',   desc:'+20% production globale',              effect:{type:'prodBonusAll',value:20}},
+    {name:'Emprise Océanique II',  desc:'+20% production globale',              effect:{type:'prodBonusAll',value:20}},
+    {name:'Domination des Flots',  desc:'+25% score Renaissance',               effect:{type:'scoreMultPct',value:25}},
+    {name:'Roi de l\'Atlantide',   desc:'+15% gain Éther',                      effect:{type:'etherGainPct',value:15}},
+    {name:'Poséidon Souverain',    desc:'+40% prod, +30% score',                effect:{type:'prodBonusAll',value:40}},
+  ]),
+};
+
+// ══════════════════════════════════════════════════════════════
+// HADÈS 💀  prestige · Éther · mines · fonderies · âmes
+// ══════════════════════════════════════════════════════════════
+const HADES_NODES = {
+  had_L1_0: _n('had_L1_0','hades',1,0,null,50,[
+    {name:'Porte du Tartare I',  desc:'+10% gain Éther',                        effect:{type:'etherGainPct',value:10}},
+    {name:'Porte du Tartare II', desc:'+10% gain Éther',                        effect:{type:'etherGainPct',value:10}},
+    {name:'Appel des Âmes I',    desc:'+10% score Renaissance',                 effect:{type:'scoreMultPct',value:10}},
+    {name:'Appel des Âmes II',   desc:'+10% score Renaissance',                 effect:{type:'scoreMultPct',value:10}},
+    {name:'Seigneur des Morts',  desc:'+25% Éther, +20% score',                 effect:{type:'etherGainPct',value:25}},
+  ]),
+  had_L2_0: _n('had_L2_0','hades',2,0,'had_L1_0',100,[
+    {name:'Casque d\'Invisibilité I',  desc:'-15% coût fouille',                effect:{type:'digCostPct',value:-15}},
+    {name:'Casque d\'Invisibilité II', desc:'-15% coût fouille',                effect:{type:'digCostPct',value:-15}},
+    {name:'Ombre du Néant',            desc:'+20% prod mines',                  effect:{type:'prodBonus',building:'mine_copper,mine_iron',value:20}},
+    {name:'Cryptes Sacrées',           desc:'+15% production globale',          effect:{type:'prodBonusAll',value:15}},
+    {name:'Casque Légendaire',         desc:'-30% fouille, +25% mines',         effect:{type:'digCostPct',value:-30}},
+  ]),
+  had_L2_1: _n('had_L2_1','hades',2,1,'had_L1_0',100,[
+    {name:'Métal des Enfers I',  desc:'+20% prod fonderies & forges',           effect:{type:'prodBonus',building:'fonderie_celeste,forge_divine,autel_fusion',value:20}},
+    {name:'Métal des Enfers II', desc:'+20% prod fonderies & forges',           effect:{type:'prodBonus',building:'fonderie_celeste,forge_divine,autel_fusion',value:20}},
+    {name:'Âme du Métal',        desc:'+3 niveaux max fonderies',               effect:{type:'maxLevelBonus',building:'fonderie_celeste,forge_divine',value:3}},
+    {name:'Forge Infernale',     desc:'+20% production globale',                effect:{type:'prodBonusAll',value:20}},
+    {name:'Alliage Maudit',      desc:'+40% fonderies, +4 niveaux max',         effect:{type:'maxLevelBonus',building:'fonderie_celeste,forge_divine',value:4}},
+  ]),
+  had_L3_0: _n('had_L3_0','hades',3,0,'had_L2_0',180,[
+    {name:'Charon I',         desc:'+15% gain Éther',                           effect:{type:'etherGainPct',value:15}},
+    {name:'Charon II',        desc:'+15% gain Éther',                           effect:{type:'etherGainPct',value:15}},
+    {name:'Obole Sacrée',     desc:'+15 Pages Codex bonus',                     effect:{type:'bonusPages',value:15}},
+    {name:'Obole Dorée',      desc:'+20% score Renaissance',                    effect:{type:'scoreMultPct',value:20}},
+    {name:'Passeur des Âmes', desc:'+35% Éther, +25% score',                    effect:{type:'etherGainPct',value:35}},
+  ]),
+  had_L3_1: _n('had_L3_1','hades',3,1,'had_L2_0',180,[
+    {name:'Cerbère I',           desc:'+25% prod mines',                        effect:{type:'prodBonus',building:'mine_copper,mine_iron',value:25}},
+    {name:'Cerbère II',          desc:'+25% prod mines',                        effect:{type:'prodBonus',building:'mine_copper,mine_iron',value:25}},
+    {name:'Gardien Divin',       desc:'-20% coût fouille',                      effect:{type:'digCostPct',value:-20}},
+    {name:'Triple Menace',       desc:'+20% production globale',                effect:{type:'prodBonusAll',value:20}},
+    {name:'Cerbère Légendaire',  desc:'+50% mines, -25% fouille',               effect:{type:'prodBonus',building:'mine_copper,mine_iron',value:50}},
+  ]),
+  had_L3_2: _n('had_L3_2','hades',3,2,'had_L2_1',180,[
+    {name:'Tartare I',         desc:'+20% prod métaux divins',                  effect:{type:'prodBonus',building:'fonderie_celeste,forge_divine,autel_fusion',value:20}},
+    {name:'Tartare II',        desc:'+20% prod métaux divins',                  effect:{type:'prodBonus',building:'fonderie_celeste,forge_divine,autel_fusion',value:20}},
+    {name:'Abîme Éternel',     desc:'+15% production globale',                  effect:{type:'prodBonusAll',value:15}},
+    {name:'Profondeur Divine', desc:'+25% score Renaissance',                   effect:{type:'scoreMultPct',value:25}},
+    {name:'Fond du Gouffre',   desc:'+40% métaux divins, +25% prod',            effect:{type:'prodBonusAll',value:25}},
+  ]),
+  had_L3_3: _n('had_L3_3','hades',3,3,'had_L2_1',180,[
+    {name:'Âmes Captives I',   desc:'+10% gain Éther',                          effect:{type:'etherGainPct',value:10}},
+    {name:'Âmes Captives II',  desc:'+10% gain Éther',                          effect:{type:'etherGainPct',value:10}},
+    {name:'Moissonneurs I',    desc:'+20% score Renaissance',                   effect:{type:'scoreMultPct',value:20}},
+    {name:'Moissonneurs II',   desc:'+15% production globale',                  effect:{type:'prodBonusAll',value:15}},
+    {name:'Hadès Triomphant',  desc:'+25% Éther, +25% score, +20% prod',        effect:{type:'etherGainPct',value:25}},
+  ]),
+  had_L4_0: _n('had_L4_0','hades',4,0,'had_L3_0',280,[
+    {name:'Roi des Enfers I',  desc:'+20% gain Éther',                          effect:{type:'etherGainPct',value:20}},
+    {name:'Roi des Enfers II', desc:'+20% gain Éther',                          effect:{type:'etherGainPct',value:20}},
+    {name:'Trône Infernal',    desc:'+30% score Renaissance',                   effect:{type:'scoreMultPct',value:30}},
+    {name:'Sceptre du Néant',  desc:'+20 Pages Codex bonus',                    effect:{type:'bonusPages',value:20}},
+    {name:'Hadès Absolu',      desc:'+50% Éther, +35% score',                   effect:{type:'etherGainPct',value:50}},
+  ]),
+  had_L4_1: _n('had_L4_1','hades',4,1,'had_L3_0',280,[
+    {name:'Styx I',            desc:'+25% gain Éther',                          effect:{type:'etherGainPct',value:25}},
+    {name:'Styx II',           desc:'+25% gain Éther',                          effect:{type:'etherGainPct',value:25}},
+    {name:'Fleuve des Morts',  desc:'+20% score',                               effect:{type:'scoreMultPct',value:20}},
+    {name:'Eau Oublieuse',     desc:'+15% production globale',                  effect:{type:'prodBonusAll',value:15}},
+    {name:'Styx Éternel',      desc:'+50% Éther, +25% prod',                    effect:{type:'etherGainPct',value:50}},
+  ]),
+  had_L4_2: _n('had_L4_2','hades',4,2,'had_L3_1',280,[
+    {name:'Anubis I',           desc:'+30% prod mines',                         effect:{type:'prodBonus',building:'mine_copper,mine_iron',value:30}},
+    {name:'Anubis II',          desc:'+30% prod mines',                         effect:{type:'prodBonus',building:'mine_copper,mine_iron',value:30}},
+    {name:'Balance Divine',     desc:'-25% coût fouille',                       effect:{type:'digCostPct',value:-25}},
+    {name:'Jugement Dernier',   desc:'+25% score Renaissance',                  effect:{type:'scoreMultPct',value:25}},
+    {name:'Maître du Jugement', desc:'+60% mines, -30% fouille',                effect:{type:'prodBonus',building:'mine_copper,mine_iron',value:60}},
+  ]),
+  had_L4_3: _n('had_L4_3','hades',4,3,'had_L3_1',280,[
+    {name:'Enfers Profonds I',   desc:'+30% prod mines',                        effect:{type:'prodBonus',building:'mine_copper,mine_iron',value:30}},
+    {name:'Enfers Profonds II',  desc:'-20% coût fouille',                      effect:{type:'digCostPct',value:-20}},
+    {name:'Gouffre Sans Fond',   desc:'+3 niveaux max mines',                   effect:{type:'maxLevelBonus',building:'mine_copper,mine_iron',value:3}},
+    {name:'Abîme Primordial',    desc:'+20% production globale',                effect:{type:'prodBonusAll',value:20}},
+    {name:'Enfers Légendaires',  desc:'+60% mines, +4 niveaux max',             effect:{type:'maxLevelBonus',building:'mine_copper,mine_iron',value:4}},
+  ]),
+  had_L4_4: _n('had_L4_4','hades',4,4,'had_L3_2',280,[
+    {name:'Métal Divin I',  desc:'+30% prod fonderies & forges',                effect:{type:'prodBonus',building:'fonderie_celeste,forge_divine,autel_fusion',value:30}},
+    {name:'Métal Divin II', desc:'+30% prod fonderies & forges',                effect:{type:'prodBonus',building:'fonderie_celeste,forge_divine,autel_fusion',value:30}},
+    {name:'Alliage Céleste', desc:'+4 niveaux max forges',                      effect:{type:'maxLevelBonus',building:'fonderie_celeste,forge_divine',value:4}},
+    {name:'Forge des Dieux', desc:'+25% production globale',                    effect:{type:'prodBonusAll',value:25}},
+    {name:'Création Ultime', desc:'+60% forges, +5 niveaux max',                effect:{type:'maxLevelBonus',building:'fonderie_celeste,forge_divine',value:5}},
+  ]),
+  had_L4_5: _n('had_L4_5','hades',4,5,'had_L3_2',280,[
+    {name:'Âmes Éternelles I',   desc:'+20% gain Éther',                        effect:{type:'etherGainPct',value:20}},
+    {name:'Âmes Éternelles II',  desc:'+20% score Renaissance',                 effect:{type:'scoreMultPct',value:20}},
+    {name:'Cycle Infernal',      desc:'+20% production globale',                effect:{type:'prodBonusAll',value:20}},
+    {name:'Renaissance Noire',   desc:'+15% gain Éther',                        effect:{type:'etherGainPct',value:15}},
+    {name:'Éternité des Morts',  desc:'+40% Éther, +30% score',                 effect:{type:'etherGainPct',value:40}},
+  ]),
+  had_L4_6: _n('had_L4_6','hades',4,6,'had_L3_3',280,[
+    {name:'Légion Infernale I',  desc:'+20% production globale',                effect:{type:'prodBonusAll',value:20}},
+    {name:'Légion Infernale II', desc:'+20% production globale',                effect:{type:'prodBonusAll',value:20}},
+    {name:'Armée des Ombres',    desc:'+25% score Renaissance',                 effect:{type:'scoreMultPct',value:25}},
+    {name:'Forces des Ténèbres', desc:'+3 niveaux max tous bâtiments',          effect:{type:'maxLevelBonusAll',value:3}},
+    {name:'Horde Infernale',     desc:'+40% prod, +35% score',                  effect:{type:'prodBonusAll',value:40}},
+  ]),
+  had_L4_7: _n('had_L4_7','hades',4,7,'had_L3_3',280,[
+    {name:'Hadès Triomphant I',   desc:'+30% gain Éther',                       effect:{type:'etherGainPct',value:30}},
+    {name:'Hadès Triomphant II',  desc:'+30% score Renaissance',                effect:{type:'scoreMultPct',value:30}},
+    {name:'Maître Absolu',        desc:'+25% production globale',               effect:{type:'prodBonusAll',value:25}},
+    {name:'Règne Éternel',        desc:'+20 Pages Codex bonus',                 effect:{type:'bonusPages',value:20}},
+    {name:'Dieu des Morts',       desc:'+50% Éther, +40% score, +30% prod',     effect:{type:'etherGainPct',value:50}},
+  ]),
+};
+
+// ══════════════════════════════════════════════════════════════
+// ATHÉNA 🦉  sagesse · Codex · coûts · niveaux max bâtiments
+// ══════════════════════════════════════════════════════════════
+const ATHENA_NODES = {
+  ath_L1_0: _n('ath_L1_0','athena',1,0,null,50,[
+    {name:'Sagesse I',         desc:'+10 Pages Codex bonus',                    effect:{type:'bonusPages',value:10}},
+    {name:'Sagesse II',        desc:'+10 Pages Codex bonus',                    effect:{type:'bonusPages',value:10}},
+    {name:'Stratégie I',       desc:'-10% coût des bâtiments',                 effect:{type:'buildCostPct',value:-10}},
+    {name:'Stratégie II',      desc:'-10% coût des bâtiments',                 effect:{type:'buildCostPct',value:-10}},
+    {name:'Déesse de la Cité', desc:'+20 Pages Codex, -20% coûts bâtiments',   effect:{type:'buildCostPct',value:-20}},
+  ]),
+  ath_L2_0: _n('ath_L2_0','athena',2,0,'ath_L1_0',100,[
+    {name:'Chouette Sacrée I',   desc:'+15 Pages Codex bonus',                  effect:{type:'bonusPages',value:15}},
+    {name:'Chouette Sacrée II',  desc:'+15 Pages Codex bonus',                  effect:{type:'bonusPages',value:15}},
+    {name:'Bibliothèque Divine', desc:'+20% multiplicateur Pages Codex',        effect:{type:'codexPagesMult',value:20}},
+    {name:'Savoir Ancien',       desc:'+10% gain Éther',                        effect:{type:'etherGainPct',value:10}},
+    {name:'Athénaeum Sacré',     desc:'+30 Pages Codex, +25% mult Pages',       effect:{type:'codexPagesMult',value:25}},
+  ]),
+  ath_L2_1: _n('ath_L2_1','athena',2,1,'ath_L1_0',100,[
+    {name:'Égide I',           desc:'-15% coût des bâtiments',                  effect:{type:'buildCostPct',value:-15}},
+    {name:'Égide II',          desc:'-15% coût des bâtiments',                  effect:{type:'buildCostPct',value:-15}},
+    {name:'Bouclier Divin',    desc:'+3 niveaux max tous bâtiments',             effect:{type:'maxLevelBonusAll',value:3}},
+    {name:'Protection Sacrée', desc:'+15% production globale',                  effect:{type:'prodBonusAll',value:15}},
+    {name:'Égide Légendaire',  desc:'-30% coûts, +4 niveaux max',               effect:{type:'maxLevelBonusAll',value:4}},
+  ]),
+  ath_L3_0: _n('ath_L3_0','athena',3,0,'ath_L2_0',180,[
+    {name:'Académie I',        desc:'+20% multiplicateur Pages Codex',          effect:{type:'codexPagesMult',value:20}},
+    {name:'Académie II',       desc:'+20% multiplicateur Pages Codex',          effect:{type:'codexPagesMult',value:20}},
+    {name:'Corpus Sacrés',     desc:'+20 Pages Codex bonus',                    effect:{type:'bonusPages',value:20}},
+    {name:'Érudition',         desc:'+15% gain Éther',                          effect:{type:'etherGainPct',value:15}},
+    {name:'Grande Académie',   desc:'+40% mult Codex, +25 Pages bonus',         effect:{type:'codexPagesMult',value:40}},
+  ]),
+  ath_L3_1: _n('ath_L3_1','athena',3,1,'ath_L2_0',180,[
+    {name:'Parchemins Divins I',   desc:'+20% score Renaissance',               effect:{type:'scoreMultPct',value:20}},
+    {name:'Parchemins Divins II',  desc:'+20% score Renaissance',               effect:{type:'scoreMultPct',value:20}},
+    {name:'Annales Sacrées',       desc:'+20 Pages Codex bonus',                effect:{type:'bonusPages',value:20}},
+    {name:'Mémoire Infinie',       desc:'+15% production globale',              effect:{type:'prodBonusAll',value:15}},
+    {name:'Parchemins Légendaires',desc:'+40% score, +25 Pages bonus',          effect:{type:'scoreMultPct',value:40}},
+  ]),
+  ath_L3_2: _n('ath_L3_2','athena',3,2,'ath_L2_1',180,[
+    {name:'Architecture Sacrée I',  desc:'-12% coût des bâtiments',             effect:{type:'buildCostPct',value:-12}},
+    {name:'Architecture Sacrée II', desc:'-12% coût des bâtiments',             effect:{type:'buildCostPct',value:-12}},
+    {name:'Temple Parfait',         desc:'+3 niveaux max tous bâtiments',       effect:{type:'maxLevelBonusAll',value:3}},
+    {name:'Cité Idéale',            desc:'+20% production globale',             effect:{type:'prodBonusAll',value:20}},
+    {name:'Urbanisme Divin',        desc:'-25% coûts, +5 niveaux max',          effect:{type:'maxLevelBonusAll',value:5}},
+  ]),
+  ath_L3_3: _n('ath_L3_3','athena',3,3,'ath_L2_1',180,[
+    {name:'Justice Divine I',    desc:'+15% production globale',                effect:{type:'prodBonusAll',value:15}},
+    {name:'Justice Divine II',   desc:'+15% production globale',                effect:{type:'prodBonusAll',value:15}},
+    {name:'Loi Sacrée',          desc:'+20% score Renaissance',                 effect:{type:'scoreMultPct',value:20}},
+    {name:'Ordre Parfait',       desc:'-10% coût bâtiments',                    effect:{type:'buildCostPct',value:-10}},
+    {name:'Athéna Législatrice', desc:'+30% prod, +25% score, -15% coûts',      effect:{type:'prodBonusAll',value:30}},
+  ]),
+  ath_L4_0: _n('ath_L4_0','athena',4,0,'ath_L3_0',280,[
+    {name:'Bibliothèque Éternelle I',  desc:'+30% mult Pages Codex',            effect:{type:'codexPagesMult',value:30}},
+    {name:'Bibliothèque Éternelle II', desc:'+30% mult Pages Codex',            effect:{type:'codexPagesMult',value:30}},
+    {name:'Savoir Absolu',             desc:'+25 Pages Codex bonus',            effect:{type:'bonusPages',value:25}},
+    {name:'Omniscience',               desc:'+20% gain Éther',                  effect:{type:'etherGainPct',value:20}},
+    {name:'Bibliothèque des Dieux',    desc:'+60% mult Codex, +30 Pages',       effect:{type:'codexPagesMult',value:60}},
+  ]),
+  ath_L4_1: _n('ath_L4_1','athena',4,1,'ath_L3_0',280,[
+    {name:'Épopée Sacrée I',   desc:'+30% score Renaissance',                   effect:{type:'scoreMultPct',value:30}},
+    {name:'Épopée Sacrée II',  desc:'+30% score Renaissance',                   effect:{type:'scoreMultPct',value:30}},
+    {name:'Légende Vivante',   desc:'+20% production globale',                  effect:{type:'prodBonusAll',value:20}},
+    {name:'Gloire Érudite',    desc:'+20% gain Éther',                          effect:{type:'etherGainPct',value:20}},
+    {name:'Athéna Légendaire', desc:'+60% score, +25% Éther',                   effect:{type:'scoreMultPct',value:60}},
+  ]),
+  ath_L4_2: _n('ath_L4_2','athena',4,2,'ath_L3_1',280,[
+    {name:'Codex Olympien I',   desc:'+25% mult Pages Codex',                   effect:{type:'codexPagesMult',value:25}},
+    {name:'Codex Olympien II',  desc:'+25% mult Pages Codex',                   effect:{type:'codexPagesMult',value:25}},
+    {name:'Pages d\'Or',        desc:'+25 Pages Codex bonus',                   effect:{type:'bonusPages',value:25}},
+    {name:'Tomes Immortels',    desc:'+25% score Renaissance',                  effect:{type:'scoreMultPct',value:25}},
+    {name:'Codex Absolu',       desc:'+50% mult Codex, +30 Pages',              effect:{type:'codexPagesMult',value:50}},
+  ]),
+  ath_L4_3: _n('ath_L4_3','athena',4,3,'ath_L3_1',280,[
+    {name:'Stratège Divin I',  desc:'+25% production globale',                  effect:{type:'prodBonusAll',value:25}},
+    {name:'Stratège Divin II', desc:'+25% production globale',                  effect:{type:'prodBonusAll',value:25}},
+    {name:'Tactique Parfaite', desc:'-20% coût bâtiments',                      effect:{type:'buildCostPct',value:-20}},
+    {name:'Plan Omniscient',   desc:'+30% score Renaissance',                   effect:{type:'scoreMultPct',value:30}},
+    {name:'Athéna Stratège',   desc:'+50% prod, -25% coûts, +30% score',        effect:{type:'prodBonusAll',value:50}},
+  ]),
+  ath_L4_4: _n('ath_L4_4','athena',4,4,'ath_L3_2',280,[
+    {name:'Perfectionnisme I',   desc:'-20% coût bâtiments',                    effect:{type:'buildCostPct',value:-20}},
+    {name:'Perfectionnisme II',  desc:'-20% coût bâtiments',                    effect:{type:'buildCostPct',value:-20}},
+    {name:'Excellence Divine',   desc:'+4 niveaux max tous bâtiments',          effect:{type:'maxLevelBonusAll',value:4}},
+    {name:'Idéal Suprême',       desc:'+25% production globale',                effect:{type:'prodBonusAll',value:25}},
+    {name:'Maîtrise Absolue',    desc:'-40% coûts, +6 niveaux max',             effect:{type:'maxLevelBonusAll',value:6}},
+  ]),
+  ath_L4_5: _n('ath_L4_5','athena',4,5,'ath_L3_2',280,[
+    {name:'Métropole Divine I',   desc:'+25% production globale',               effect:{type:'prodBonusAll',value:25}},
+    {name:'Métropole Divine II',  desc:'+5 niveaux max tous bâtiments',         effect:{type:'maxLevelBonusAll',value:5}},
+    {name:'Cité des Olympiens',   desc:'-15% coût bâtiments',                   effect:{type:'buildCostPct',value:-15}},
+    {name:'Athènes Éternelle',    desc:'+30% score Renaissance',                effect:{type:'scoreMultPct',value:30}},
+    {name:'Civilisation Parfaite',desc:'+50% prod, +7 niveaux max',             effect:{type:'maxLevelBonusAll',value:7}},
+  ]),
+  ath_L4_6: _n('ath_L4_6','athena',4,6,'ath_L3_3',280,[
+    {name:'Gouvernance Parfaite I',  desc:'+30% production globale',            effect:{type:'prodBonusAll',value:30}},
+    {name:'Gouvernance Parfaite II', desc:'+30% production globale',            effect:{type:'prodBonusAll',value:30}},
+    {name:'Justice Absolue',         desc:'+35% score Renaissance',             effect:{type:'scoreMultPct',value:35}},
+    {name:'Équilibre Divin',         desc:'-15% coûts bâtiments',              effect:{type:'buildCostPct',value:-15}},
+    {name:'Cité Parfaite',           desc:'+60% prod, +40% score',              effect:{type:'prodBonusAll',value:60}},
+  ]),
+  ath_L4_7: _n('ath_L4_7','athena',4,7,'ath_L3_3',280,[
+    {name:'Athéna Absolue I',   desc:'+25% mult Pages Codex',                   effect:{type:'codexPagesMult',value:25}},
+    {name:'Athéna Absolue II',  desc:'+25% mult Pages Codex',                   effect:{type:'codexPagesMult',value:25}},
+    {name:'Sagesse Infinie',    desc:'+25% gain Éther',                         effect:{type:'etherGainPct',value:25}},
+    {name:'Omniscience Totale', desc:'+35% score Renaissance',                  effect:{type:'scoreMultPct',value:35}},
+    {name:'Déesse Suprême',     desc:'+50% mult Codex, +30% Éther, +40% score', effect:{type:'codexPagesMult',value:50}},
+  ]),
+};
+
+// ══════════════════════════════════════════════════════════════
+// APOLLON ☀️  prod globale · Nourriture · pop · Codex · scouts
+// ══════════════════════════════════════════════════════════════
+const APOLLON_NODES = {
+  apo_L1_0: _n('apo_L1_0','apollon',1,0,null,50,[
+    {name:'Lumière Solaire I',  desc:'+10% production globale',                 effect:{type:'prodBonusAll',value:10}},
+    {name:'Lumière Solaire II', desc:'+10% production globale',                 effect:{type:'prodBonusAll',value:10}},
+    {name:'Rayons du Soleil I', desc:'+15% production Nourriture',              effect:{type:'prodBonus',building:'farm,verger,jardins',value:15}},
+    {name:'Rayons du Soleil II',desc:'+15% production Nourriture',              effect:{type:'prodBonus',building:'farm,verger,jardins',value:15}},
+    {name:'Dieu du Soleil',     desc:'+25% prod globale, +20% Nourriture',      effect:{type:'prodBonusAll',value:25}},
+  ]),
+  apo_L2_0: _n('apo_L2_0','apollon',2,0,'apo_L1_0',100,[
+    {name:'Arc Solaire I',   desc:'+20% vitesse Éclaireurs',                    effect:{type:'scoutSpeedPct',value:20}},
+    {name:'Arc Solaire II',  desc:'+20% vitesse Éclaireurs',                    effect:{type:'scoutSpeedPct',value:20}},
+    {name:'Flèches Divines', desc:'+15% production globale',                    effect:{type:'prodBonusAll',value:15}},
+    {name:'Archer Céleste',  desc:'+2 portée révélation',                       effect:{type:'haloRange',value:2}},
+    {name:'Arc d\'Apollon',  desc:'+40% vitesse scouts, +3 portée',             effect:{type:'scoutSpeedPct',value:40}},
+  ]),
+  apo_L2_1: _n('apo_L2_1','apollon',2,1,'apo_L1_0',100,[
+    {name:'Médecine I',       desc:'+20% production Nourriture',                effect:{type:'prodBonus',building:'farm,verger,jardins',value:20}},
+    {name:'Médecine II',      desc:'+20% production Nourriture',                effect:{type:'prodBonus',building:'farm,verger,jardins',value:20}},
+    {name:'Guérison Divine',  desc:'+20% capacité de population max',           effect:{type:'popCapPct',value:20}},
+    {name:'Asclépio',         desc:'+15% production globale',                   effect:{type:'prodBonusAll',value:15}},
+    {name:'Grand Médecin',    desc:'+40% Nourr, +30% pop max',                  effect:{type:'popCapPct',value:30}},
+  ]),
+  apo_L3_0: _n('apo_L3_0','apollon',3,0,'apo_L2_0',180,[
+    {name:'Prophétie I',       desc:'+15% score Renaissance',                   effect:{type:'scoreMultPct',value:15}},
+    {name:'Prophétie II',      desc:'+15% score Renaissance',                   effect:{type:'scoreMultPct',value:15}},
+    {name:'Oracle de Delphes', desc:'+15 Pages Codex bonus',                    effect:{type:'bonusPages',value:15}},
+    {name:'Vision du Futur',   desc:'+15% gain Éther',                          effect:{type:'etherGainPct',value:15}},
+    {name:'Oracle Sacré',      desc:'+30% score, +20 Pages, +15% Éther',        effect:{type:'scoreMultPct',value:30}},
+  ]),
+  apo_L3_1: _n('apo_L3_1','apollon',3,1,'apo_L2_0',180,[
+    {name:'Musique des Sphères I',  desc:'+20% production globale',             effect:{type:'prodBonusAll',value:20}},
+    {name:'Musique des Sphères II', desc:'+20% production globale',             effect:{type:'prodBonusAll',value:20}},
+    {name:'Harmonie Céleste',       desc:'+20% score Renaissance',              effect:{type:'scoreMultPct',value:20}},
+    {name:'Lyre Divine',            desc:'+15% gain Éther',                     effect:{type:'etherGainPct',value:15}},
+    {name:'Concert Olympien',       desc:'+40% prod, +25% score',               effect:{type:'prodBonusAll',value:40}},
+  ]),
+  apo_L3_2: _n('apo_L3_2','apollon',3,2,'apo_L2_1',180,[
+    {name:'Sanctuaire I',     desc:'+20% production Nourriture',                effect:{type:'prodBonus',building:'farm,verger,jardins',value:20}},
+    {name:'Sanctuaire II',    desc:'+20% production Nourriture',                effect:{type:'prodBonus',building:'farm,verger,jardins',value:20}},
+    {name:'Temple Solaire',   desc:'+25% capacité pop max',                     effect:{type:'popCapPct',value:25}},
+    {name:'Blessing Sacré',   desc:'+15% production globale',                   effect:{type:'prodBonusAll',value:15}},
+    {name:'Grand Sanctuaire', desc:'+40% Nourr, +35% pop max',                  effect:{type:'popCapPct',value:35}},
+  ]),
+  apo_L3_3: _n('apo_L3_3','apollon',3,3,'apo_L2_1',180,[
+    {name:'Chariot Solaire I',  desc:'+20% production globale',                 effect:{type:'prodBonusAll',value:20}},
+    {name:'Chariot Solaire II', desc:'+20% production globale',                 effect:{type:'prodBonusAll',value:20}},
+    {name:'Course Céleste',     desc:'+25% score Renaissance',                  effect:{type:'scoreMultPct',value:25}},
+    {name:'Éclat du Jour',      desc:'+15% gain Éther',                         effect:{type:'etherGainPct',value:15}},
+    {name:'Hélios Sacré',       desc:'+40% prod, +30% score',                   effect:{type:'prodBonusAll',value:40}},
+  ]),
+  apo_L4_0: _n('apo_L4_0','apollon',4,0,'apo_L3_0',280,[
+    {name:'Oracle Suprême I',  desc:'+25% score Renaissance',                   effect:{type:'scoreMultPct',value:25}},
+    {name:'Oracle Suprême II', desc:'+25% score Renaissance',                   effect:{type:'scoreMultPct',value:25}},
+    {name:'Prophétie Absolue', desc:'+20 Pages Codex bonus',                    effect:{type:'bonusPages',value:20}},
+    {name:'Destin Révélé',     desc:'+20% gain Éther',                          effect:{type:'etherGainPct',value:20}},
+    {name:'Apollon Oracle',    desc:'+50% score, +25 Pages, +25% Éther',        effect:{type:'scoreMultPct',value:50}},
+  ]),
+  apo_L4_1: _n('apo_L4_1','apollon',4,1,'apo_L3_0',280,[
+    {name:'Solstice Divin I',  desc:'+30% production globale',                  effect:{type:'prodBonusAll',value:30}},
+    {name:'Solstice Divin II', desc:'+30% production globale',                  effect:{type:'prodBonusAll',value:30}},
+    {name:'Équinoxe Sacré',    desc:'+25% score Renaissance',                   effect:{type:'scoreMultPct',value:25}},
+    {name:'Cycle Solaire',     desc:'+20% gain Éther',                          effect:{type:'etherGainPct',value:20}},
+    {name:'Apollon Solstice',  desc:'+60% prod, +30% score',                    effect:{type:'prodBonusAll',value:60}},
+  ]),
+  apo_L4_2: _n('apo_L4_2','apollon',4,2,'apo_L3_1',280,[
+    {name:'Harmonie Absolue I',  desc:'+30% production globale',                effect:{type:'prodBonusAll',value:30}},
+    {name:'Harmonie Absolue II', desc:'+30% production globale',                effect:{type:'prodBonusAll',value:30}},
+    {name:'Symphonie Divine',    desc:'+25% score Renaissance',                 effect:{type:'scoreMultPct',value:25}},
+    {name:'Accord Olympien',     desc:'+20% gain Éther',                        effect:{type:'etherGainPct',value:20}},
+    {name:'Concert Immortel',    desc:'+60% prod, +35% score',                  effect:{type:'prodBonusAll',value:60}},
+  ]),
+  apo_L4_3: _n('apo_L4_3','apollon',4,3,'apo_L3_1',280,[
+    {name:'Lumière Absolue I',   desc:'+25% production globale',                effect:{type:'prodBonusAll',value:25}},
+    {name:'Lumière Absolue II',  desc:'+25% production globale',                effect:{type:'prodBonusAll',value:25}},
+    {name:'Éclat Divin',         desc:'+30% score Renaissance',                 effect:{type:'scoreMultPct',value:30}},
+    {name:'Rayonnement Solaire', desc:'+2 portée révélation',                   effect:{type:'haloRange',value:2}},
+    {name:'Soleil Immortel',     desc:'+50% prod, +35% score',                  effect:{type:'prodBonusAll',value:50}},
+  ]),
+  apo_L4_4: _n('apo_L4_4','apollon',4,4,'apo_L3_2',280,[
+    {name:'Élixir Divin I',   desc:'+30% production Nourriture',                effect:{type:'prodBonus',building:'farm,verger,jardins',value:30}},
+    {name:'Élixir Divin II',  desc:'+30% production Nourriture',                effect:{type:'prodBonus',building:'farm,verger,jardins',value:30}},
+    {name:'Ambroisie Pure',   desc:'+35% capacité pop max',                     effect:{type:'popCapPct',value:35}},
+    {name:'Nectar Céleste',   desc:'+25% production globale',                   effect:{type:'prodBonusAll',value:25}},
+    {name:'Don des Dieux',    desc:'+60% Nourr, +40% pop max',                  effect:{type:'popCapPct',value:40}},
+  ]),
+  apo_L4_5: _n('apo_L4_5','apollon',4,5,'apo_L3_2',280,[
+    {name:'Cité du Soleil I',  desc:'+30% production globale',                  effect:{type:'prodBonusAll',value:30}},
+    {name:'Cité du Soleil II', desc:'+30% production globale',                  effect:{type:'prodBonusAll',value:30}},
+    {name:'Solaire Olympien',  desc:'+4 niveaux max fermes & jardins',          effect:{type:'maxLevelBonus',building:'farm,verger,jardins',value:4}},
+    {name:'Paradis Terrestre', desc:'+25% score Renaissance',                   effect:{type:'scoreMultPct',value:25}},
+    {name:'Éden Solaire',      desc:'+60% prod, +5 niveaux max',                effect:{type:'maxLevelBonus',building:'farm,verger,jardins',value:5}},
+  ]),
+  apo_L4_6: _n('apo_L4_6','apollon',4,6,'apo_L3_3',280,[
+    {name:'Aurore Divine I',  desc:'+30% production globale',                   effect:{type:'prodBonusAll',value:30}},
+    {name:'Aurore Divine II', desc:'+30% production globale',                   effect:{type:'prodBonusAll',value:30}},
+    {name:'Aube Éternelle',   desc:'+25% score Renaissance',                    effect:{type:'scoreMultPct',value:25}},
+    {name:'Premier Soleil',   desc:'+20% gain Éther',                           effect:{type:'etherGainPct',value:20}},
+    {name:'Apollon Éternel',  desc:'+60% prod, +30% score, +25% Éther',         effect:{type:'prodBonusAll',value:60}},
+  ]),
+  apo_L4_7: _n('apo_L4_7','apollon',4,7,'apo_L3_3',280,[
+    {name:'Apollon Suprême I',  desc:'+25% production globale',                 effect:{type:'prodBonusAll',value:25}},
+    {name:'Apollon Suprême II', desc:'+25% production globale',                 effect:{type:'prodBonusAll',value:25}},
+    {name:'Dieu du Soleil',     desc:'+35% score Renaissance',                  effect:{type:'scoreMultPct',value:35}},
+    {name:'Lumière Infinie',    desc:'+30% gain Éther',                         effect:{type:'etherGainPct',value:30}},
+    {name:'Astre Immortel',     desc:'+50% prod, +40% score, +35% Éther',       effect:{type:'prodBonusAll',value:50}},
+  ]),
+};
+
+// ══════════════════════════════════════════════════════════════
+// ARÈS ⚔️  vitesse scouts · bâtiments militaires · coûts
+// ══════════════════════════════════════════════════════════════
+const ARES_NODES = {
+  are_L1_0: _n('are_L1_0','ares',1,0,null,50,[
+    {name:'Ardeur Guerrière I',  desc:'+10% vitesse des Éclaireurs',            effect:{type:'scoutSpeedPct',value:10}},
+    {name:'Ardeur Guerrière II', desc:'+10% vitesse des Éclaireurs',            effect:{type:'scoutSpeedPct',value:10}},
+    {name:'Furie de Combat I',   desc:'+10% production globale',                effect:{type:'prodBonusAll',value:10}},
+    {name:'Furie de Combat II',  desc:'+10% production globale',                effect:{type:'prodBonusAll',value:10}},
+    {name:'Dieu de la Guerre',   desc:'+25% vitesse scouts, +20% prod',         effect:{type:'scoutSpeedPct',value:25}},
+  ]),
+  are_L2_0: _n('are_L2_0','ares',2,0,'are_L1_0',100,[
+    {name:'Épée Sacrée I',  desc:'+20% vitesse des Éclaireurs',                 effect:{type:'scoutSpeedPct',value:20}},
+    {name:'Épée Sacrée II', desc:'+20% vitesse des Éclaireurs',                 effect:{type:'scoutSpeedPct',value:20}},
+    {name:'Lame Divine',    desc:'+1 slot Éclaireur',                           effect:{type:'scoutSlots',value:1}},
+    {name:'Escouade',       desc:'+2 portée révélation',                        effect:{type:'haloRange',value:2}},
+    {name:'Armée Sacrée',   desc:'+40% vitesse, +1 slot, +2 portée',            effect:{type:'scoutSpeedPct',value:40}},
+  ]),
+  are_L2_1: _n('are_L2_1','ares',2,1,'are_L1_0',100,[
+    {name:'Forge de Guerre I',  desc:'+20% prod bâtiments militaires',          effect:{type:'prodBonus',building:'forteresse,pylone,noeud_olympien',value:20}},
+    {name:'Forge de Guerre II', desc:'+20% prod bâtiments militaires',          effect:{type:'prodBonus',building:'forteresse,pylone,noeud_olympien',value:20}},
+    {name:'Arsenal Divin',      desc:'+3 niveaux max forteresses',              effect:{type:'maxLevelBonus',building:'forteresse',value:3}},
+    {name:'Bastions',           desc:'+15% production globale',                 effect:{type:'prodBonusAll',value:15}},
+    {name:'Citadelle Divine',   desc:'+40% militaire, +4 niveaux max',          effect:{type:'maxLevelBonus',building:'forteresse',value:4}},
+  ]),
+  are_L3_0: _n('are_L3_0','ares',3,0,'are_L2_0',180,[
+    {name:'Charge I',         desc:'+25% vitesse Éclaireurs',                   effect:{type:'scoutSpeedPct',value:25}},
+    {name:'Charge II',        desc:'+25% vitesse Éclaireurs',                   effect:{type:'scoutSpeedPct',value:25}},
+    {name:'Cavalerie Sacrée', desc:'+1 révélation par scout',                   effect:{type:'scoutExtraReveal',value:1}},
+    {name:'Armure Divine',    desc:'+3 portée révélation',                      effect:{type:'haloRange',value:3}},
+    {name:'Légion Céleste',   desc:'+50% vitesse, +2 révélations scouts',       effect:{type:'scoutSpeedPct',value:50}},
+  ]),
+  are_L3_1: _n('are_L3_1','ares',3,1,'are_L2_0',180,[
+    {name:'Conquête I',         desc:'+1 slot Éclaireur',                       effect:{type:'scoutSlots',value:1}},
+    {name:'Conquête II',        desc:'+20% vitesse Éclaireurs',                 effect:{type:'scoutSpeedPct',value:20}},
+    {name:'Victoire',           desc:'+20% score Renaissance',                  effect:{type:'scoreMultPct',value:20}},
+    {name:'Trophée de Guerre',  desc:'+20% production globale',                 effect:{type:'prodBonusAll',value:20}},
+    {name:'Conquérant',         desc:'+40% vitesse, +1 slot, +25% score',       effect:{type:'scoutSlots',value:1}},
+  ]),
+  are_L3_2: _n('are_L3_2','ares',3,2,'are_L2_1',180,[
+    {name:'Siège Divin I',  desc:'+20% prod bâtiments militaires',              effect:{type:'prodBonus',building:'forteresse,pylone,noeud_olympien',value:20}},
+    {name:'Siège Divin II', desc:'+20% prod bâtiments militaires',              effect:{type:'prodBonus',building:'forteresse,pylone,noeud_olympien',value:20}},
+    {name:'Artillerie',     desc:'+15% production globale',                     effect:{type:'prodBonusAll',value:15}},
+    {name:'Bélier Sacré',   desc:'-15% coût bâtiments',                         effect:{type:'buildCostPct',value:-15}},
+    {name:'Siège Total',    desc:'+40% militaire, -20% coûts',                  effect:{type:'prodBonus',building:'forteresse,pylone,noeud_olympien',value:40}},
+  ]),
+  are_L3_3: _n('are_L3_3','ares',3,3,'are_L2_1',180,[
+    {name:'Pillage I',        desc:'+15% production globale',                   effect:{type:'prodBonusAll',value:15}},
+    {name:'Pillage II',       desc:'+15% production globale',                   effect:{type:'prodBonusAll',value:15}},
+    {name:'Butin de Guerre',  desc:'+20% score Renaissance',                    effect:{type:'scoreMultPct',value:20}},
+    {name:'Sac de la Cité',   desc:'-10% coût fouille',                         effect:{type:'digCostPct',value:-10}},
+    {name:'Pillard Divin',    desc:'+30% prod, +25% score, -15% fouille',       effect:{type:'prodBonusAll',value:30}},
+  ]),
+  are_L4_0: _n('are_L4_0','ares',4,0,'are_L3_0',280,[
+    {name:'Horde Divine I',  desc:'+30% vitesse Éclaireurs',                    effect:{type:'scoutSpeedPct',value:30}},
+    {name:'Horde Divine II', desc:'+30% vitesse Éclaireurs',                    effect:{type:'scoutSpeedPct',value:30}},
+    {name:'Vague de Choc',   desc:'+4 portée révélation',                       effect:{type:'haloRange',value:4}},
+    {name:'Avalanche',       desc:'+2 révélations scouts',                      effect:{type:'scoutExtraReveal',value:2}},
+    {name:'Assaut Total',    desc:'+60% vitesse, +4 portée, +2 révélations',    effect:{type:'scoutSpeedPct',value:60}},
+  ]),
+  are_L4_1: _n('are_L4_1','ares',4,1,'are_L3_0',280,[
+    {name:'Général Divin I',  desc:'+2 slots Éclaireur',                        effect:{type:'scoutSlots',value:2}},
+    {name:'Général Divin II', desc:'+30% vitesse Éclaireurs',                   effect:{type:'scoutSpeedPct',value:30}},
+    {name:'Commandant Sacré', desc:'+3 portée révélation',                      effect:{type:'haloRange',value:3}},
+    {name:'Stratège Guerrier',desc:'+25% production globale',                   effect:{type:'prodBonusAll',value:25}},
+    {name:'Arès Général',     desc:'+60% vitesse, +2 slots, +4 portée',         effect:{type:'scoutSlots',value:2}},
+  ]),
+  are_L4_2: _n('are_L4_2','ares',4,2,'are_L3_1',280,[
+    {name:'Victoire Absolue I',  desc:'+30% score Renaissance',                 effect:{type:'scoreMultPct',value:30}},
+    {name:'Victoire Absolue II', desc:'+30% score Renaissance',                 effect:{type:'scoreMultPct',value:30}},
+    {name:'Triomphe',            desc:'+25% production globale',                effect:{type:'prodBonusAll',value:25}},
+    {name:'Lauriers de Mars',    desc:'+20% gain Éther',                        effect:{type:'etherGainPct',value:20}},
+    {name:'Arès Triomphant',     desc:'+60% score, +30% prod, +25% Éther',      effect:{type:'scoreMultPct',value:60}},
+  ]),
+  are_L4_3: _n('are_L4_3','ares',4,3,'are_L3_1',280,[
+    {name:'Guerre Totale I',    desc:'+25% production globale',                 effect:{type:'prodBonusAll',value:25}},
+    {name:'Guerre Totale II',   desc:'+25% production globale',                 effect:{type:'prodBonusAll',value:25}},
+    {name:'Conflagration',      desc:'+30% score Renaissance',                  effect:{type:'scoreMultPct',value:30}},
+    {name:'Sang et Feu',        desc:'+20% gain Éther',                         effect:{type:'etherGainPct',value:20}},
+    {name:'Apocalypse Martiale',desc:'+50% prod, +35% score',                   effect:{type:'prodBonusAll',value:50}},
+  ]),
+  are_L4_4: _n('are_L4_4','ares',4,4,'are_L3_2',280,[
+    {name:'Forteresse Olympe I',  desc:'+30% prod militaire',                   effect:{type:'prodBonus',building:'forteresse,pylone,noeud_olympien',value:30}},
+    {name:'Forteresse Olympe II', desc:'+30% prod militaire',                   effect:{type:'prodBonus',building:'forteresse,pylone,noeud_olympien',value:30}},
+    {name:'Bastion Éternel',      desc:'+5 niveaux max forteresses',            effect:{type:'maxLevelBonus',building:'forteresse',value:5}},
+    {name:'Rempart Divin',        desc:'+25% production globale',               effect:{type:'prodBonusAll',value:25}},
+    {name:'Citadelle des Dieux',  desc:'+60% militaire, +6 niveaux max',        effect:{type:'maxLevelBonus',building:'forteresse',value:6}},
+  ]),
+  are_L4_5: _n('are_L4_5','ares',4,5,'are_L3_2',280,[
+    {name:'Arsenal Légendaire I',  desc:'-20% coût bâtiments',                  effect:{type:'buildCostPct',value:-20}},
+    {name:'Arsenal Légendaire II', desc:'-20% coût bâtiments',                  effect:{type:'buildCostPct',value:-20}},
+    {name:'Armement Total',        desc:'+25% production globale',              effect:{type:'prodBonusAll',value:25}},
+    {name:'Manufacture Divine',    desc:'+3 niveaux max tous bâtiments',        effect:{type:'maxLevelBonusAll',value:3}},
+    {name:'Arès Forgeron',         desc:'-40% coûts, +4 niveaux max',           effect:{type:'maxLevelBonusAll',value:4}},
+  ]),
+  are_L4_6: _n('are_L4_6','ares',4,6,'are_L3_3',280,[
+    {name:'Pillage Épique I',   desc:'+30% production globale',                 effect:{type:'prodBonusAll',value:30}},
+    {name:'Pillage Épique II',  desc:'+30% production globale',                 effect:{type:'prodBonusAll',value:30}},
+    {name:'Dévastation',        desc:'+35% score Renaissance',                  effect:{type:'scoreMultPct',value:35}},
+    {name:'Rapine Divine',      desc:'-20% coût fouille',                       effect:{type:'digCostPct',value:-20}},
+    {name:'Pillard Légendaire', desc:'+60% prod, +40% score',                   effect:{type:'prodBonusAll',value:60}},
+  ]),
+  are_L4_7: _n('are_L4_7','ares',4,7,'are_L3_3',280,[
+    {name:'Arès Absolu I',   desc:'+30% production globale',                    effect:{type:'prodBonusAll',value:30}},
+    {name:'Arès Absolu II',  desc:'+30% production globale',                    effect:{type:'prodBonusAll',value:30}},
+    {name:'Fureur Divine',   desc:'+35% score Renaissance',                     effect:{type:'scoreMultPct',value:35}},
+    {name:'Rage Olympienne', desc:'+25% gain Éther',                            effect:{type:'etherGainPct',value:25}},
+    {name:'Dieu Guerre Absolu',desc:'+60% prod, +40% score, +30% Éther',        effect:{type:'prodBonusAll',value:60}},
+  ]),
+};
+
+// ── Assemblage global ────────────────────────────────────────
+const PANTHEON_NODES = {
+  ...ZEUS_NODES,
+  ...POSEIDON_NODES,
+  ...HADES_NODES,
+  ...ATHENA_NODES,
+  ...APOLLON_NODES,
+  ...ARES_NODES,
+};
+
+// ══════════════════════════════════════════════════════════════
+// PantheonManager
+// ══════════════════════════════════════════════════════════════
 class PantheonManager {
-  constructor(resources, codexManager) {
-    this.rm    = resources;
-    this.cm    = codexManager;
-
-    // Points de talent investis par nœud (0 = non appris, N = points investis)
-    // Les nœuds sans plafond (uncapped) acceptent N > 1
-    this.invested  = {};   // { nodeId: points }
-
-    // Branches déverrouillées (hors transversales toujours dispo)
-    this.unlockedBranches = new Set(['cartographie', 'prestige_codex']);
-
-    // Éther cumulé investi dans les nœuds sans plafond (pour calcul bonus)
-    this._etherInUncapped = {}; // { nodeId: etherSpent }
-
+  constructor(resources) {
+    this.rm = resources;
+    // invested[nodeId] = rang actuel (0..5)
+    this.invested = {};
+    // Branches déverrouillées par zone
+    this.unlockedBranches = new Set();
     this._bindEvents();
   }
 
-  // ── Débloquer une branche divine (Phase 8) ──────────────
   unlockBranch(branchId) {
     this.unlockedBranches.add(branchId);
     EventBus.emit('pantheon:branch_unlocked', { branchId });
@@ -510,236 +725,132 @@ class PantheonManager {
     return this.unlockedBranches.has(branchId);
   }
 
-  // ── Vérifier si un nœud peut être appris ────────────────
+  // Coût du prochain rang d'un nœud
+  getRankCost(nodeId) {
+    const def = PANTHEON_NODES[nodeId];
+    if (!def) return Infinity;
+    const rank = this.invested[nodeId] || 0;
+    if (rank >= def.maxRank) return Infinity;
+    return def.baseCost * (rank + 1);
+  }
+
   canLearn(nodeId) {
     const def = PANTHEON_NODES[nodeId];
     if (!def) return { ok: false, reason: 'Nœud inconnu.' };
 
-    // Branche déverrouillée ?
     if (!this.isBranchUnlocked(def.branch)) {
       const branch = PANTHEON_BRANCHES.find(b => b.id === def.branch);
-      return { ok: false, reason: (branch ? branch.label : def.branch) + ' non débloquée (Phase 8).' };
+      return { ok: false, reason: (branch ? branch.label : def.branch) + ' non débloqué — completez la zone correspondante.' };
     }
 
-    // Déjà maxé (non-uncapped) ?
-    const current = this.invested[nodeId] || 0;
-    if (!def.uncapped && current >= 1) return { ok: false, reason: 'Déjà acquis.' };
+    const rank = this.invested[nodeId] || 0;
+    if (rank >= def.maxRank) return { ok: false, reason: 'Rang maximum atteint.' };
 
-    // Prérequis
-    for (const req of (def.requires || [])) {
-      if (!this.invested[req] || this.invested[req] < 1) {
-        const r = PANTHEON_NODES[req];
-        return { ok: false, reason: 'Prérequis : ' + (r ? r.name : req) };
+    // Prérequis : le nœud parent doit avoir au moins 1 rang
+    if (def.parent) {
+      const parentRank = this.invested[def.parent] || 0;
+      if (parentRank < 1) {
+        const pd = PANTHEON_NODES[def.parent];
+        return { ok: false, reason: 'Prérequis : ' + (pd ? pd.ranks[0].name : def.parent) };
       }
     }
 
-    // Éther suffisant ?
-    if (this.rm.get('ether') < def.cost) {
-      return { ok: false, reason: 'Éther insuffisant (' + def.cost + ' requis).' };
+    const cost = this.getRankCost(nodeId);
+    if (this.rm.get('ether') < cost) {
+      return { ok: false, reason: 'Éther insuffisant (' + cost + ' requis).' };
     }
-
     return { ok: true };
   }
 
-  // ── Apprendre / investir dans un nœud ──────────────────
   learn(nodeId, sx, sy) {
     const check = this.canLearn(nodeId);
     if (!check.ok) {
-      EventBus.emit('ui:feedback', { text: check.reason, x: sx||0, y: sy||0, color: '#e05050' });
+      EventBus.emit('ui:feedback', { text: check.reason, x: sx || 0, y: sy || 0, color: '#e05050' });
       return false;
     }
-    const def = PANTHEON_NODES[nodeId];
-    this.rm.spend({ ether: def.cost });
-    this.invested[nodeId] = (this.invested[nodeId] || 0) + 1;
-    if (def.uncapped) {
-      this._etherInUncapped[nodeId] = (this._etherInUncapped[nodeId] || 0) + def.cost;
-    }
-    EventBus.emit('pantheon:node_learned', { nodeId, def });
-    EventBus.emit('talent:applied', { id: nodeId }); // recalcule production
+    const def  = PANTHEON_NODES[nodeId];
+    const cost = this.getRankCost(nodeId);
+    this.rm.spend({ ether: cost });
+    const newRank = (this.invested[nodeId] || 0) + 1;
+    this.invested[nodeId] = newRank;
+    const rankDef = def.ranks[newRank - 1];
+    EventBus.emit('pantheon:node_learned', { nodeId, def, rank: newRank });
+    EventBus.emit('talent:applied', { id: nodeId });
     EventBus.emit('resources:updated', this.rm.getSnapshot());
+    const isMastered = newRank >= def.maxRank;
     EventBus.emit('ui:feedback', {
-      text: def.icon + ' ' + def.name + ' !', x: sx||0, y: sy||0, color: '#ffd54f'
+      text: rankDef.name + (isMastered ? ' ✓ Maîtrisé !' : ' (rang ' + newRank + '/' + def.maxRank + ')'),
+      x: sx || 0, y: sy || 0, color: isMastered ? '#ff9900' : '#ffd700'
     });
     return true;
   }
 
-  // ── Récupérer les bonus calculés ────────────────────────
-  // Production globale (%)
-  getGlobalProdBonus() {
-    let total = 0;
-    Object.entries(this.invested).forEach(([id, pts]) => {
-      if (!pts) return;
-      const eff = PANTHEON_NODES[id] && PANTHEON_NODES[id].effect;
-      if (!eff) return;
-      if (eff.type === 'prodBonusAll') total += eff.value * pts;
-      if (eff.type === 'uncappedProdPer') {
-        const eth = this._etherInUncapped[id] || 0;
-        total += Math.floor(eth / eff.ethPerPoint) * eff.valuePerPoint;
-      }
-    });
-    return total;
-  }
-
-  // Bonus prod par bâtiment (%)
-  getBuildingProdBonus(buildingId) {
-    let total = 0;
-    Object.entries(this.invested).forEach(([id, pts]) => {
-      if (!pts) return;
-      const eff = PANTHEON_NODES[id] && PANTHEON_NODES[id].effect;
-      if (!eff) return;
-      if (eff.type === 'prodBonus' && eff.building) {
-        if (eff.building.split(',').includes(buildingId)) total += eff.value * pts;
-      }
-      if (eff.type === 'uncappedProdBonusPer' && eff.building) {
-        if (eff.building.split(',').includes(buildingId)) {
-          const eth = this._etherInUncapped[id] || 0;
-          total += Math.floor(eth / eff.ethPerPoint) * eff.valuePerPoint;
-        }
-      }
-    });
-    return total;
-  }
-
-  // Bonus max level bâtiment
-  getMaxLevelBonus(buildingId) {
-    let total = 0;
-    Object.entries(this.invested).forEach(([id, pts]) => {
-      if (!pts) return;
-      const eff = PANTHEON_NODES[id] && PANTHEON_NODES[id].effect;
-      if (!eff) return;
-      if (eff.type === 'maxLevelBonus' && eff.building) {
-        if (eff.building.split(',').includes(buildingId)) total += eff.value * pts;
-      }
-      if (eff.type === 'maxLevelBonusAll') total += eff.value * pts;
-    });
-    return total;
-  }
-
-  // Bonus Éther gagné (%)
-  getEtherGainBonus() {
-    let total = 0;
-    Object.entries(this.invested).forEach(([id, pts]) => {
-      if (!pts) return;
-      const eff = PANTHEON_NODES[id] && PANTHEON_NODES[id].effect;
-      if (!eff) return;
-      if (eff.type === 'etherGainPct') total += eff.value * pts;
-      if (eff.type === 'uncappedEtherGainPer') {
-        const eth = this._etherInUncapped[id] || 0;
-        total += Math.floor(eth / eff.ethPerPoint) * eff.valuePerPoint;
-      }
-      if (eff.type === 'grandMult') total += eff.value * pts;
-    });
-    return total;
-  }
-
-  // Bonus Pages Codex (+flat)
-  getCodexPagesBonus() {
-    let total = 0;
-    Object.entries(this.invested).forEach(([id, pts]) => {
-      if (!pts) return;
-      const eff = PANTHEON_NODES[id] && PANTHEON_NODES[id].effect;
-      if (!eff) return;
-      if (eff.type === 'bonusPages') total += eff.value * pts;
-    });
-    return total;
-  }
-
-  // Bonus pages Codex (%)
-  getCodexPagesPctBonus() {
-    let total = 0;
-    Object.entries(this.invested).forEach(([id, pts]) => {
-      if (!pts) return;
-      const eff = PANTHEON_NODES[id] && PANTHEON_NODES[id].effect;
-      if (!eff) return;
-      if (eff.type === 'codexPagesMult') total += eff.value * pts;
-      if (eff.type === 'uncappedPagesMult') {
-        const eth = this._etherInUncapped[id] || 0;
-        total += Math.floor(eth / eff.ethPerPoint) * eff.valuePerPoint;
-      }
-    });
-    return total;
-  }
-
-  // Coût fouille bonus (%)
-  getDigCostBonus() {
-    let total = 0;
-    Object.entries(this.invested).forEach(([id, pts]) => {
-      if (!pts) return;
-      const eff = PANTHEON_NODES[id] && PANTHEON_NODES[id].effect;
-      if (!eff) return;
-      if (eff.type === 'digCostPct') total += eff.value * pts;
-      if (eff.type === 'uncappedDigCostPer') {
-        const eth = this._etherInUncapped[id] || 0;
-        total += Math.floor(eth / eff.ethPerPoint) * (-eff.valuePerPoint);
-      }
-    });
-    return total; // négatif = réduction
-  }
-
-  // Score de Renaissance bonus (%)
-  getScoreBonus() {
-    let total = 0;
-    Object.entries(this.invested).forEach(([id, pts]) => {
-      if (!pts) return;
-      const eff = PANTHEON_NODES[id] && PANTHEON_NODES[id].effect;
-      if (!eff) return;
-      if (eff.type === 'scoreMultPct') total += eff.value * pts;
-      if (eff.type === 'grandMult') total += eff.value * pts;
-    });
-    return total;
-  }
-
-  // Scout slots bonus
-  getScoutSlotsBonus() {
-    let total = 0;
-    Object.entries(this.invested).forEach(([id, pts]) => {
-      if (!pts) return;
-      const eff = PANTHEON_NODES[id] && PANTHEON_NODES[id].effect;
-      if (!eff) return;
-      if (eff.type === 'scoutSlots') total += eff.value * pts;
-    });
-    return total;
-  }
-
-  // Scout speed bonus (%)
-  getScoutSpeedBonus() {
-    let total = 0;
-    Object.entries(this.invested).forEach(([id, pts]) => {
-      if (!pts) return;
-      const eff = PANTHEON_NODES[id] && PANTHEON_NODES[id].effect;
-      if (!eff) return;
-      if (eff.type === 'scoutSpeedPct') total += eff.value * pts;
-    });
-    return total;
-  }
-
-  // ── Helpers ─────────────────────────────────────────────
-  getAllNodes() { return PANTHEON_NODES; }
-  getAllBranches() { return PANTHEON_BRANCHES; }
   getNodeState(nodeId) {
-    const pts = this.invested[nodeId] || 0;
-    if (pts === 0) {
-      const check = this.canLearn(nodeId);
-      return check.ok ? 'available' : 'locked';
-    }
-    const def = PANTHEON_NODES[nodeId];
-    if (def && def.uncapped) return 'learned'; // uncapped toujours "learned" + re-achetable
-    return 'learned';
+    const def  = PANTHEON_NODES[nodeId];
+    if (!def) return 'locked';
+    const rank = this.invested[nodeId] || 0;
+    if (rank >= def.maxRank) return 'mastered';
+    if (rank > 0) return 'learned';
+    return this.canLearn(nodeId).ok ? 'available' : 'locked';
   }
+
+  getNodeRank(nodeId)    { return this.invested[nodeId] || 0; }
+  getNodeMaxRank(nodeId) { const d = PANTHEON_NODES[nodeId]; return d ? d.maxRank : 0; }
+  getAllNodes()           { return PANTHEON_NODES; }
+  getAllBranches()        { return PANTHEON_BRANCHES; }
+
+  // ── Accumulation des effets ────────────────────────────────
+  _sum(predicate) {
+    let total = 0;
+    Object.entries(this.invested).forEach(([id, rank]) => {
+      if (!rank) return;
+      const def = PANTHEON_NODES[id];
+      if (!def) return;
+      for (let r = 1; r <= rank; r++) {
+        const rd = def.ranks[r - 1];
+        if (rd && rd.effect) total += predicate(rd.effect) || 0;
+      }
+    });
+    return total;
+  }
+
+  getGlobalProdBonus()    { return this._sum(e => e.type==='prodBonusAll' ? e.value : 0); }
+  getBuildingProdBonus(bid) {
+    return this._sum(e => {
+      if (e.type==='prodBonus' && e.building && e.building.split(',').includes(bid)) return e.value;
+      return 0;
+    });
+  }
+  getMaxLevelBonus(bid) {
+    return this._sum(e => {
+      if (e.type==='maxLevelBonus' && e.building && e.building.split(',').includes(bid)) return e.value;
+      if (e.type==='maxLevelBonusAll') return e.value;
+      return 0;
+    });
+  }
+  getEtherGainBonus()      { return this._sum(e => e.type==='etherGainPct'    ? e.value : 0); }
+  getCodexPagesBonus()     { return this._sum(e => e.type==='bonusPages'      ? e.value : 0); }
+  getCodexPagesPctBonus()  { return this._sum(e => e.type==='codexPagesMult'  ? e.value : 0); }
+  getDigCostBonus()        { return this._sum(e => e.type==='digCostPct'      ? e.value : 0); }
+  getScoreBonus()          { return this._sum(e => e.type==='scoreMultPct'    ? e.value : 0); }
+  getBuildCostBonus()      { return this._sum(e => e.type==='buildCostPct'    ? e.value : 0); }
+  getScoutSlotsBonus()     { return this._sum(e => e.type==='scoutSlots'      ? e.value : 0); }
+  getScoutSpeedBonus()     { return this._sum(e => e.type==='scoutSpeedPct'   ? e.value : 0); }
+  getRevealRangeBonus()    { return this._sum(e => e.type==='haloRange'       ? e.value : 0); }
+  getPopCapBonus()         { return this._sum(e => e.type==='popCapPct'       ? e.value : 0); }
+  getRevealSpeedBonus()    { return this._sum(e => e.type==='revealSpeed'     ? e.value : 0); }
+  getScoutExtraReveal()    { return this._sum(e => e.type==='scoutExtraReveal'? e.value : 0); }
 
   _bindEvents() {
-    // En Phase 8, les zones débloquent les branches
     EventBus.on('zone:unlocked', (d) => {
       const branch = PANTHEON_BRANCHES.find(b => b.zoneId === d.zoneId);
       if (branch) this.unlockBranch(branch.id);
     });
   }
 
-  // ── Sauvegarde ──────────────────────────────────────────
   serialize() {
     return {
       invested:         this.invested,
-      etherInUncapped:  this._etherInUncapped,
       unlockedBranches: Array.from(this.unlockedBranches),
     };
   }
@@ -747,7 +858,6 @@ class PantheonManager {
   deserialize(data) {
     if (!data) return;
     this.invested         = data.invested         || {};
-    this._etherInUncapped = data.etherInUncapped  || {};
     if (data.unlockedBranches) {
       this.unlockedBranches = new Set(data.unlockedBranches);
     }

@@ -60,7 +60,7 @@ class GameLoop {
     this.buildingManager._recalculateAllRates();
     this.scoutManager    = new ScoutManager(this.grid, this.buildingManager);
     this.codexManager    = new CodexManager(this.grid, this.resources, this.buildingManager);
-    this.pantheonManager = new PantheonManager(this.resources, this.codexManager);
+    this.pantheonManager = new PantheonManager(this.resources);
     this.zoneManager     = new ZoneManager(this.grid, this.resources, null, null, this.codexManager);
     this.prestigeManager = new PrestigeManager(this.grid, this.resources, this.buildingManager);
     this.prestigeManager.talentManager = this.talentManager;
