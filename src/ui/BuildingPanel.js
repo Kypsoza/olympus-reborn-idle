@@ -167,6 +167,7 @@ class BuildingPanel {
         var transforms = BuildingManager.getTerrainTransforms(activeCell.type);
         var hasRoadAction = (activeCell.type === CELL_TYPE.PLAIN || activeCell.type === CELL_TYPE.FIELD ||
                              activeCell.type === CELL_TYPE.GROVE || activeCell.hasRoad);
+        var hasBridgeAction = (activeCell.type === CELL_TYPE.RIVER && !activeCell.building);
         if (hasRoadAction) {
           if (activeCell.hasRoad) {
             var rr = self.bm.canRemoveRoad(activeCell);
@@ -180,7 +181,15 @@ class BuildingPanel {
           var ok = self.rm.canAfford(tr.cost);
           frag.appendChild(makeCard({ icon:tr.glyph, name:tr.label, desc:tr.description, costs:tr.cost, transform:tr.targetType, locked:!ok }));
         });
-        if (!hasRoadAction && transforms.length === 0) {
+        // Pont sur case Rivière
+        if (hasBridgeAction) {
+          var pontDef = (typeof BUILDINGS !== 'undefined') ? BUILDINGS['pont'] : null;
+          if (pontDef) {
+            var pontCheck = self.bm.canBuild(activeCell, 'pont');
+            frag.appendChild(makeCard({ icon:'🌉', name:'Pont de Pierre', desc:'Franchit la rivière · Frontière divine', costs:pontDef.buildCost, buildId:'pont', locked:!pontCheck.ok }));
+          }
+        }
+        if (!hasBridgeAction && !hasRoadAction && transforms.length === 0) {
           var empty = document.createElement('div');
           empty.className = 'bb-card-empty';
           empty.textContent = 'Aucune action disponible sur ce terrain.';
@@ -274,14 +283,19 @@ class BuildingPanel {
           var available2 = cell ? BuildingManager.getBuildingsForTerrain(cell.type) : [];
           var currentEra2 = (self.tm && self.tm.getUnlockedEra) ? self.tm.getUnlockedEra() : 1;
           var firstCat = null;
-          CATS.forEach(function(cat) {
-            if (firstCat || cat.id === 'terrain') return;
-            var hasSomething = available2.some(function(def) {
-              if (!cat.ids.includes(def.id)) return false;
-              return !def.era || def.era <= currentEra2;
+          // Rivière : ouvrir directement l'onglet Terrain (pont)
+          if (cell && cell.type === CELL_TYPE.RIVER && !cell.building) {
+            firstCat = 'terrain';
+          } else {
+            CATS.forEach(function(cat) {
+              if (firstCat || cat.id === 'terrain') return;
+              var hasSomething = available2.some(function(def) {
+                if (!cat.ids.includes(def.id)) return false;
+                return !def.era || def.era <= currentEra2;
+              });
+              if (hasSomething) firstCat = cat.id;
             });
-            if (hasSomething) firstCat = cat.id;
-          });
+          }
           if (firstCat) renderDrawer(firstCat);
           else closeDrawer();
         } else if (openCatId) {
@@ -431,6 +445,9 @@ class BuildingPanel {
       if (this.bm.transformTerrain(cell, 'plain', sx, sy)) { this.currentCell = null; this.hide(); }
     } else if (act === 'river-drain') {
       if (this.bm.transformTerrain(cell, 'mud', sx, sy)) { this.refresh(); }
+    } else if (act === 'do-prestige') {
+      var pm2 = window.game && window.game.prestigeManager;
+      if (pm2) { pm2.triggerPrestige(); self.hide(); }
     }
   }
 
@@ -1706,6 +1723,82 @@ class BuildingPanel {
   }
 
   // ── UI Base Cachee (Ruines Antiques) ───────────────────────
+  // ── UI Base Principale (BASE_MAIN) — Prestige & Conditions ─────────────
+  _renderBaseUI(cell, body) {
+    var self = this;
+    var pm  = window.game && window.game.prestigeManager;
+    var rm  = this.rm;
+    var fmt = function(v) { return v >= 1e6 ? (v/1e6).toFixed(1)+'M' : v >= 1e3 ? (v/1e3).toFixed(1)+'k' : Math.floor(v).toString(); };
+
+    var cond        = pm ? pm.getConditions() : { revealed:0, revealedOk:false, basesLvl5:0, basesLvl5Ok:false, allMet:false };
+    var liveScore   = pm ? pm.getLiveScore()  : 0;
+    var etherGain   = pm ? pm.computeEther()  : 0;
+    var presCount   = pm ? pm.prestigeCount   : 0;
+    var allMet      = cond.allMet;
+
+    // ── En-tête ──────────────────────────────────────────────────────────
+    var html = '<div class="bp-bld-header">'
+      + '<span class="bp-bld-glyph" style="filter:drop-shadow(0 0 8px #ffd54f)">🏛️</span>'
+      + '<div>'
+        + '<div class="bp-bld-name" style="color:#ffd54f">Base Principale</div>'
+        + '<div class="bp-bld-lvl" style="color:#a09060">Prestige n°' + (presCount + 1) + ' en préparation</div>'
+      + '</div>'
+    + '</div>';
+
+    // ── Score actuel ─────────────────────────────────────────────────────
+    html += '<div style="margin:8px 0;padding:8px;background:rgba(255,213,79,0.07);border:1px solid rgba(255,213,79,0.20);border-radius:6px">'
+      + '<div style="font-size:10px;color:#a09060;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:4px">⭐ Score Renaissance actuel</div>'
+      + '<div style="font-size:20px;font-family:Cinzel,serif;color:#ffd54f;font-weight:900">' + liveScore.toLocaleString() + '</div>'
+      + '<div style="font-size:10px;color:#80c080;margin-top:3px">✨ Gain Éther estimé : <b>' + fmt(etherGain) + '</b></div>'
+    + '</div>';
+
+    // ── Conditions de prestige ────────────────────────────────────────────
+    html += '<div style="font-size:10px;color:#a09060;letter-spacing:0.05em;text-transform:uppercase;margin:8px 0 4px">Conditions Prestige</div>';
+
+    function condRow(ok, label, detail) {
+      return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05)">'
+        + '<span style="font-size:14px;flex-shrink:0">' + (ok ? '✅' : '🔲') + '</span>'
+        + '<div style="flex:1">'
+          + '<div style="font-size:11px;color:' + (ok ? '#80e080' : '#ccc') + '">' + label + '</div>'
+          + (detail ? '<div style="font-size:10px;color:#888">' + detail + '</div>' : '')
+        + '</div>'
+      + '</div>';
+    }
+
+    html += condRow(cond.revealedOk,
+      'Cases révélées : ' + cond.revealed + ' / ' + (pm ? pm.REQUIRED_REVEALED : 50),
+      cond.revealedOk ? 'Condition remplie ✓' : 'Continuez à fouiller la carte');
+
+    html += condRow(cond.basesLvl5Ok,
+      'Bases Cachées niv.5 : ' + cond.basesLvl5 + ' / ' + (pm ? pm.REQUIRED_BASE_LVL5 : 3),
+      cond.basesLvl5Ok ? 'Condition remplie ✓' : 'Trouvez les ✦ sur la carte et améliorez-les au niv.5');
+
+    // ── Bouton Prestige ───────────────────────────────────────────────────
+    html += '<div class="bp-bld-actions" style="margin-top:10px">';
+    if (allMet) {
+      html += '<button class="bp-upgrade-btn" data-action="do-prestige" style="background:linear-gradient(135deg,#8a6000,#ffd54f);border-color:#ffd54f;color:#1a0e00;font-weight:900;font-size:13px">'
+        + '🌟 Lancer le Prestige'
+        + '<span class="bp-upgrade-cost">+' + fmt(etherGain) + ' ✨ Éther</span>'
+        + '</button>'
+        + '<div style="font-size:10px;color:#f0c840;text-align:center;margin-top:5px">⚠️ Remet la carte à zéro. L\'Éther et les Talents sont conservés.</div>';
+    } else {
+      html += '<button class="bp-upgrade-btn hex-locked" disabled style="opacity:0.45;cursor:default">'
+        + '🔒 Prestige non disponible'
+        + '</button>'
+        + '<div style="font-size:10px;color:#888;text-align:center;margin-top:5px">Remplissez toutes les conditions ci-dessus.</div>';
+    }
+    html += '</div>';
+
+    // ── Heritage (si prestige > 0) ────────────────────────────────────────
+    if (presCount > 0 && pm && pm.heritage && pm.heritage.length > 0) {
+      html += '<div style="margin-top:10px;font-size:10px;color:#c090ff;padding:6px;background:rgba(176,96,255,0.08);border-radius:6px">'
+        + '👻 ' + pm.heritage.length + ' spectres d\'héritage conservés du dernier prestige.'
+        + '</div>';
+    }
+
+    body.innerHTML = html;
+  }
+
   _renderBaseHiddenUI(cell, body) {
     var self = this;
     var isHiddenBase = !!cell.isHiddenBase; // vraie base améliorable

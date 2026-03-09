@@ -281,7 +281,8 @@ class MapRenderer {
       ctx.globalAlpha = 0.20;
       ctx.fillText(colors.glyph, x, y - hexSize*0.44);
       ctx.globalAlpha = 1;
-      this._drawBuilding(ctx, cell, x, y);
+      if (cell.building === 'pont') this._drawBridge(ctx, x, y, hexSize);
+      else this._drawBuilding(ctx, cell, x, y);
     }
 
     // Spectre d heritage (post-prestige)
@@ -322,6 +323,29 @@ class MapRenderer {
     ctx.beginPath(); ctx.moveTo(rx+3, ry+h/2); ctx.lineTo(rx+w-3, ry+h/2); ctx.stroke();
     ctx.setLineDash([]);
   }
+
+  _drawBridge(ctx, x, y, hexSize) {
+    const w = hexSize * 0.88, railH = 6, deckH = 10;
+    const bx = x - w/2, by = y - deckH/2;
+    ctx.fillStyle = 'rgba(160,130,70,0.9)';
+    ctx.beginPath(); ctx.roundRect(bx, by, w, deckH, 3); ctx.fill();
+    ctx.strokeStyle = 'rgba(200,170,100,0.8)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.roundRect(bx, by, w, deckH, 3); ctx.stroke();
+    ctx.fillStyle = 'rgba(200,170,100,0.85)';
+    for (let i = 0; i <= 4; i++) {
+      const bpx = bx + (w / 4) * i;
+      ctx.fillRect(bpx - 1.5, by - railH, 3, railH);
+      ctx.fillRect(bpx - 1.5, by + deckH, 3, railH);
+    }
+    ctx.fillStyle = 'rgba(220,190,110,0.7)';
+    ctx.fillRect(bx, by - railH, w, 2);
+    ctx.fillRect(bx, by + deckH + railH - 2, w, 2);
+    ctx.font = (hexSize * 0.30) + 'px serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('🌉', x, y + hexSize * 0.42);
+  }
+
 
   // ── Rendu batiment ──────────────────────────────────────
   _drawBuilding(ctx, cell, x, y) {

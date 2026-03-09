@@ -22,7 +22,7 @@ const ZONE_DEFS = [
 
     // ── Condition 2 : Frontière ───────────────────────────────
     borderType: 'riviere',
-    borderDesc: 'Rivière Divine — poser 2 Routes sur des cases Rivière',
+    borderDesc: 'Rivière Divine — construire 2 Ponts de Pierre sur des cases Rivière',
     borderCondition: { terrain: 'river', roads: 2 },
 
     // ── Condition 3 : Clé Divine ──────────────────────────────
@@ -755,10 +755,11 @@ class ZoneManager {
         }
 
       } else if (cond.terrain === 'river' && cond.roads) {
+        // Compte les ponts construits sur des cases Rivière
         let count = 0;
         this.grid.cells.forEach(cell => {
           if (!cell.isRevealed) return;
-          if (cell.type === CELL_TYPE.RIVER && cell.hasRoad) count++;
+          if (cell.type === CELL_TYPE.RIVER && cell.building === 'pont') count++;
         });
         ok = count >= cond.roads;
       } else if (cond.terrain === 'tunnel') {

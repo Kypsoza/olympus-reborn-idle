@@ -85,6 +85,16 @@ const BUILDINGS = {
     description:"Transforme l'Ambroisie en Farine Sacree.",
     maxLevel:30,
   },
+  pont: {
+    id:'pont', name:'Pont de Pierre', glyph:'\u{1F309}', era:1,
+    validTerrain:['river'],
+    produces:{}, consumesWorkers:0,
+    buildCost:{drachmes:250, bois:100},
+    upgradeCostBase:{drachmes:0},
+    description:'Pont traversant une rivière. Permet le passage des routes et compte pour la frontière divine de Poséidon.',
+    maxLevel:1,
+    isBridge:true,
+  },
   pylone: {
     id:'pylone', name:"Pylone d'Hermes", glyph:'\u26A1', era:1,
     validTerrain:['plain'],
@@ -562,12 +572,15 @@ class BuildingManager {
     let head = 0;
     while (head < queue.length) {
       const cur = queue[head++];
-      if (cur.hasRoad || cur.type === CELL_TYPE.BASE_MAIN) {
+      const curPassable = cur.hasRoad || cur.type === CELL_TYPE.BASE_MAIN || cur.building === 'pont';
+      if (curPassable) {
         this.grid.getNeighbors(cur.q, cur.r).forEach(n => {
-          if (!visited.has(n.key) && n.isRevealed &&
-              (n.hasRoad || n.type === CELL_TYPE.BASE_MAIN)) {
-            visited.add(n.key);
-            queue.push(n);
+          if (!visited.has(n.key) && n.isRevealed) {
+            const nPassable = n.hasRoad || n.type === CELL_TYPE.BASE_MAIN || n.building === 'pont';
+            if (nPassable) {
+              visited.add(n.key);
+              queue.push(n);
+            }
           }
         });
       }
