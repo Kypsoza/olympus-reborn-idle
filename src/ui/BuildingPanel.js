@@ -23,14 +23,12 @@ class BuildingPanel {
 
     // ── Catégories ────────────────────────────────────────
     var CATS = [
-      { id:'nature',    icon:'🌿', label:'Nature',      ids:['farm','lumber','moulin','verger','halle','jardins','bosquet'] },
-      { id:'extract',   icon:'⛏️', label:'Extraction',  ids:['mine_copper','mine_iron','tresor'] },
-      { id:'transform', icon:'⚙️', label:'Transfo',     ids:['atelier_forgeron','fonderie_celeste','alambic','forge_divine','autel_fusion','distillerie','fontaine'] },
-      { id:'housing',   icon:'🛖', label:'Logements',   ids:['huttes','maison','palais','stele_zeus','bibliotheque'] },
-      { id:'energy',    icon:'⚡', label:'Énergie',     ids:['pylone','noeud_olympien'] },
-      { id:'explore',   icon:'🗺️', label:'Explore',     ids:['scout','sanctuaire','temple_hermes'] },
-      { id:'wonders',   icon:'🏛️', label:'Merveilles',  ids:['agora','forteresse','senat'] },
-      { id:'road',      icon:'🛤️', label:'Routes',      ids:[] },
+      { id:'nourriture',   icon:'🌾', label:'Nourriture',  tooltip:'Fermes, moulins et cultures',      ids:['farm','moulin','verger','halle','jardins','bosquet'] },
+      { id:'ressources',   icon:'⛏️', label:'Ressources',  tooltip:'Bois, mines et trésors',           ids:['lumber','mine_copper','mine_iron','tresor'] },
+      { id:'industrie',    icon:'🔥', label:'Industrie',   tooltip:'Forges, fonderies et alchimie',    ids:['atelier_forgeron','fonderie_celeste','alambic','forge_divine','distillerie','fontaine','autel_fusion'] },
+      { id:'civilisation', icon:'🏛️', label:'Cité',        tooltip:'Logements, savoir et gouvernance', ids:['huttes','maison','palais','bibliotheque','stele_zeus','agora','senat'] },
+      { id:'puissance',    icon:'⚡', label:'Puissance',   tooltip:'Énergie, exploration et défense',  ids:['pylone','noeud_olympien','scout','sanctuaire','temple_hermes','forteresse'] },
+      { id:'terrain',      icon:'🛤️', label:'Terrain',     tooltip:'Routes et transformations du sol', ids:[] },
     ];
 
     // ── Outer bar DOM ─────────────────────────────────────
@@ -46,25 +44,7 @@ class BuildingPanel {
     var activeCell= null;
     var openCatId = null;
 
-    // ── Hexagone SVG helper ───────────────────────────────
-    function hexSVG() {
-      return '<svg viewBox="0 0 100 114" xmlns="http://www.w3.org/2000/svg">' +
-        '<polygon class="hex-poly-fill" points="50,2 96,27 96,87 50,112 4,87 4,27"/>' +
-        '<polygon class="hex-poly-stroke" points="50,2 96,27 96,87 50,112 4,87 4,27"/>' +
-        '</svg>';
-    }
-
-    // ── Render dock tabs ──────────────────────────────────
-    dock.innerHTML = '';
-    CATS.forEach(function(cat) {
-      var btn = document.createElement('button');
-      btn.className = 'bb-tab';
-      btn.dataset.cat = cat.id;
-      btn.innerHTML = '<span class="bb-tab-icon">' + cat.icon + '</span><span class="bb-tab-label">' + cat.label + '</span>';
-      dock.appendChild(btn);
-    });
-
-    // ── Build tooltip DOM ─────────────────────────────────
+    // ── Tooltip DOM ───────────────────────────────────────
     var tt = document.getElementById('bld-tooltip');
     if (!tt) {
       tt = document.createElement('div');
@@ -92,157 +72,171 @@ class BuildingPanel {
         (prodLines ? '<div class="btt-section">Production</div><div class="btt-prods">' + prodLines + '</div>' : '') +
         state + '<button class="btt-close">✕</button>';
     }
-    function showTT(hexEl, def, check) {
+    function showTT(cardEl, def, check) {
       tt.innerHTML = buildTTContent(def, check);
       tt.classList.add('visible');
       tt.style.pointerEvents = 'none';
       var closeBtn = tt.querySelector('.btt-close');
       if (closeBtn) { closeBtn.addEventListener('click', function(e){ e.stopPropagation(); tt.dataset.pinned=''; tt.className=''; }); }
-      var r=hexEl.getBoundingClientRect(), tw=255, th=tt.offsetHeight||160;
+      var r = cardEl.getBoundingClientRect(), tw = 255, th = tt.offsetHeight || 180;
       if (window.innerWidth > 600) {
-        var tx=r.left-tw-12, ty=r.top-th+r.height/2;
-        if (tx<8) tx=r.right+12;
-        if (ty<8) ty=8;
-        if (ty+th>window.innerHeight-8) ty=window.innerHeight-th-8;
-        tt.style.left=tx+'px'; tt.style.top=ty+'px'; tt.style.bottom='auto';
-      } else { tt.style.left=''; tt.style.top=''; }
+        var tx = r.left - tw - 12, ty = r.top - th + r.height / 2;
+        if (tx < 8) tx = r.right + 12;
+        if (ty < 8) ty = 8;
+        if (ty + th > window.innerHeight - 8) ty = window.innerHeight - th - 8;
+        tt.style.left = tx + 'px'; tt.style.top = ty + 'px'; tt.style.bottom = 'auto';
+      } else { tt.style.left = ''; tt.style.top = ''; }
     }
-    function hideTT() { if (!tt.dataset.pinned) tt.className=''; }
+    function hideTT() { if (!tt.dataset.pinned) tt.className = ''; }
 
-    // ── Render drawer content ─────────────────────────────
+    // ── Render dock tabs ──────────────────────────────────
+    function renderDock() {
+      dock.innerHTML = '';
+      var currentEra = (self.tm && self.tm.getUnlockedEra) ? self.tm.getUnlockedEra() : 1;
+      CATS.forEach(function(cat) {
+        var isTerrainCat = cat.id === 'terrain';
+        var hasVisible = isTerrainCat || cat.ids.some(function(id) {
+          var def = (typeof BUILDINGS !== 'undefined') ? BUILDINGS[id] : null;
+          if (!def) return false;
+          return !def.era || def.era <= currentEra;
+        });
+        if (!hasVisible) return;
+        var btn = document.createElement('button');
+        btn.className = 'bb-tab';
+        btn.dataset.cat = cat.id;
+        btn.title = cat.tooltip || cat.label;
+        btn.setAttribute('aria-label', cat.label + ' — ' + (cat.tooltip||''));
+        btn.innerHTML =
+          '<span class="bb-tab-icon">' + cat.icon + '</span>' +
+          '<span class="bb-tab-label">' + cat.label + '</span>';
+        dock.appendChild(btn);
+      });
+    }
+    renderDock();
+
+    // ── Render drawer ─────────────────────────────────────
     function renderDrawer(catId) {
       if (!activeCell) return;
-      var cat = CATS.find(function(c){ return c.id===catId; });
+      var cat = CATS.find(function(c){ return c.id === catId; });
       if (!cat) return;
       openCatId = catId;
-
       drawerEl.className = 'bb-drawer-open';
-      drawerEl.innerHTML = '<button class="bb-drawer-close" id="bb-close">✕</button>';
+      drawerEl.innerHTML = '';
 
-      var available = BuildingManager.getBuildingsForTerrain(activeCell.type);
-      var transforms = BuildingManager.getTerrainTransforms(activeCell.type);
-      var hasRoadAction = (activeCell.type === CELL_TYPE.PLAIN || activeCell.type === CELL_TYPE.FIELD ||
-                           activeCell.type === CELL_TYPE.GROVE || activeCell.hasRoad);
       var frag = document.createDocumentFragment();
+      var currentEra = (self.tm && self.tm.getUnlockedEra) ? self.tm.getUnlockedEra() : 1;
 
-      // Road category
-      if (catId === 'road') {
-        var roadEl = document.createElement('div');
+      function makeCard(opts) {
+        var card = document.createElement('div');
+        var cls = 'bb-card';
+        if (opts.locked)  cls += ' bb-card-locked';
+        if (opts.danger)  cls += ' bb-card-danger';
+        card.className = cls;
+        if (opts.buildId)   card.dataset.bbId        = opts.buildId;
+        if (opts.action)    card.dataset.bbAction     = opts.action;
+        if (opts.transform) card.dataset.bbTransform  = opts.transform;
+
+        var costHtml = '';
+        if (opts.costs) {
+          costHtml = Object.entries(opts.costs).map(function(e) {
+            var has = self.rm.get(e[0]) >= e[1];
+            return '<span class="bb-cost-chip' + (has ? '' : ' short') + '">' + (RES_ICONS[e[0]]||e[0]) + ' ' + self._fmt(e[1]) + '</span>';
+          }).join('');
+        }
+
+        card.innerHTML =
+          (opts.locked ? '<div class="bb-card-lock">🔒</div>' : '') +
+          '<div class="bb-card-icon">' + opts.icon + '</div>' +
+          '<div class="bb-card-name">' + opts.name + '</div>' +
+          (opts.desc ? '<div class="bb-card-desc">' + opts.desc + '</div>' : '') +
+          '<div class="bb-card-costs">' + costHtml + '</div>';
+
+        if (window.innerWidth > 600 && opts.buildId) {
+          var _bdef = (typeof BUILDINGS !== 'undefined') ? BUILDINGS[opts.buildId] : null;
+          if (_bdef) {
+            var _check = self.bm.canBuild(activeCell, opts.buildId);
+            card.addEventListener('mouseenter', function(){ showTT(card, _bdef, _check); });
+            card.addEventListener('mouseleave', function(){ if (!tt.dataset.pinned) hideTT(); });
+          }
+        }
+        return card;
+      }
+
+      if (catId === 'terrain') {
+        // ── Routes & transformations terrain ──
+        var transforms = BuildingManager.getTerrainTransforms(activeCell.type);
+        var hasRoadAction = (activeCell.type === CELL_TYPE.PLAIN || activeCell.type === CELL_TYPE.FIELD ||
+                             activeCell.type === CELL_TYPE.GROVE || activeCell.hasRoad);
         if (hasRoadAction) {
           if (activeCell.hasRoad) {
             var rr = self.bm.canRemoveRoad(activeCell);
-            roadEl.className = 'hex-btn hex-action hex-danger' + (rr.ok?'':' hex-locked');
-            roadEl.dataset.bbAction = 'road-remove';
-            roadEl.innerHTML = '<div class="hex-bg">' + hexSVG() + '</div><span class="hex-icon">🗑️</span><span class="hex-label">Démolir Route</span>';
+            frag.appendChild(makeCard({ icon:'🗑️', name:'Démolir Route', desc:'Retire la route de cette case', costs:{ drachmes:10 }, action:'road-remove', locked:!rr.ok, danger:true }));
           } else {
             var rc = self.bm.canPlaceRoad(activeCell);
-            roadEl.className = 'hex-btn hex-action' + (rc.ok?' hex-ok':' hex-locked');
-            roadEl.dataset.bbAction = 'road';
-            roadEl.innerHTML = '<div class="hex-bg">' + hexSVG() + '</div><span class="hex-icon">🛤️</span><span class="hex-label">Route</span><span class="hex-cost' + (rc.ok?'':' short') + '">30🪙 10🪵</span>';
+            frag.appendChild(makeCard({ icon:'🛤️', name:'Poser une Route', desc:'Relie cette case au réseau routier', costs:{ drachmes:30, bois:10 }, action:'road', locked:!rc.ok }));
           }
-          frag.appendChild(roadEl);
         }
-        // Transforms
         transforms.forEach(function(tr) {
           var ok = self.rm.canAfford(tr.cost);
-          var trEl = document.createElement('div');
-          trEl.className = 'hex-btn hex-action' + (ok?' hex-ok':' hex-locked');
-          trEl.dataset.bbTransform = tr.targetType;
-          var firstCost = Object.entries(tr.cost)[0];
-          var trCost = firstCost ? ((RES_ICONS[firstCost[0]]||firstCost[0]) + ' ' + self._fmt(firstCost[1])) : '';
-          trEl.innerHTML = '<div class="hex-bg">' + hexSVG() + '</div><span class="hex-icon">' + tr.glyph + '</span><span class="hex-label">' + tr.label + '</span>' + (trCost ? '<span class="hex-cost' + (ok?'':' short') + '">' + trCost + '</span>' : '');
-          frag.appendChild(trEl);
+          frag.appendChild(makeCard({ icon:tr.glyph, name:tr.label, desc:tr.description, costs:tr.cost, transform:tr.targetType, locked:!ok }));
         });
+        if (!hasRoadAction && transforms.length === 0) {
+          var empty = document.createElement('div');
+          empty.className = 'bb-card-empty';
+          empty.textContent = 'Aucune action disponible sur ce terrain.';
+          frag.appendChild(empty);
+        }
       } else {
-        // Buildings filtered by category ids (allow all if cat.ids is null)
+        // ── Bâtiments ──
+        var available = BuildingManager.getBuildingsForTerrain(activeCell.type);
+        var shown = 0;
         available.forEach(function(def) {
           if (!def) return;
-          // Filter: if cat has explicit ids, skip buildings not in the list
-          // Also show building if no ids defined (catch-all)
-          var inCat = !cat.ids.length || cat.ids.includes(def.id);
-          if (!inCat) return;
+          if (!cat.ids.includes(def.id)) return;
+          if (def.era && def.era > currentEra) return; // pas encore débloqué
+          shown++;
           var check = self.bm.canBuild(activeCell, def.id);
-          var eraLocked = def.era && def.era > 1 && self.tm && self.tm.getUnlockedEra() < def.era;
-          var hexEl = document.createElement('div');
-          var cls = 'hex-btn';
-          if (!check.ok) cls += ' hex-locked';
-          if (check.ok) cls += ' hex-ok';
-          if (eraLocked) cls += ' hex-era-locked';
-          hexEl.className = cls;
-          hexEl.dataset.bbId = def.id;
-          var firstCostEntry = Object.entries(def.buildCost)[0];
-          var costStr = firstCostEntry
-            ? ((RES_ICONS[firstCostEntry[0]]||firstCostEntry[0]) + ' ' + self._fmt(firstCostEntry[1]) + (Object.keys(def.buildCost).length > 1 ? '…' : ''))
-            : '';
-          var hasAllCosts = Object.entries(def.buildCost).every(function(e){ return self.rm.get(e[0]) >= e[1]; });
-          hexEl.innerHTML =
-            '<div class="hex-bg">' + hexSVG() + '</div>' +
-            (window.innerWidth <= 600 ? '<button class="hex-info-btn" data-info="' + def.id + '">i</button>' : '') +
-            (def.era > 1 ? '<span class="hex-era era-' + def.era + '">Ère ' + def.era + '</span>' : '') +
-            '<span class="hex-icon">' + def.glyph + '</span>' +
-            '<span class="hex-label">' + def.name + '</span>' +
-            (costStr ? '<span class="hex-cost' + (hasAllCosts ? '' : ' short') + '">' + costStr + '</span>' : '');
-          if (window.innerWidth > 600) {
-            var _def2 = def;
-            hexEl.addEventListener('mouseenter', function(){ showTT(hexEl, _def2, self.bm.canBuild(activeCell, _def2.id)); });
-            hexEl.addEventListener('mouseleave', function(){ if (!tt.dataset.pinned) hideTT(); });
-          }
-          frag.appendChild(hexEl);
+          var prodParts = [];
+          if (def.baseProdPerField)   prodParts.push('🌾 +' + def.baseProdPerField + '/champ');
+          if (def.baseProdPerSupport) prodParts.push('🪵 +' + def.baseProdPerSupport + '/forêt');
+          if (def.produces) Object.entries(def.produces).forEach(function(e){ prodParts.push((RES_ICONS[e[0]]||e[0]) + ' +' + e[1] + '/s'); });
+          var prodStr = prodParts.slice(0,3).join(' · ');
+          var desc = prodStr || def.description || '';
+          frag.appendChild(makeCard({ icon:def.glyph, name:def.name, desc:desc, costs:def.buildCost, buildId:def.id, locked:!check.ok }));
         });
+        if (shown === 0) {
+          var emptyEl = document.createElement('div');
+          emptyEl.className = 'bb-card-empty';
+          emptyEl.textContent = 'Aucun bâtiment disponible pour ce terrain.';
+          frag.appendChild(emptyEl);
+        }
       }
 
       drawerEl.appendChild(frag);
 
-      // Close button
-      document.getElementById('bb-close').onclick = function() { closeDrawer(); };
-
-      // ── Click: build immediately on activeCell ──────────
+      // ── Clic : construire / route / transform ──────────
       drawerEl.onclick = function(e) {
         if (!activeCell) return;
-
-        // Close
-        var closeBtn = e.target.closest('#bb-close');
-        if (closeBtn) { closeDrawer(); return; }
-
-        // Info button (mobile)
-        var infoBtn = e.target.closest('.hex-info-btn');
-        if (infoBtn) {
-          e.stopPropagation();
-          var id = infoBtn.dataset.info;
-          var defObj = (typeof BUILDINGS !== 'undefined') ? BUILDINGS[id] : null;
-          if (!defObj) return;
-          var checkObj = self.bm.canBuild(activeCell, id);
-          var parentHex = infoBtn.closest('.hex-btn');
-          if (tt.dataset.pinned === id) { tt.dataset.pinned=''; tt.className=''; }
-          else { showTT(parentHex, defObj, checkObj); tt.dataset.pinned=id; tt.classList.add('pinned'); tt.style.pointerEvents='auto'; }
-          return;
-        }
-
-        if (tt.dataset.pinned) { tt.dataset.pinned=''; tt.className=''; }
-
-        var hexEl = e.target.closest('.hex-btn');
-        if (!hexEl || hexEl.classList.contains('hex-locked')) return;
-
+        var row = e.target.closest('.bb-card');
+        if (!row || row.classList.contains('bb-card-locked')) return;
         var now2 = Date.now();
         if (self._lastBuildAt && now2 - self._lastBuildAt < 350) return;
         self._lastBuildAt = now2;
 
-        // Build
-        if (hexEl.dataset.bbId) {
-          self.bm.build(activeCell, hexEl.dataset.bbId, 0, 0);
-          // Refresh drawer (costs may have changed)
+        if (row.dataset.bbId) {
+          self.bm.build(activeCell, row.dataset.bbId, 0, 0);
           renderDrawer(catId);
           return;
         }
-        // Road
-        var act = hexEl.dataset.bbAction;
-        if (act === 'road')        { self.bm.placeRoad(activeCell, 0, 0); renderDrawer(catId); }
-        else if (act === 'road-remove') { self.bm.removeRoad(activeCell, 0, 0); renderDrawer(catId); }
-        // Transform
-        if (hexEl.dataset.bbTransform) { self.bm.transformTerrain(activeCell, hexEl.dataset.bbTransform, 0, 0); closeDrawer(); }
+        var act = row.dataset.bbAction;
+        if (act === 'road')        { self.bm.placeRoad(activeCell, 0, 0); renderDrawer(catId); return; }
+        if (act === 'road-remove') { self.bm.removeRoad(activeCell, 0, 0); renderDrawer(catId); return; }
+        if (row.dataset.bbTransform) {
+          var done = self.bm.transformTerrain(activeCell, row.dataset.bbTransform, 0, 0);
+          if (done) renderDrawer(catId);
+        }
       };
 
-      // Highlight active tab
       dock.querySelectorAll('.bb-tab').forEach(function(t){
         t.classList.toggle('bb-tab-active', t.dataset.cat === catId);
       });
@@ -264,7 +258,7 @@ class BuildingPanel {
       renderDrawer(catId);
     };
 
-    // ── Prevent events leaking to map ────────────────────
+    // ── Stop events leaking ───────────────────────────────
     bar.addEventListener('touchstart', function(e){ e.stopPropagation(); }, { passive: false });
     bar.addEventListener('touchend',   function(e){ e.stopPropagation(); }, { passive: false });
     bar.addEventListener('mousedown',  function(e){ e.stopPropagation(); });
@@ -273,28 +267,26 @@ class BuildingPanel {
     this._buildBar = {
       bar: bar,
       setCell: function(cell, isNewCell) {
-        var prevCell = activeCell;
         activeCell = cell;
         bar.classList.add('bb-bar-visible');
-        // Only auto-open drawer when switching to a NEW cell
-        // If user closed the drawer (openCatId===null), respect that
+        renderDock();
         if (isNewCell) {
-          // New cell: auto-open first relevant category
           var available2 = cell ? BuildingManager.getBuildingsForTerrain(cell.type) : [];
+          var currentEra2 = (self.tm && self.tm.getUnlockedEra) ? self.tm.getUnlockedEra() : 1;
           var firstCat = null;
           CATS.forEach(function(cat) {
-            if (firstCat) return;
-            if (cat.id==='road') return;
-            var hasSomething = available2.some(function(def){ return !cat.ids.length || cat.ids.includes(def.id); });
+            if (firstCat || cat.id === 'terrain') return;
+            var hasSomething = available2.some(function(def) {
+              if (!cat.ids.includes(def.id)) return false;
+              return !def.era || def.era <= currentEra2;
+            });
             if (hasSomething) firstCat = cat.id;
           });
           if (firstCat) renderDrawer(firstCat);
           else closeDrawer();
         } else if (openCatId) {
-          // Same cell refresh: only refresh if drawer is open
           renderDrawer(openCatId);
         }
-        // If openCatId===null: drawer was closed by user — don't reopen
       },
       hide: function() {
         activeCell = null;
@@ -414,6 +406,7 @@ class BuildingPanel {
   _handleBodyClick(e) {
     var btn = e.target.closest('[data-action]');
     if (!btn) return;
+    if (btn.classList.contains('hex-locked') || btn.classList.contains('bb-row-locked')) return;
     var act  = btn.dataset.action;
     var cell = this.currentCell;
     if (!cell) return;
@@ -425,6 +418,19 @@ class BuildingPanel {
     } else if (act === 'base-upgrade') {
       var pm = window.game && window.game.prestigeManager;
       if (pm && pm.upgradeBase(cell, sx, sy)) { this.refresh(); }
+    } else if (act === 'mud-drain') {
+      if (this.bm.transformTerrain(cell, 'plain', sx, sy)) { this.currentCell = null; this.hide(); }
+      else { this.refresh(); }
+    } else if (act === 'rubble-clear') {
+      if (this.bm.transformTerrain(cell, 'plain', sx, sy)) { this.currentCell = null; this.hide(); }
+    } else if (act === 'tun-road') {
+      if (this.bm.placeRoad(cell, sx, sy)) { this.refresh(); }
+    } else if (act === 'tun-road-rm') {
+      if (this.bm.removeRoad(cell, sx, sy)) { this.refresh(); }
+    } else if (act === 'tun-collapse') {
+      if (this.bm.transformTerrain(cell, 'plain', sx, sy)) { this.currentCell = null; this.hide(); }
+    } else if (act === 'river-drain') {
+      if (this.bm.transformTerrain(cell, 'mud', sx, sy)) { this.refresh(); }
     }
   }
 
