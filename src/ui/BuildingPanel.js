@@ -2491,8 +2491,14 @@ class BuildingPanel {
         }
         if(nd.uncapped&&pts2>1)
           s+='<text x="'+(pos.x+NODE_R*0.72).toFixed(1)+'" y="'+(pos.y-NODE_R*0.58).toFixed(1)+'" text-anchor="middle" font-size="9" fill="#ffd54f" font-family="Cinzel,serif">×'+pts2+'</text>';
-        s+='<text x="'+pos.x.toFixed(1)+'" y="'+(pos.y+9).toFixed(1)+'" text-anchor="middle" dominant-baseline="middle" font-size="'+(isLearned?25:21)+'">'+nd.icon+'</text>';
-        var lbl=nd.name||nid; if(lbl.length>12) lbl=lbl.slice(0,11)+'…';
+        // Icon vient de la branche (les nœuds n'ont pas d'icon propre)
+        var branchIcon = b ? b.icon : '?';
+        s+='<text x="'+pos.x.toFixed(1)+'" y="'+(pos.y+9).toFixed(1)+'" text-anchor="middle" dominant-baseline="middle" font-size="'+(isLearned?25:21)+'">'+branchIcon+'</text>';
+        // Nom : rang actuel (ou rang 1 si pas encore appris)
+        var curRank = pts2 > 0 ? pts2 : 0;
+        var rankDef = nd.ranks && nd.ranks[curRank] ? nd.ranks[curRank] : (nd.ranks && nd.ranks[0]);
+        var lbl = rankDef ? rankDef.name : (nd.id || nid);
+        if(lbl.length>12) lbl=lbl.slice(0,11)+'…';
         var labelFill=isLearned?'#f0e080':(isAvailable&&unlocked)?'rgba(220,200,150,0.88)':'rgba(105,100,90,0.42)';
         s+='<text x="'+pos.x.toFixed(1)+'" y="'+(pos.y+NODE_R+14).toFixed(1)+'" text-anchor="middle" font-family="Cinzel,serif" font-size="9.5" fill="'+labelFill+'">'+lbl+'</text>';
         s+='</g>';
@@ -2547,14 +2553,14 @@ class BuildingPanel {
       // ── God labels — luminous bloom ────────────────────────────────────────
       BRANCHES.forEach(function(b){
         var rad=b.angle*Math.PI/180;
-        var lx=CX+Math.cos(rad)*(R5+45);
-        var ly=CY+Math.sin(rad)*(R5+45);
+        var lx=CX+Math.cos(rad)*(R5+72);
+        var ly=CY+Math.sin(rad)*(R5+72);
         lx=Math.max(90,Math.min(W-90,lx));
         ly=Math.max(45,Math.min(H-45,ly));
         var rgb=hexToRgb(b.color);
         var unlocked=pan.isBranchUnlocked?pan.isBranchUnlocked(b.id):true;
         var col=unlocked?b.color:'rgba(68,64,80,1)';
-        var pillW=Math.max(96,b.label.length*10+32), pillH=34;
+        var pillW=Math.max(110,b.label.length*11+40), pillH=38;
 
         if(unlocked){
           // Bloom halo
@@ -2568,17 +2574,24 @@ class BuildingPanel {
           s+='<text x="'+(lx-pillW/2+19).toFixed(1)+'" y="'+(ly+7).toFixed(1)+'" text-anchor="middle" font-size="16">'+b.icon+'</text>';
           // Name — glow layer beneath + solid layer on top
           s+='<text x="'+(lx+10).toFixed(1)+'" y="'+(ly+7).toFixed(1)+'" text-anchor="middle"'
-            +' font-family="Cinzel,serif" font-size="13.5" font-weight="900" letter-spacing="0.06em"'
+            +' font-family="Cinzel,serif" font-size="15" font-weight="900" letter-spacing="0.06em"'
             +' fill="rgba('+rgb+',0.55)" filter="url(#glow-m)">'+b.label+'</text>';
           s+='<text x="'+(lx+10).toFixed(1)+'" y="'+(ly+7).toFixed(1)+'" text-anchor="middle"'
-            +' font-family="Cinzel,serif" font-size="13.5" font-weight="900" letter-spacing="0.06em"'
+            +' font-family="Cinzel,serif" font-size="15" font-weight="900" letter-spacing="0.06em"'
             +' fill="'+col+'">'+b.label+'</text>';
         } else {
+          // Branche verrouillée : pill semi-transparente mais nom coloré + cadenas visible
           s+='<rect x="'+(lx-pillW/2).toFixed(1)+'" y="'+(ly-pillH/2).toFixed(1)+'"'
             +' width="'+pillW+'" height="'+pillH+'" rx="'+Math.round(pillH/2)+'"'
-            +' fill="rgba(6,3,16,0.62)" stroke="rgba(88,82,100,0.30)" stroke-width="1"/>';
-          s+='<text x="'+lx.toFixed(1)+'" y="'+(ly+7).toFixed(1)+'" text-anchor="middle"'
-            +' font-family="Cinzel,serif" font-size="12" font-weight="700" fill="rgba(78,74,90,0.55)">🔒 '+b.label+'</text>';
+            +' fill="rgba(6,3,16,0.72)" stroke="rgba('+rgb+',0.30)" stroke-width="1.5" stroke-dasharray="4,3"/>';
+          // Icône dieu (réduite)
+          s+='<text x="'+(lx-pillW/2+19).toFixed(1)+'" y="'+(ly+7).toFixed(1)+'" text-anchor="middle" font-size="14">'+b.icon+'</text>';
+          // Nom en couleur du dieu (lisible même verrouillé)
+          s+='<text x="'+(lx+10).toFixed(1)+'" y="'+(ly+7).toFixed(1)+'" text-anchor="middle"'
+            +' font-family="Cinzel,serif" font-size="12.5" font-weight="700" letter-spacing="0.04em"'
+            +' fill="rgba('+rgb+',0.65)">'+b.label+'</text>';
+          // Cadenas sous la pill
+          s+='<text x="'+lx.toFixed(1)+'" y="'+(ly+pillH/2+16).toFixed(1)+'" text-anchor="middle" font-size="13">🔒</text>';
         }
       });
 
@@ -2869,38 +2882,50 @@ class BuildingPanel {
       var bc=b?b.color:'#888', rgb=hexToRgb(bc);
       var state=pan.getNodeState(nodeId), pts2=pan.invested[nodeId]||0;
       var check=pan.canLearn(nodeId), unlocked=pan.isBranchUnlocked ? pan.isBranchUnlocked(nd.branch) : true;
-      var stateLabel=state==='learned'?'✅ Acquis':state==='available'?'🟡 Disponible':'🔒 Verrouillé';
-      var stateColor=state==='learned'?'#60e060':state==='available'?'#f0c840':'#808080';
+      var stateLabel=state==='mastered'?'✨ Maîtrisé':state==='learned'?'✅ Acquis (rang '+pts2+'/'+nd.maxRank+')':state==='available'?'🟡 Disponible':'🔒 Verrouillé';
+      var stateColor=state==='mastered'?'#ffd700':state==='learned'?'#60e060':state==='available'?'#f0c840':'#808080';
+      // Rangs du nœud — les infos sont dans nd.ranks[]
+      var dispRankIdx=pts2>0?pts2-1:0;
+      var nextRankIdx=pts2<nd.maxRank?pts2:nd.maxRank-1;
+      var curRankDef=nd.ranks&&nd.ranks[dispRankIdx];
+      var nextRankDef=nd.ranks&&nd.ranks[nextRankIdx];
+      var nodeIcon=b?b.icon:'⭐';
+      var nodeName=curRankDef?curRankDef.name:(nd.id||nodeId);
+      var nodeDesc=nextRankDef?nextRankDef.desc:(curRankDef?curRankDef.desc:'');
+      var rankCost=pan.getRankCost?pan.getRankCost(nodeId):nd.baseCost;
       var prereqHtml='';
-      if(nd.requires&&nd.requires.length>0){
-        prereqHtml='<div class="pnt-d-prereq">🔗 Prérequis : '+
-          nd.requires.map(function(rId){
-            var rn=PN[rId]; var ok=(pan.invested[rId]||0)>0;
-            return '<span style="color:'+(ok?'#60e060':'#e06060')+'">'+(rn?rn.name:rId)+'</span>';
-          }).join(', ')+'</div>';
+      if(nd.parent){
+        var pd=PN[nd.parent]; var pok=(pan.invested[nd.parent]||0)>0;
+        var pName=pd&&pd.ranks&&pd.ranks[0]?pd.ranks[0].name:nd.parent;
+        prereqHtml='<div class="pnt-d-prereq">🔗 Prérequis : <span style="color:'+(pok?'#60e060':'#e06060')+'">'+pName+'</span></div>';
       }
-      var buyDisabled=(state==='learned'&&!nd.uncapped)||!check.ok;
-      var buyLabel=nd.uncapped?'✨ Acheter encore (×'+(pts2+1)+') — '+nd.cost+' Éther'
-                  :state==='learned'?'✅ Déjà acquis'
-                  :check.ok?'✨ Apprendre — '+nd.cost+' Éther'
-                  :'🔒 '+(check.reason||'Indisponible');
+      var ranksHtml='<div class="pnt-d-ranks">';
+      if(nd.ranks) nd.ranks.forEach(function(rk,ri){
+        var done=ri<pts2,cur=ri===pts2;
+        var col=done?'#60e060':cur?'#f0c840':'rgba(160,150,120,0.45)';
+        ranksHtml+='<div class="pnt-d-rank-row" style="color:'+col+'">'+(done?'✓ ':cur?'▶ ':'  ')+'R'+(ri+1)+' — '+rk.name+'</div>';
+      });
+      ranksHtml+='</div>';
+      var buyDisabled=state==='mastered'||!check.ok;
+      var buyLabel=state==='mastered'?'✅ Nœud maîtrisé':check.ok?'✨ Rang '+(pts2+1)+'/'+nd.maxRank+' — '+rankCost+' Éther':'🔒 '+(check.reason||'Indisponible');
       sideEl.innerHTML=
         '<div class="pnt-d-wrap" style="--bc:'+bc+';--rgb:'+rgb+'">'
         +'<div class="pnt-d-head">'
           +'<svg viewBox="0 0 60 70" width="52" height="60">'
             +'<polygon points="30,2 56,17 56,53 30,68 4,53 4,17" fill="rgba('+rgb+',0.25)" stroke="'+bc+'" stroke-width="2.5"/>'
-            +'<text x="30" y="44" text-anchor="middle" font-size="26">'+nd.icon+'</text>'
+            +'<text x="30" y="44" text-anchor="middle" font-size="26">'+nodeIcon+'</text>'
           +'</svg>'
           +'<div class="pnt-d-info">'
-            +'<div class="pnt-d-name">'+nd.name+'</div>'
+            +'<div class="pnt-d-name">'+nodeName+'</div>'
             +'<div class="pnt-d-branch" style="color:'+bc+'">'+(b?b.icon+' '+b.label:'')+'</div>'
-            +'<div class="pnt-d-ring">Anneau '+nd.ring+(nd.uncapped?' · ∞ (×'+pts2+' acquis)':'')+' · '+nd.cost+' ✨</div>'
+            +'<div class="pnt-d-ring">Anneau '+(nd.level||'?')+' · Rang '+pts2+'/'+nd.maxRank+'</div>'
           +'</div>'
         +'</div>'
         +'<div class="pnt-d-state" style="color:'+stateColor+'">'+stateLabel+'</div>'
-        +'<div class="pnt-d-desc">'+nd.desc+'</div>'
+        +'<div class="pnt-d-desc">'+nodeDesc+'</div>'
         +prereqHtml
-        +'<button class="pnt-d-buy'+(buyDisabled?' disabled':'')+'\" data-buy-node="'+nodeId+'"'+(buyDisabled?' disabled':'')+'>'+buyLabel+'</button>'
+        +ranksHtml
+        +'<button class="pnt-d-buy'+(buyDisabled?' disabled':'')+'" data-buy-node="'+nodeId+'"'+(buyDisabled?' disabled':'')+'>'+buyLabel+'</button>'
         +'</div>';
 
       var buyBtn=sideEl.querySelector('[data-buy-node]');

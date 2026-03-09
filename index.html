@@ -17,15 +17,15 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="css/main.css?v=1773055105" />
-  <link rel="stylesheet" href="css/hud.css?v=1773055105" />
-  <link rel="stylesheet" href="css/map.css?v=1773055105" />
-  <link rel="stylesheet" href="css/ui.css?v=1773055105" />
-  <link rel="stylesheet" href="css/animations.css?v=1773055105" />
-  <link rel="stylesheet" href="css/bottom-panel.css?v=1773055105" />
-  <link rel="stylesheet" href="css/buildings.css?v=1773055105" />
-  <link rel="stylesheet" href="css/talent-panel.css?v=1773055105" />
-  <link rel="stylesheet" href="css/help-panel.css?v=1773055105" />
+  <link rel="stylesheet" href="css/main.css?v=1773067024" />
+  <link rel="stylesheet" href="css/hud.css?v=1773067024" />
+  <link rel="stylesheet" href="css/map.css?v=1773067024" />
+  <link rel="stylesheet" href="css/ui.css?v=1773067024" />
+  <link rel="stylesheet" href="css/animations.css?v=1773067024" />
+  <link rel="stylesheet" href="css/bottom-panel.css?v=1773067024" />
+  <link rel="stylesheet" href="css/buildings.css?v=1773067024" />
+  <link rel="stylesheet" href="css/talent-panel.css?v=1773067024" />
+  <link rel="stylesheet" href="css/help-panel.css?v=1773067024" />
 </head>
 <body>
   <div id="era-screen-flash"></div>
@@ -375,7 +375,7 @@
 
     <!-- Texte info (gauche, flex-1) -->
     <div id="info-panel">
-      <span id="info-text">Tap une case pour explorer...</span>
+      <span id="game-version" style="font-size:9px;color:rgba(200,149,26,0.55);font-family:Cinzel,serif;letter-spacing:0.05em;margin-right:6px">v0.9.01</span><span id="info-text">Tap une case pour explorer...</span>
     </div>
 
     <!-- Bonheur population (centre) -->
@@ -472,29 +472,29 @@
   <!-- ═══════════════════════════════════════════════════════
        SCRIPTS (ordre de chargement important)
   ════════════════════════════════════════════════════════ -->
-  <script src="src/utils/MathUtils.js?v=1773055105"></script>
-  <script src="src/utils/HexUtils.js?v=1773055105"></script>
-  <script src="src/utils/Compression.js?v=1773055105"></script>
-  <script src="src/engine/EventBus.js?v=1773055105"></script>
-  <script src="src/engine/SaveManager.js?v=1773055105"></script>
-  <script src="src/map/HexCell.js?v=1773055105"></script>
-  <script src="src/map/HexGrid.js?v=1773055105"></script>
-  <script src="src/map/Camera.js?v=1773055105"></script>
-  <script src="src/map/MapRenderer.js?v=1773055105"></script>
-  <script src="src/systems/ResourceManager.js?v=1773055105"></script>
-  <script src="src/systems/TalentManager.js?v=1773055105"></script>
-  <script src="src/systems/ScoutManager.js?v=1773055105"></script>
-  <script src="src/systems/ZoneManager.js?v=1773055105"></script>
-  <script src="src/systems/PantheonManager.js?v=1773055105"></script>
-  <script src="src/systems/CodexManager.js?v=1773055105"></script>
-  <script src="src/systems/PrestigeManager.js?v=1773055105"></script>
-  <script src="src/systems/BuildingManager.js?v=1773055105"></script>
-  <script src="src/ui/HUD.js?v=1773055105"></script>
-  <script src="src/ui/BuildingPanel.js?v=1773055105"></script>
-  <script src="src/ui/HelpPanel.js?v=1773055105"></script>
-  <script src="src/ui/OfflineModal.js?v=1773055105"></script>
-  <script src="src/engine/GoogleDriveSync.js?v=1773055105"></script>
-  <script src="src/engine/GameLoop.js?v=1773055105"></script>
+  <script src="src/utils/MathUtils.js?v=1773067024"></script>
+  <script src="src/utils/HexUtils.js?v=1773067024"></script>
+  <script src="src/utils/Compression.js?v=1773067024"></script>
+  <script src="src/engine/EventBus.js?v=1773067024"></script>
+  <script src="src/engine/SaveManager.js?v=1773067024"></script>
+  <script src="src/map/HexCell.js?v=1773067024"></script>
+  <script src="src/map/HexGrid.js?v=1773067024"></script>
+  <script src="src/map/Camera.js?v=1773067024"></script>
+  <script src="src/map/MapRenderer.js?v=1773067024"></script>
+  <script src="src/systems/ResourceManager.js?v=1773067024"></script>
+  <script src="src/systems/TalentManager.js?v=1773067024"></script>
+  <script src="src/systems/ScoutManager.js?v=1773067024"></script>
+  <script src="src/systems/ZoneManager.js?v=1773067024"></script>
+  <script src="src/systems/PantheonManager.js?v=1773067024"></script>
+  <script src="src/systems/CodexManager.js?v=1773067024"></script>
+  <script src="src/systems/PrestigeManager.js?v=1773067024"></script>
+  <script src="src/systems/BuildingManager.js?v=1773067024"></script>
+  <script src="src/ui/HUD.js?v=1773067024"></script>
+  <script src="src/ui/BuildingPanel.js?v=1773067024"></script>
+  <script src="src/ui/HelpPanel.js?v=1773067024"></script>
+  <script src="src/ui/OfflineModal.js?v=1773067024"></script>
+  <script src="src/engine/GoogleDriveSync.js?v=1773067024"></script>
+  <script src="src/engine/GameLoop.js?v=1773067024"></script>
 
   <script>
   /* ── Écran Titre + Google Drive Sync ───────────────────── */
