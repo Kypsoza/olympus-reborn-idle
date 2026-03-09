@@ -490,8 +490,6 @@ class BuildingPanel {
       { id:'siderurgie',   label:'Sidérurgie',    icon:'⚙️' },
       { id:'population',   label:'Population',    icon:'👥' },
       { id:'ingenierie',   label:'Ingénierie',    icon:'🏛️' },
-      { id:'cartographie', label:'Cartographie',  icon:'🗺️' },
-      { id:'prestige_codex',label:'Héritage',     icon:'📜' },
     ];
 
     if (!self._drachtab) self._drachtab = 'agriculture';
@@ -2187,41 +2185,57 @@ class BuildingPanel {
     var branchMap = {};
     BRANCHES.forEach(function(b){ branchMap[b.id]=b; });
 
-    // ── Canvas dimensions ────────────────────────────────────────────────────
-    var W=1600, H=1000;
-    var CX=800, CY=500;
-    // Ellipse stretch
-    var EX=1.40, EY=0.78;
-    // Ring radii — arbre binaire : niveaux 1-2-3-4
-    var R1=150, R2=280, R3=400, R4=520;
-    var RING_RADII = [0, R1, R2, R3, R4];
+    // ── Canvas dimensions ─────────────────────────────────────────────────────
+    var W=1200, H=1200;
+    var CX=600, CY=600;
+    // Cercle pur — pas d'aplatissement
+    var R1=130, R2=240, R3=360, R4=480, R5=590;
+    var RING_RADII = [0, R1, R2, R3, R4, R5];
     var NODE_R = 20;
-    var SLOTS = { 1:1, 2:2, 3:4, 4:8 };
-    var SPREAD = 42; // ±degrees around branch angle
+    // Nombre de nœuds par anneau (total 6 branches)
+    var SLOTS_PER_RING = { 1:6, 2:12, 3:24, 4:48, 5:6 };
 
-    // ── Ellipse-mapped position for a node ───────────────────────────────────
-    function nodePos(angleDeg, level, slot) {
+    // ── Position circulaire d'un nœud ─────────────────────────────────────────
+    // Pour un anneau donné, les nœuds sont répartis équitablement sur 360°
+    // En gardant l'appartenance à la branche : chaque branche occupe 60° (360/6)
+    // Ring 1 : 1 nœud/branche → 6 nœuds, espacés de 60°
+    // Ring 2 : 2 nœuds/branche → 12 nœuds, espacés de 30°
+    // Ring 3 : 4 nœuds/branche → 24 nœuds, espacés de 15°
+    // Ring 4 : 8 nœuds/branche → 48 nœuds, espacés de 7.5°
+    // Ring 5 (suprême) : 1 par branche → 6 nœuds, à l'angle de la branche
+    function nodePos(branchAngleDeg, level, slot, totalSlotsInBranch) {
       var r = RING_RADII[level] || R1;
-      var n = SLOTS[level] || 1;
-      var step = n > 1 ? (SPREAD * 2) / (n - 1) : 0;
-      var slotAngle = angleDeg + (slot - (n-1)/2) * step;
+      if (level === 5) {
+        // Suprême : exactement à l'angle de la branche
+        var rad5 = branchAngleDeg * Math.PI / 180;
+        return { x: CX + Math.cos(rad5)*r, y: CY + Math.sin(rad5)*r };
+      }
+      // Secteur de 60° par branche, subdivisé équitablement
+      var sectorWidth = 60; // degrés
+      var step = totalSlotsInBranch > 1 ? sectorWidth / totalSlotsInBranch : 0;
+      // Centrer les slots dans le secteur
+      var startAngle = branchAngleDeg - sectorWidth/2 + step/2;
+      var slotAngle  = startAngle + slot * step;
       var rad = slotAngle * Math.PI / 180;
-      return {
-        x: CX + Math.cos(rad) * r * EX,
-        y: CY + Math.sin(rad) * r * EY
-      };
+      return { x: CX + Math.cos(rad)*r, y: CY + Math.sin(rad)*r };
     }
 
     // ── Gather nodes by branch ───────────────────────────────────────────────
+    var SN = (typeof SUPREME_NODES !== 'undefined') ? SUPREME_NODES : (window.SUPREME_NODES || {});
     var nodesByBranch = {};
-    BRANCHES.forEach(function(b){ nodesByBranch[b.id] = {1:[],2:[],3:[],4:[]}; });
+    BRANCHES.forEach(function(b){ nodesByBranch[b.id] = {1:[],2:[],3:[],4:[],5:[]}; });
     Object.keys(PN).forEach(function(nid) {
       var nd = PN[nid];
-      if (!nd) return;
-      if (!nodesByBranch[nd.branch]) return;
-      var lv = nd.level || nd.ring || 1;
+      if (!nd || !nodesByBranch[nd.branch]) return;
+      var lv = nd.level || 1;
       if (!nodesByBranch[nd.branch][lv]) nodesByBranch[nd.branch][lv] = [];
       nodesByBranch[nd.branch][lv].push(nid);
+    });
+    // Ajouter les nœuds suprêmes (niveau 5)
+    Object.keys(SN).forEach(function(nid) {
+      var snd = SN[nid];
+      if (!snd || !nodesByBranch[snd.branch]) return;
+      nodesByBranch[snd.branch][5].push(nid);
     });
 
     // ── Compute node positions ───────────────────────────────────────────────
@@ -2230,8 +2244,13 @@ class BuildingPanel {
       [1,2,3,4].forEach(function(lv) {
         var nodes = nodesByBranch[b.id][lv] || [];
         nodes.forEach(function(nid, si) {
-          nodePositions[nid] = nodePos(b.angle, lv, si);
+          nodePositions[nid] = nodePos(b.angle, lv, si, nodes.length);
         });
+      });
+      // Suprêmes (niveau 5)
+      var supNodes = nodesByBranch[b.id][5] || [];
+      supNodes.forEach(function(nid) {
+        nodePositions[nid] = nodePos(b.angle, 5, 0, 1);
       });
     });
     // ── Edge style per branch ────────────────────────────────────────────────
@@ -2362,56 +2381,43 @@ class BuildingPanel {
         s+='<circle cx="'+st[0]+'" cy="'+st[1]+'" r="'+r.toFixed(1)+'" fill="rgba(255,255,255,'+(0.18+r*0.1)+')"/>';
       });
 
-      // ── Colored sector fills — camembert semi-transparent (~40%) ──────────
+      // ── Colored sector fills — secteurs de 60° ─────────────────────────────
       BRANCHES.forEach(function(b){
         var rgb=hexToRgb(b.color);
         var unlocked = pan.isBranchUnlocked ? pan.isBranchUnlocked(b.id) : true;
         var a0=(b.angle-30)*Math.PI/180, a1=(b.angle+30)*Math.PI/180;
-        var sR=R3+110, steps=24;
-        // Full sector fill
+        var sR=R5+30, steps=24;
         var arcPts=CX.toFixed(1)+','+CY.toFixed(1);
         for(var si=0;si<=steps;si++){
           var ta=a0+(a1-a0)*si/steps;
-          arcPts+=' '+(CX+Math.cos(ta)*sR*EX).toFixed(1)+','+(CY+Math.sin(ta)*sR*EY).toFixed(1);
+          arcPts+=' '+(CX+Math.cos(ta)*sR).toFixed(1)+','+(CY+Math.sin(ta)*sR).toFixed(1);
         }
-        s+='<polygon points="'+arcPts+'" fill="rgba('+rgb+','+(unlocked?'0.38':'0.08')+')" stroke="none"/>';
-        // Bright rim band (inner arc strip at R3 for depth)
-        if(unlocked){
-          var rimPts='';
-          for(var ri=0;ri<=steps;ri++){
-            var tr=a0+(a1-a0)*ri/steps;
-            var ix=(CX+Math.cos(tr)*(R3-6)*EX).toFixed(1)+','+(CY+Math.sin(tr)*(R3-6)*EY).toFixed(1);
-            rimPts+=(ri===0?'M':'L')+ix;
-          }
-          for(var ri2=steps;ri2>=0;ri2--){
-            var tr2=a0+(a1-a0)*ri2/steps;
-            var ox=(CX+Math.cos(tr2)*(R3+50)*EX).toFixed(1)+','+(CY+Math.sin(tr2)*(R3+50)*EY).toFixed(1);
-            rimPts+='L'+ox;
-          }
-          s+='<path d="'+rimPts+'" fill="rgba('+rgb+',0.22)" stroke="rgba('+rgb+',0.55)" stroke-width="1.5"/>';
-        }
-        // Center divider line
+        s+='<polygon points="'+arcPts+'" fill="rgba('+rgb+','+(unlocked?'0.10':'0.03')+')" stroke="none"/>';
+        // Séparateurs radiaux
         var radM=b.angle*Math.PI/180;
-        s+='<line x1="'+CX+'" y1="'+CY+'" x2="'+(CX+Math.cos(radM)*(R3+85)*EX).toFixed(1)+'" y2="'+(CY+Math.sin(radM)*(R3+85)*EY).toFixed(1)+'"'
-          +' stroke="rgba('+rgb+','+(unlocked?'0.35':'0.08')+')" stroke-width="2" stroke-dasharray="3,7"/>';
+        var radA=(b.angle-30)*Math.PI/180, radB=(b.angle+30)*Math.PI/180;
+        s+='<line x1="'+CX+'" y1="'+CY+'" x2="'+(CX+Math.cos(radA)*sR).toFixed(1)+'" y2="'+(CY+Math.sin(radA)*sR).toFixed(1)+'"'
+          +' stroke="rgba('+rgb+','+(unlocked?'0.22':'0.06')+')" stroke-width="1" stroke-dasharray="4,8"/>';
       });
 
-      // ── Ellipse guide rings ───────────────────────────────────────────────
-      [R1,R2,R3].forEach(function(r){
-        s+='<ellipse cx="'+CX+'" cy="'+CY+'" rx="'+(r*EX).toFixed(0)+'" ry="'+(r*EY).toFixed(0)+'"'
-          +' fill="none" stroke="rgba(200,149,26,0.09)" stroke-width="1" stroke-dasharray="4,8"/>';
+      // ── Guide rings (cercles parfaits) ───────────────────────────────────
+      [R1,R2,R3,R4].forEach(function(r){
+        s+='<circle cx="'+CX+'" cy="'+CY+'" r="'+r+'"'
+          +' fill="none" stroke="rgba(200,149,26,0.10)" stroke-width="1" stroke-dasharray="4,8"/>';
       });
+      // Anneau suprême (R5) — plus visible
+      s+='<circle cx="'+CX+'" cy="'+CY+'" r="'+R5+'"'
+        +' fill="none" stroke="rgba(255,215,0,0.22)" stroke-width="1.5" stroke-dasharray="8,6"/>';
 
       // ── Center orb ───────────────────────────────────────────────────────
-      s+='<circle cx="'+CX+'" cy="'+CY+'" r="82" fill="none" stroke="rgba(255,220,100,0.04)" stroke-width="40"/>';
-      s+='<circle cx="'+CX+'" cy="'+CY+'" r="58" fill="none" stroke="rgba(255,200,80,0.09)" stroke-width="22"/>';
-      s+='<circle cx="'+CX+'" cy="'+CY+'" r="45" fill="rgba(50,22,88,0.60)" stroke="rgba(255,220,120,0.22)" stroke-width="9" filter="url(#glow-l)"/>';
-      s+='<circle cx="'+CX+'" cy="'+CY+'" r="38" fill="rgba(18,8,42,0.96)" filter="url(#glow-m)"/>';
-      s+='<circle cx="'+CX+'" cy="'+CY+'" r="37" fill="none" stroke="rgba(255,210,70,0.95)" stroke-width="2.5"/>';
-      s+='<circle cx="'+CX+'" cy="'+CY+'" r="30" fill="none" stroke="rgba(255,180,50,0.30)" stroke-width="1"/>';
-      s+='<text x="'+CX+'" y="'+(CY+13)+'" text-anchor="middle" font-size="36" filter="url(#glow-m)">⚡</text>';
+      s+='<circle cx="'+CX+'" cy="'+CY+'" r="80" fill="none" stroke="rgba(255,220,100,0.04)" stroke-width="38"/>';
+      s+='<circle cx="'+CX+'" cy="'+CY+'" r="54" fill="none" stroke="rgba(255,200,80,0.08)" stroke-width="20"/>';
+      s+='<circle cx="'+CX+'" cy="'+CY+'" r="44" fill="rgba(50,22,88,0.65)" stroke="rgba(255,220,120,0.25)" stroke-width="8" filter="url(#glow-l)"/>';
+      s+='<circle cx="'+CX+'" cy="'+CY+'" r="37" fill="rgba(18,8,42,0.96)" filter="url(#glow-m)"/>';
+      s+='<circle cx="'+CX+'" cy="'+CY+'" r="36" fill="none" stroke="rgba(255,210,70,0.95)" stroke-width="2.5"/>';
+      s+='<text x="'+CX+'" y="'+(CY+13)+'" text-anchor="middle" font-size="34" filter="url(#glow-m)">🏛️</text>';
 
-      // ── Edges: center → ring1 ─────────────────────────────────────────────
+      // ── Edges : centre → ring1 ────────────────────────────────────────────
       BRANCHES.forEach(function(b){
         (nodesByBranch[b.id][1]||[]).forEach(function(nid){
           var st=pan.getNodeState(nid); var p=nodePositions[nid];
@@ -2419,19 +2425,33 @@ class BuildingPanel {
           s+=makeEdgeDirect(CX,CY,p.x,p.y,b.id,'learned',st);
         });
       });
-      // ring1→ring2, ring2→ring3 via requires
+      // ring1→ring2, ring2→ring3, ring3→ring4 via parent
       Object.keys(nodePositions).forEach(function(nid){
-        var nd=PN[nid]; if(!nd||!nd.requires) return;
-        var st1=pan.getNodeState(nid);
-        nd.requires.forEach(function(reqId){
-          if(!nodePositions[reqId]) return;
-          var st2=pan.getNodeState(reqId);
-          s+=makeEdge(reqId,nid,nd.branch,st2,st1);
+        var nd=PN[nid]; if(!nd||!nd.parent) return;
+        var parentId=nd.parent;
+        if(!nodePositions[parentId]) return;
+        var st1=pan.getNodeState(parentId);
+        var st2=pan.getNodeState(nid);
+        s+=makeEdge(parentId,nid,nd.branch,st1,st2);
+      });
+      // ring4 → ring5 suprême (edge depuis chaque nœud L4 au suprême)
+      BRANCHES.forEach(function(b){
+        var supId=b.id+'_supreme';
+        var supPos=nodePositions[supId];
+        if(!supPos) return;
+        var isUnlocked = pan.isSupremeUnlocked ? pan.isSupremeUnlocked(supId) : false;
+        var supState = isUnlocked ? 'available' : 'locked';
+        (nodesByBranch[b.id][4]||[]).forEach(function(nid){
+          var p=nodePositions[nid];
+          if(!p) return;
+          s+=makeEdge(nid,supId,b.id,pan.getNodeState(nid),supState);
         });
       });
 
-      // ── Nodes ─────────────────────────────────────────────────────────────
+      // ── Nodes normaux ──────────────────────────────────────────────────────
       Object.keys(nodePositions).forEach(function(nid){
+        // Ignorer les nœuds suprêmes ici (traités après)
+        if(SN[nid]) return;
         var nd=PN[nid]; if(!nd) return;
         var b=branchMap[nd.branch]; if(!b) return;
         var pos=nodePositions[nid];
@@ -2439,7 +2459,8 @@ class BuildingPanel {
         var pts2=pan.invested[nid]||0;
         var bc=b.color, rgb=hexToRgb(bc);
         var isSelected=(selNode===nid);
-        var isLearned=(state==='learned');
+        var isMastered=(state==='mastered');
+        var isLearned=(state==='learned'||isMastered);
         var isAvailable=(state==='available');
         var unlocked=pan.isBranchUnlocked?pan.isBranchUnlocked(nd.branch):true;
 
@@ -2455,8 +2476,8 @@ class BuildingPanel {
           s+='<path d="'+hexP(pos.x,pos.y,NODE_R+9)+'" fill="rgba('+rgb+',0.07)" stroke="rgba('+rgb+',0.28)" stroke-width="1" filter="url(#glow-s)"/>';
         }
         var fillCol=isLearned?'rgba('+rgb+',0.30)':isAvailable?'rgba(12,7,28,0.93)':'rgba(6,4,14,0.93)';
-        var strokeCol=isLearned?bc:(isAvailable&&unlocked)?'rgba('+rgb+',0.68)':'rgba(55,55,78,0.38)';
-        var strokeW=isLearned?3.0:(isAvailable&&unlocked)?1.8:1.0;
+        var strokeCol=isMastered?'#fff':(isLearned?bc:(isAvailable&&unlocked)?'rgba('+rgb+',0.68)':'rgba(55,55,78,0.38)');
+        var strokeW=isMastered?3.5:(isLearned?3.0:(isAvailable&&unlocked)?1.8:1.0);
         s+='<path d="'+hexP(pos.x,pos.y,NODE_R)+'" fill="'+fillCol+'" stroke="'+strokeCol+'" stroke-width="'+strokeW+'"/>';
         if(isLearned){
           s+='<path d="'+hexP(pos.x,pos.y,NODE_R-3)+'" fill="none" stroke="rgba('+rgb+',0.42)" stroke-width="1"/>';
@@ -2471,13 +2492,59 @@ class BuildingPanel {
         s+='</g>';
       });
 
+      // ── Nœuds Suprêmes (anneau 5) ──────────────────────────────────────────
+      BRANCHES.forEach(function(b){
+        var supId=b.id+'_supreme';
+        var snd=SN[supId]; if(!snd) return;
+        var pos=nodePositions[supId]; if(!pos) return;
+        var isUnlocked=pan.isSupremeUnlocked?pan.isSupremeUnlocked(supId):false;
+        var tier=pan.getSupremeTier?pan.getSupremeTier(supId):0;
+        var spent=(pan.supremeInvested&&pan.supremeInvested[supId])||0;
+        var isSelected=(selNode===supId);
+        var rgb=hexToRgb(b.color), bc=b.color;
+        var SR=NODE_R+6; // nœud suprême plus grand
+
+        s+='<g data-nid="'+supId+'" style="cursor:'+(isUnlocked?'pointer':'default')+'">';
+        // Halo pulsant si débloqué
+        if(isUnlocked){
+          s+='<circle cx="'+pos.x.toFixed(1)+'" cy="'+pos.y.toFixed(1)+'" r="'+(SR+18)+'" fill="rgba('+rgb+',0.08)" stroke="rgba('+rgb+',0.35)" stroke-width="1.5" stroke-dasharray="6,4" filter="url(#glow-m)"/>';
+          if(spent>0){
+            s+='<circle cx="'+pos.x.toFixed(1)+'" cy="'+pos.y.toFixed(1)+'" r="'+(SR+10)+'" fill="rgba('+rgb+',0.18)" stroke="none" filter="url(#glow-l)"/>';
+          }
+        }
+        if(isSelected){
+          s+='<circle cx="'+pos.x.toFixed(1)+'" cy="'+pos.y.toFixed(1)+'" r="'+(SR+22)+'" fill="none" stroke="'+bc+'" stroke-width="2.5" filter="url(#glow-m)"/>';
+        }
+        // Corps octogonal (8 côtés pour différencier des hexagones normaux)
+        var octPts=[]; for(var oi=0;oi<8;oi++){var oa=Math.PI/4*oi-Math.PI/8; octPts.push((pos.x+SR*Math.cos(oa)).toFixed(1)+','+(pos.y+SR*Math.sin(oa)).toFixed(1));} 
+        var octPath='M'+octPts.join('L')+'Z';
+        var fill=isUnlocked?(spent>0?'rgba('+rgb+',0.38)':'rgba(12,7,28,0.92)'):'rgba(4,2,10,0.85)';
+        var stroke=isUnlocked?(spent>0?bc:'rgba('+rgb+',0.70)'):'rgba(50,45,70,0.30)';
+        s+='<path d="'+octPath+'" fill="'+fill+'" stroke="'+stroke+'" stroke-width="'+(isUnlocked?2.5:1.0)+'"/>';
+        // Icône
+        s+='<text x="'+pos.x.toFixed(1)+'" y="'+(pos.y+9).toFixed(1)+'" text-anchor="middle" dominant-baseline="middle" font-size="22">'+snd.icon+'</text>';
+        // Palier
+        if(tier>0){
+          s+='<text x="'+(pos.x+SR*0.7).toFixed(1)+'" y="'+(pos.y-SR*0.7).toFixed(1)+'" text-anchor="middle" font-size="10" fill="#ffd700" font-family="Cinzel,serif" filter="url(#glow-s)">P'+tier+'</text>';
+        }
+        // Badge ∞
+        if(isUnlocked){
+          s+='<text x="'+(pos.x-SR*0.7).toFixed(1)+'" y="'+(pos.y-SR*0.7).toFixed(1)+'" text-anchor="middle" font-size="11" fill="rgba('+rgb+',0.9)">♾</text>';
+        }
+        // Label court
+        var slbl=snd.name.length>14?snd.name.slice(0,13)+'…':snd.name;
+        var lblFill=isUnlocked?(spent>0?'#f0e080':'rgba(220,200,150,0.88)'):'rgba(80,76,100,0.40)';
+        s+='<text x="'+pos.x.toFixed(1)+'" y="'+(pos.y+SR+15).toFixed(1)+'" text-anchor="middle" font-family="Cinzel,serif" font-size="9" fill="'+lblFill+'">'+slbl+'</text>';
+        s+='</g>';
+      });
+
       // ── God labels — luminous bloom ────────────────────────────────────────
       BRANCHES.forEach(function(b){
         var rad=b.angle*Math.PI/180;
-        var lx=CX+Math.cos(rad)*(R3+65)*EX;
-        var ly=CY+Math.sin(rad)*(R3+65)*EY;
-        lx=Math.max(82,Math.min(W-82,lx));
-        ly=Math.max(40,Math.min(H-40,ly));
+        var lx=CX+Math.cos(rad)*(R5+45);
+        var ly=CY+Math.sin(rad)*(R5+45);
+        lx=Math.max(90,Math.min(W-90,lx));
+        ly=Math.max(45,Math.min(H-45,ly));
         var rgb=hexToRgb(b.color);
         var unlocked=pan.isBranchUnlocked?pan.isBranchUnlocked(b.id):true;
         var col=unlocked?b.color:'rgba(68,64,80,1)';

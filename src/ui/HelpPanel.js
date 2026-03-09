@@ -30,24 +30,28 @@ const WIKI_INDEX = [
   { tab:'prestige', section:'p-altar',    title:'Autel de Prométhée',          icon:'🔥', keywords:'autel prométhée activation fouille prestige' },
   { tab:'prestige', section:'p-ruins',    title:'Ruines Antiques',             icon:'🏛️', keywords:'ruine améliorer niveau bonus prestige condition' },
   { tab:'prestige', section:'p-heritage', title:'Héritage et Spectres',        icon:'👻', keywords:'spectre fantôme héritage conserver prestige' },
-  { tab:'talents', section:'t-drachmes', title:'Talents Drachmes (In-Run)',    icon:'🧠', keywords:'talent drachme agriculture sylviculture métallurgie sidérurgie population énergie ingénierie' },
-  { tab:'talents', section:'t-ether',    title:'Talents Éther (Permanents)',   icon:'✨', keywords:'talent éther permanent ère relique constellation' },
+  { tab:'talents',  section:'t-drachmes', title:'Talents Drachmes (In-Run)',   icon:'🧠', keywords:'talent drachme agriculture sylviculture métallurgie sidérurgie population ingénierie' },
+  { tab:'talents',  section:'t-ether',    title:'Talents Éther (Permanents)',  icon:'✨', keywords:'talent éther permanent ère relique constellation' },
   { tab:'codex',   section:'c-codex',   title:'Codex Olympien',                icon:'📖', keywords:'codex pages multiplicateur prestige permanent phase6' },
   { tab:'codex',   section:'c-pages',   title:'Pages Codex — Sources',        icon:'📄', keywords:'pages codex sources bonus prestige' },
   { tab:'codex',   section:'c-invest',  title:'Investissements Éther Codex',  icon:'💰', keywords:'investissement éther slots dorées pages codex' },
   { tab:'codex',   section:'c-levels',  title:'Niveaux du Codex',             icon:'📊', keywords:'niveau codex seuil multiplicateur progression' },
-  { tab:'pantheon', section:'pan-intro',  title:'Panthéon Olympien',           icon:'🏛️', keywords:'panthéon arbre talent permanent albion nœud branche phase7' },
-  { tab:'pantheon', section:'pan-cart',   title:'Branche Cartographie',        icon:'🗺️', keywords:'cartographie exploration fouille scout révéler' },
-  { tab:'pantheon', section:'pan-her',    title:'Branche Héritage',            icon:'📜', keywords:'héritage prestige codex éther score renaissance permanent' },
-  { tab:'pantheon', section:'pan-divine', title:'Branches Divines 6 dieux',   icon:'⚡', keywords:'déméter héphaïstos aphrodite hadès artémis zeus branche divine panthéon' },
-  { tab:'pantheon', section:'pan-uncapped', title:'Nœuds Sans Plafond',       icon:'♾️', keywords:'sans plafond infini uncapped nœud investissement éther' },
-  { tab:'zones',   section:'z-overview', title:'Zones Divines Vue ensemble',  icon:'🌍', keywords:'zone divine triangle biome phase8 déverrouiller' },
-  { tab:'zones',   section:'z-demeter',  title:'Zone Déméter',                icon:'🌾', keywords:'déméter zone plaines nectar gratuit frontière' },
-  { tab:'zones',   section:'z-hephaistos', title:'Zone Héphaïstos',           icon:'🔨', keywords:'héphaïstos zone volcanique métal divin mine' },
-  { tab:'zones',   section:'z-aphrodite', title:'Zone Aphrodite',             icon:'💫', keywords:'aphrodite zone côtier amrita rivière pont commerce' },
-  { tab:'zones',   section:'z-hades',    title:'Zone Hadès',                  icon:'💀', keywords:'hadès zone souterrain orichalque gouffre tunnel prestige' },
-  { tab:'zones',   section:'z-artemis',  title:'Zone Artémis',                icon:'🌙', keywords:'artémis zone forêt ambroisie autel scout' },
-  { tab:'zones',   section:'z-zeus',     title:'Zone Zeus',                   icon:'⚡', keywords:'zeus zone olympe foudre éther tempête fin jeu' },
+  { tab:'pantheon', section:'pan-intro',   title:'Panthéon Olympien', icon:'🏛️', keywords:'panthéon arbre talent permanent nœud branche cercle anneau phase7' },
+  { tab:'pantheon', section:'pan-layout',  title:'Layout Circulaire',          icon:'⭕', keywords:'cercle anneau layout position équitable radial' },
+  { tab:'pantheon', section:'pan-zeus',    title:'Branche Zeus ⚡',            icon:'⚡', keywords:'zeus foudre score production pylônes global force' },
+  { tab:'pantheon', section:'pan-poseidon',title:'Branche Poséidon 🌊',        icon:'🌊', keywords:'poseidon mer exploration fouille révélation scout navigation' },
+  { tab:'pantheon', section:'pan-hades',   title:'Branche Hadès 💀',           icon:'💀', keywords:'hades enfers éther prestige codex orichalque' },
+  { tab:'pantheon', section:'pan-athena',  title:'Branche Athéna 🦉',          icon:'🦉', keywords:'athena sagesse niveaux max codex coût bâtiments' },
+  { tab:'pantheon', section:'pan-apollon', title:'Branche Apollon ☀️',         icon:'☀️', keywords:'apollon soleil nourriture agriculture population scouts lumière' },
+  { tab:'pantheon', section:'pan-ares',    title:'Branche Arès ⚔️',            icon:'⚔️', keywords:'ares guerre vitesse scouts score combat militaire' },
+  { tab:'pantheon', section:'pan-supreme', title:'Nœuds Suprêmes ♾️',          icon:'♾️', keywords:'suprême sans plafond infini palier investissement éther illimité' },
+  { tab:'zones',   section:'z-overview', title:'Zones Divines',icon:'🌍', keywords:'zone divine biome phase8 déverrouiller malédiction' },
+  { tab:'zones',   section:'z-zeus',     title:'Zone Zeus ⚡',                 icon:'⚡', keywords:'zeus zone olympe foudre pylône premier score' },
+  { tab:'zones',   section:'z-poseidon', title:'Zone Poséidon 🌊',             icon:'🌊', keywords:'poseidon zone mer nectar rivière révélation' },
+  { tab:'zones',   section:'z-hades',    title:'Zone Hadès 💀',                icon:'💀', keywords:'hades zone souterrain orichalque prestige' },
+  { tab:'zones',   section:'z-athena',   title:'Zone Athéna 🦉',               icon:'🦉', keywords:'athena zone sagesse métal divin bibliothèque drachmes' },
+  { tab:'zones',   section:'z-apollon',  title:'Zone Apollon ☀️',              icon:'☀️', keywords:'apollon zone soleil ambroisie forêt révélation' },
+  { tab:'zones',   section:'z-ares',     title:'Zone Arès ⚔️',                 icon:'⚔️', keywords:'ares zone guerre amrita forteresse codex' },
   { tab:'zones',   section:'z-unlock',   title:'Système de Déverrouillage',   icon:'🗝️', keywords:'déverrouiller conditions score clé divine rituel frontière craft' },
   { tab:'zones',   section:'z-curses',   title:'Malédictions Progressives',   icon:'💀', keywords:'malédiction stade production pénalité démolition zone' },
   { tab:'modes',   section:'m-pantheon', title:'Mode Panthéon',               icon:'⚡', keywords:'mode panthéon défaut city builder idle' },
@@ -55,7 +59,6 @@ const WIKI_INDEX = [
   { tab:'modes',   section:'m-genese',   title:'Mode Genèse Divine',          icon:'🌅', keywords:'mode genèse divine âges mythologie quêtes' },
   { tab:'debug',   section:'d-debug',   title:'Outils de debug',              icon:'🧪', keywords:'debug test localStorage reset console' },
 ];
-
 class HelpPanel {
   constructor() {
     this._currentTab     = 'guide';
@@ -308,7 +311,7 @@ class HelpPanel {
         '<table class="hp-table"><tr><th>Icône</th><th>Nom</th><th>Source</th><th>Usage</th></tr>' +
         '<tr><td>🪙</td><td><strong>Drachmes</strong></td><td>Mine Cuivre, passif</td><td>Fouille, routes, bâtiments, talents</td></tr>' +
         '<tr><td>🪵</td><td><strong>Bois de Styx</strong></td><td>Camp Bûcherons</td><td>Construction, routes, améliorations</td></tr>' +
-        '<tr><td>🌾</td><td><strong>Ambroisie</strong> (Nourr)</td><td>Ferme Antique, Jardins, Zones</td><td>Maisons, alambic, Rituel Déméter</td></tr>' +
+        '<tr><td>🌾</td><td><strong>Ambroisie</strong> (Nourr)</td><td>Ferme Antique, Jardins, Zones</td><td>Maisons, alambic, Zone Zeus</td></tr>' +
         '<tr><td>⚙️</td><td><strong>Fer Céleste</strong></td><td>Mine de Fer</td><td>Bâtiments avancés, Clés Divines</td></tr>' +
         '<tr><td>👥</td><td><strong>Habitants</strong></td><td>Huttes, Maisons Athéniennes</td><td>Travailleurs pour mines</td></tr>' +
         '<tr><td>🌾→</td><td><strong>Farine Sacrée</strong></td><td>Moulin à Grain</td><td>Maisons Athéniennes</td></tr>' +
@@ -317,7 +320,7 @@ class HelpPanel {
 
       '<div class="hp-section" id="res-era2">' + this._h('res-era2-t','🏺 Ressources Ère 2 — Âge Classique') +
         '<table class="hp-table"><tr><th>Icône</th><th>Nom</th><th>Source</th><th>Usage</th></tr>' +
-        '<tr><td>🍯</td><td><strong>Nectar</strong></td><td>Verger, Zone Déméter</td><td>Alambic, Clé Aphrodite</td></tr>' +
+        '<tr><td>🍯</td><td><strong>Nectar</strong></td><td>Zone Poséidon (Abysses)</td><td>Alambic, Clé Arès</td></tr>' +
         '<tr><td>🟫</td><td><strong>Bronze</strong></td><td>Atelier Forgeron</td><td>Fonderie, Forteresse, Agora</td></tr>' +
         '<tr><td>🔩</td><td><strong>Acier</strong></td><td>Fonderie Céleste</td><td>Bâtiments Ère 3, Clés Divines</td></tr>' +
         '</table></div>' +
@@ -326,18 +329,18 @@ class HelpPanel {
         '<table class="hp-table"><tr><th>Icône</th><th>Nom</th><th>Source</th><th>Usage</th></tr>' +
         '<tr><td>⚡</td><td><strong>Foudre</strong></td><td>Pylône, Stèle, Zone Zeus</td><td>Bâtiments Ère 3, Clé Zeus</td></tr>' +
         '<tr><td>🌟</td><td><strong>Orichalque</strong></td><td>Forge Divine, Zone Hadès</td><td>Autel Fusion, Clé Hadès</td></tr>' +
-        '<tr><td>⚗️</td><td><strong>Métal Divin</strong></td><td>Autel Fusion, Zone Héphaïstos</td><td>Forges, Sénat, Clés avancées</td></tr>' +
-        '<tr><td>💎</td><td><strong>Amrita</strong></td><td>Autel Fusion, Zone Aphrodite</td><td>Ressource finale, Score</td></tr>' +
+        '<tr><td>⚗️</td><td><strong>Métal Divin</strong></td><td>Autel Fusion, Zone Athéna</td><td>Forges, Sénat, Clés avancées</td></tr>' +
+        '<tr><td>💎</td><td><strong>Amrita</strong></td><td>Autel Fusion, Zone Arès</td><td>Ressource finale, Score</td></tr>' +
         '</table></div>' +
 
       '<div class="hp-section" id="res-divine">' + this._h('res-divine-t','🌍 Ressources Divines — Zones conquises') +
         '<p class="hp-p">Produites passivement après conquête. Voir ' + this._wikiLink('zones','z-overview','Zones Divines','🌍') + '.</p>' +
         '<table class="hp-table"><tr><th>Ressource</th><th>Zone</th><th>Taux</th></tr>' +
-        '<tr><td>🍯 Nectar</td><td>🌾 Déméter</td><td>+5/s</td></tr>' +
-        '<tr><td>⚙️ Métal Divin</td><td>🔨 Héphaïstos</td><td>+2/s</td></tr>' +
-        '<tr><td>💎 Amrita</td><td>💫 Aphrodite</td><td>+1/s + 50🪙</td></tr>' +
+        '<tr><td>🍯 Nectar</td><td>⚡ Zeus</td><td>+5/s</td></tr>' +
+        '<tr><td>⚙️ Métal Divin</td><td>🦉 Athéna</td><td>+2/s</td></tr>' +
+        '<tr><td>💎 Amrita</td><td>⚔️ Arès</td><td>+1/s + 50🪙</td></tr>' +
         '<tr><td>🌑 Orichalque</td><td>💀 Hadès</td><td>+1/s</td></tr>' +
-        '<tr><td>🌾 Ambroisie</td><td>🌙 Artémis</td><td>+3/s + bois</td></tr>' +
+        '<tr><td>🌾 Ambroisie</td><td>☀️ Apollon</td><td>+3/s + bois</td></tr>' +
         '<tr><td>⚡ Foudre ×3</td><td>⚡ Zeus</td><td>+5/s + 2 Éther</td></tr>' +
         '</table></div>' +
 
@@ -386,7 +389,7 @@ class HelpPanel {
         '<div class="hp-bcards">' +
         b('🌺','Jardins Élyséens',3,'1500🪙 + 600🪵 + 200🍯','Ambroisie ×5 + Nectar','Ferme divine.') +
         b('🌳','Bosquet Éternel',3,'1800🪙 + 800🪵 + 100🔩','Bois ×5 — auto-plantation','Auto-plante rayon 2 toutes 30s.') +
-        b('💎','Trésor d\'Héphaïstos',3,'2000🪙 + 500🪵 + 200🟫','Drachmes ×6 + Orichalque','Mine divine.') +
+        b('💎','Trésor Olympien',3,'2000🪙 + 500🪵 + 200🟫','Drachmes ×6 + Orichalque','Mine divine.') +
         b('🔥🔨','Forge Divine',3,'2500🪙 + 800🪵 + 300🔩','Orichalque + Métal Divin','Ressources rares pour Autel Fusion.') +
         b('🏛★','Palais des Titans',3,'3000🪙 + 1000🪵 + 500⚙️','Éther passif × niveau','Consomme Ambroisie + Foudre.') +
         b('🏛❤️','Sénat',3,'5000🪙 + 2000🪵 + 500🔩','UNIQUE — ×2 production globale','UNIQUE. Nécessite 100 Habitants.') +
@@ -406,7 +409,7 @@ class HelpPanel {
         '<div class="hp-card"><div class="hp-glyph">🌿</div><div class="hp-card-title">Plaine</div><div class="hp-card-body">Terrain de base. Fermes, Routes, Maisons. Devient Champ auto. près d\'une Ferme.</div></div>' +
         '<div class="hp-card"><div class="hp-glyph">🌲</div><div class="hp-card-title">Forêt</div><div class="hp-card-body">Camp de Bûcherons. Devient Bosquet auto. Peut être reboisée ou rasée.</div></div>' +
         '<div class="hp-card"><div class="hp-glyph">⛰️</div><div class="hp-card-title">Montagne</div><div class="hp-card-body">Mines Cuivre et Fer. 180–280 HP. Abondante en périphérie.</div></div>' +
-        '<div class="hp-card"><div class="hp-glyph">💧</div><div class="hp-card-title">Rivière</div><div class="hp-card-body">60–100 HP. Drainable → Vase → Plaine. Nécessaire Zone Aphrodite.</div></div>' +
+        '<div class="hp-card"><div class="hp-glyph">💧</div><div class="hp-card-title">Rivière</div><div class="hp-card-body">60–100 HP. Drainable → Vase → Plaine. Nécessaire Zone Arès.</div></div>' +
         '<div class="hp-card"><div class="hp-glyph">🌾</div><div class="hp-card-title">Champ Cultivé</div><div class="hp-card-body">Auto-créé par Ferme/Verger/Jardins. +20% prod. par champ (max 4 ou 6).</div></div>' +
         '<div class="hp-card"><div class="hp-glyph">🌳</div><div class="hp-card-title">Bosquet Cultivé</div><div class="hp-card-body">Auto-créé par Camp/Halle/Bosquet. +20% prod. par bosquet.</div></div>' +
         '<div class="hp-card"><div class="hp-glyph">🟫</div><div class="hp-card-title">Vase Marécageuse</div><div class="hp-card-body">Rivière drainée. Aucune construction.</div></div>' +
@@ -598,82 +601,138 @@ class HelpPanel {
   //  🏛️ PANTHÉON (Phase 7)
   // ════════════════════════════════════════════════════════
   _tabPantheon() {
+    var self = this;
     return (
-      '<div class="hp-section" id="pan-intro">' + this._h('pan-intro-t','🏛️ Panthéon Olympien — Phase 7') +
-        this._callout('gold','Arbre de talents permanent <strong>style Albion Online</strong>. Canvas radial cliquable. 8 branches × 15 nœuds = 120 talents, payés en Éther.') +
-        '<p class="hp-p">Panneau Talents 🧠 → onglet 🏛️ Panthéon. Molette = zoom, glisser = déplacer, clic = acheter nœud.</p>' +
-        '<p class="hp-p"><strong>2 branches transversales</strong> (Cartographie, Héritage) — disponibles dès 1er Prestige.<br><strong>6 branches divines</strong> — débloquées après conquête de leur ' + this._wikiLink('zones','z-overview','Zone Divine','🌍') + '.</p>' +
+      '<div class="hp-section" id="pan-intro">' + this._h('pan-intro-t','🏛️ Panthéon Olympien — Vue d\'ensemble') +
+        this._callout('gold','<strong>6 branches divines</strong> · <strong>15 nœuds/branche</strong> · 5 rangs/nœud = 90 talents normaux + <strong>6 nœuds Suprêmes sans plafond</strong>. Payés en Éther permanent. Layout circulaire radial.') +
+        '<p class="hp-p">Panneau Talents 🧠 → onglet 🏛️ Panthéon. Molette = zoom · Glisser = déplacer · Clic = sélectionner/acheter.</p>' +
+        '<p class="hp-p"><strong>Déverrouillage :</strong> chaque branche se débloque en conquérant la ' + this._wikiLink('zones','z-overview','Zone Divine','🌍') + ' du dieu correspondant.</p>' +
         '<div class="hp-grid">' +
-        '<div class="hp-card"><div class="hp-glyph">🗺️</div><div class="hp-card-title" style="color:#60c8a0">Cartographie</div><div class="hp-card-body">Exploration, fouille, scouts. Dès Phase 7.</div></div>' +
-        '<div class="hp-card"><div class="hp-glyph">📜</div><div class="hp-card-title" style="color:#c080f0">Héritage</div><div class="hp-card-body">Prestige, Codex, Score. Dès Phase 7.</div></div>' +
-        '<div class="hp-card"><div class="hp-glyph">🌾</div><div class="hp-card-title" style="color:#8bc34a">Déméter</div><div class="hp-card-body">Alimentation, population. Zone 1.</div></div>' +
-        '<div class="hp-card"><div class="hp-glyph">🔨</div><div class="hp-card-title" style="color:#ff7043">Héphaïstos</div><div class="hp-card-body">Forge, métaux. Zone 2.</div></div>' +
-        '<div class="hp-card"><div class="hp-glyph">💫</div><div class="hp-card-title" style="color:#f48fb1">Aphrodite</div><div class="hp-card-body">Drachmes, bonheur. Zone 3.</div></div>' +
-        '<div class="hp-card"><div class="hp-glyph">💀</div><div class="hp-card-title" style="color:#7e57c2">Hadès</div><div class="hp-card-body">Éther, Codex. Zone 4.</div></div>' +
-        '<div class="hp-card"><div class="hp-glyph">🌙</div><div class="hp-card-title" style="color:#4fc3f7">Artémis</div><div class="hp-card-body">Scouts, forêts. Zone 5.</div></div>' +
-        '<div class="hp-card"><div class="hp-glyph">⚡</div><div class="hp-card-title" style="color:#ffd54f">Zeus</div><div class="hp-card-body">Fin de jeu ×2. Zone 6.</div></div>' +
+        '<div class="hp-card"><div class="hp-glyph">⚡</div><div class="hp-card-title" style="color:#ffd54f">Zeus</div><div class="hp-card-body">Production globale, score, pylônes, Éther. Zone 1.</div></div>' +
+        '<div class="hp-card"><div class="hp-glyph">🌊</div><div class="hp-card-title" style="color:#29b6f6">Poséidon</div><div class="hp-card-body">Exploration, fouille, révélation, scouts. Zone 2.</div></div>' +
+        '<div class="hp-card"><div class="hp-glyph">💀</div><div class="hp-card-title" style="color:#7e57c2">Hadès</div><div class="hp-card-body">Éther, prestige, Codex, orichalque. Zone 3.</div></div>' +
+        '<div class="hp-card"><div class="hp-glyph">🦉</div><div class="hp-card-title" style="color:#80cbc4">Athéna</div><div class="hp-card-body">Niveaux max, coûts, Codex, sagesse. Zone 4.</div></div>' +
+        '<div class="hp-card"><div class="hp-glyph">☀️</div><div class="hp-card-title" style="color:#ffb300">Apollon</div><div class="hp-card-body">Nourriture, agriculture, population, lumière. Zone 5.</div></div>' +
+        '<div class="hp-card"><div class="hp-glyph">⚔️</div><div class="hp-card-title" style="color:#ef5350">Arès</div><div class="hp-card-body">Vitesse scouts, score, guerre, puissance. Zone 6.</div></div>' +
         '</div></div>' +
 
-      '<div class="hp-section" id="pan-cart">' + this._h('pan-cart-t','🗺️ Branche Cartographie') +
+      '<div class="hp-section" id="pan-layout">' + this._h('pan-layout-t','⭕ Layout Circulaire') +
+        this._callout('','Le Panthéon utilise un <strong>cercle parfait</strong>. Les nœuds de chaque anneau sont répartis équitablement sur 360°.') +
+        '<table class="hp-table"><tr><th>Anneau</th><th>Rayon</th><th>Nœuds/branche</th><th>Total</th><th>Coût base</th></tr>' +
+        '<tr><td>1</td><td>130px</td><td>1</td><td>6</td><td>50✨</td></tr>' +
+        '<tr><td>2</td><td>240px</td><td>2</td><td>12</td><td>100✨</td></tr>' +
+        '<tr><td>3</td><td>360px</td><td>4</td><td>24</td><td>180✨</td></tr>' +
+        '<tr><td>4</td><td>480px</td><td>8</td><td>48</td><td>280✨</td></tr>' +
+        '<tr><td>5 (Suprême)</td><td>590px</td><td>1</td><td>6</td><td>500✨+</td></tr>' +
+        '</table>' +
+        '<p class="hp-p">Chaque branche occupe un secteur de <strong>60°</strong>. Les 4 premiers anneaux ont 5 rangs par nœud. Le 5e est le nœud Suprême.</p>' +
+      '</div>' +
+
+      '<div class="hp-section" id="pan-zeus">' + this._h('pan-zeus-t','⚡ Zeus — Foudre & Puissance') +
+        '<table class="hp-table"><tr><th>Nœud</th><th>Anneau</th><th>Bonus cumulé max</th></tr>' +
+        '<tr><td>Présence Olympienne</td><td>1</td><td>+50% production globale</td></tr>' +
+        '<tr><td>Foudre / Gouvernance</td><td>2</td><td>+75% Pylônes · -40% coûts · +25% global</td></tr>' +
+        '<tr><td>Éclair / Prestige / Architecte / Aigle</td><td>3</td><td>+portée · +Éther · +niveaux max · +scouts</td></tr>' +
+        '<tr><td>Apothéose × 8 nœuds</td><td>4</td><td>+prod globale, +score, +Éther, +Pylônes, +niveaux max, +scouts</td></tr>' +
+        '</table>' +
+        '<p class="hp-p">Thème : <em>omnipotence</em>. Améliore quasi toutes les statistiques. Idéal pour un build généraliste.</p>' +
+      '</div>' +
+
+      '<div class="hp-section" id="pan-poseidon">' + this._h('pan-poseidon-t','🌊 Poséidon — Exploration & Fouille') +
+        '<table class="hp-table"><tr><th>Nœud</th><th>Anneau</th><th>Bonus cumulé max</th></tr>' +
+        '<tr><td>Appel des Profondeurs</td><td>1</td><td>+5 portée révélation · -40% fouille</td></tr>' +
+        '<tr><td>Trident / Vagues Porteuses</td><td>2</td><td>+80% vitesse révélation · +60% Nourriture · -45% fouille</td></tr>' +
+        '<tr><td>Tsunami / Séisme / Courant / Navigation</td><td>3</td><td>+portée · +scouts · -fouille · +mines · +global</td></tr>' +
+        '<tr><td>8 nœuds niveau 4</td><td>4</td><td>Maîtrise exploration totale · max vitesse fouille · +slots scouts</td></tr>' +
+        '</table>' +
+        '<p class="hp-p">Thème : <em>exploration</em>. Spécialiste fouille, révélation et mobilité des scouts. Indispensable pour débloquer rapidement des zones.</p>' +
+      '</div>' +
+
+      '<div class="hp-section" id="pan-hades">' + this._h('pan-hades-t','💀 Hadès — Éther & Prestige') +
+        '<table class="hp-table"><tr><th>Nœud</th><th>Anneau</th><th>Bonus cumulé max</th></tr>' +
+        '<tr><td>Royaume des Morts</td><td>1</td><td>+50% gain Éther</td></tr>' +
+        '<tr><td>Âme Perdue / Cerberus</td><td>2</td><td>+Éther · +Codex · +score prestige</td></tr>' +
+        '<tr><td>Styx / Tartare / Élysée / Mort</td><td>3</td><td>+Éther · +Pages · +score · +pop</td></tr>' +
+        '<tr><td>8 nœuds niveau 4</td><td>4</td><td>Maîtrise permanence · Éther max · score max</td></tr>' +
+        '</table>' +
+        '<p class="hp-p">Thème : <em>permanence</em>. Maximise l\'Éther gagné par prestige. Indispensable pour l\'endgame.</p>' +
+      '</div>' +
+
+      '<div class="hp-section" id="pan-athena">' + this._h('pan-athena-t','🦉 Athéna — Sagesse & Niveaux Max') +
+        '<table class="hp-table"><tr><th>Nœud</th><th>Anneau</th><th>Bonus cumulé max</th></tr>' +
+        '<tr><td>Égide Dorée</td><td>1</td><td>+3 niveaux max tous bâtiments</td></tr>' +
+        '<tr><td>Stratège / Codex Vivant</td><td>2</td><td>+niveaux · +Pages Codex · -coûts</td></tr>' +
+        '<tr><td>Sparte / Athènes / Oracle / Connaissance</td><td>3</td><td>Spécialisation bâtiments · +Codex · -coûts · +global</td></tr>' +
+        '<tr><td>8 nœuds niveau 4</td><td>4</td><td>Maîtrise construction · coûts minimaux · niveaux infinis</td></tr>' +
+        '</table>' +
+        '<p class="hp-p">Thème : <em>efficacité</em>. Réduit coûts, augmente niveaux max. Build optimal pour maximiser la puissance de chaque bâtiment.</p>' +
+      '</div>' +
+
+      '<div class="hp-section" id="pan-apollon">' + this._h('pan-apollon-t','☀️ Apollon — Lumière & Agriculture') +
+        '<table class="hp-table"><tr><th>Nœud</th><th>Anneau</th><th>Bonus cumulé max</th></tr>' +
+        '<tr><td>Soleil Levant</td><td>1</td><td>+50% production Nourriture</td></tr>' +
+        '<tr><td>Rayon d\'Or / Moisson</td><td>2</td><td>+Nourriture · +production globale · +pop cap</td></tr>' +
+        '<tr><td>Aube / Zénith / Crépuscule / Nuit</td><td>3</td><td>+Nourriture · +global · +pop · +scouts</td></tr>' +
+        '<tr><td>8 nœuds niveau 4</td><td>4</td><td>Domination agricole · pop illimitée · production max</td></tr>' +
+        '</table>' +
+        '<p class="hp-p">Thème : <em>vie</em>. Spécialiste nourriture et population. Idéal en début de run pour soutenir une population élevée.</p>' +
+      '</div>' +
+
+      '<div class="hp-section" id="pan-ares">' + this._h('pan-ares-t','⚔️ Arès — Guerre & Vitesse') +
+        '<table class="hp-table"><tr><th>Nœud</th><th>Anneau</th><th>Bonus cumulé max</th></tr>' +
+        '<tr><td>Furor Belli</td><td>1</td><td>+50% vitesse Éclaireurs</td></tr>' +
+        '<tr><td>Lame Tranchante / Stratégie</td><td>2</td><td>+vitesse · +slots scouts · +score</td></tr>' +
+        '<tr><td>Siège / Razzia / Conquête / Domination</td><td>3</td><td>+vitesse · +score · +portée · +prod globale</td></tr>' +
+        '<tr><td>8 nœuds niveau 4</td><td>4</td><td>Légions olympiennes · vitesse max scouts · score max</td></tr>' +
+        '</table>' +
+        '<p class="hp-p">Thème : <em>agression</em>. Scouts ultra-rapides, score élevé. Optimal pour les runs courts maximisant le prestige.</p>' +
+      '</div>' +
+
+      '<div class="hp-section" id="pan-supreme">' + this._h('pan-supreme-t','♾️ Nœuds Suprêmes — Sans Plafond') +
+        this._callout('gold','Se débloquent uniquement quand <strong>tous les 15 nœuds de la branche sont maîtrisés</strong> (rang 5/5). Aucune limite de rangs. Les bonus augmentent à chaque palier atteint.') +
+        '<table class="hp-table"><tr><th>Dieu</th><th>Nom</th><th>Bonus par palier</th></tr>' +
+        '<tr><td>⚡ Zeus</td><td>Toute-Puissance Olympienne</td><td>+2% production globale</td></tr>' +
+        '<tr><td>🌊 Poséidon</td><td>Profondeur Abyssale</td><td>-1% coût fouille · +1% révélation</td></tr>' +
+        '<tr><td>💀 Hadès</td><td>Maître de l\'ternité</td><td>+1.5% gain Éther</td></tr>' +
+        '<tr><td>🦉 Athéna</td><td>Sagesse Infinie</td><td>+1 niveau max tous bâtiments</td></tr>' +
+        '<tr><td>☀️ Apollon</td><td>Lumière Éternelle</td><td>+3% production Nourriture</td></tr>' +
+        '<tr><td>⚔️ Arès</td><td>Furie Sans Fin</td><td>+2% score · +1% vitesse scouts</td></tr>' +
+        '</table>' +
         '<div class="hp-grid">' +
-        '<div class="hp-card"><div class="hp-glyph">🗺️</div><div class="hp-card-title">Anneau 1 (30✨)</div><div class="hp-card-body">+10% révélation · Halos +2 · Fouille -10% · +2 cases départ · Scouts +20%</div></div>' +
-        '<div class="hp-card"><div class="hp-glyph">🔭</div><div class="hp-card-title">Anneau 2 (80✨)</div><div class="hp-card-body">Fouille -25% · Halos +4 · +5% prod/case · Scouts +1 case · Aura +20%</div></div>' +
-        '<div class="hp-card"><div class="hp-glyph">🌍</div><div class="hp-card-title">Anneau 3 (200✨+)</div><div class="hp-card-body">Maître Cartographe ♾️ · Terrain Conquis ♾️ · Oracle · Légion scouts · Domination</div></div>' +
-        '</div></div>' +
-
-      '<div class="hp-section" id="pan-her">' + this._h('pan-her-t','📜 Branche Héritage') +
-        '<div class="hp-grid">' +
-        '<div class="hp-card"><div class="hp-glyph">📖</div><div class="hp-card-title">Anneau 1 (30✨)</div><div class="hp-card-body">+10% Éther · +15 Pages · +1 niveau Héritage · +10% Score · +200 ressources départ</div></div>' +
-        '<div class="hp-card"><div class="hp-glyph">✨</div><div class="hp-card-title">Anneau 2 (80✨)</div><div class="hp-card-body">+25% Éther · Pages ×1.5 · Talents 50% reset · +25% Score · +500 ressources</div></div>' +
-        '<div class="hp-card"><div class="hp-glyph">♾️</div><div class="hp-card-title">Anneau 3 (200✨+)</div><div class="hp-card-body">Ascension ♾️ · Codex Olympien ♾️ · 5 talents départ · Mémoire Olympique · Éternité</div></div>' +
-        '</div></div>' +
-
-      '<div class="hp-section" id="pan-divine">' + this._h('pan-divine-t','⚡ Branches Divines — 6 Dieux') +
-        '<table class="hp-table"><tr><th>Branche</th><th>Zone</th><th>Spécialité</th><th>Nœud final</th></tr>' +
-        '<tr><td>🌾 Déméter</td><td>1</td><td>Fermes, population</td><td>Âge d\'Or — Pop → Éther</td></tr>' +
-        '<tr><td>🔨 Héphaïstos</td><td>2</td><td>Forge, mines</td><td>Volcan Sacré — Métal → Éther</td></tr>' +
-        '<tr><td>💫 Aphrodite</td><td>3</td><td>Drachmes, bonheur</td><td>Âge de l\'Amour — +20% si bonheur ≥90%</td></tr>' +
-        '<tr><td>💀 Hadès</td><td>4</td><td>Éther, Prestige</td><td>Éternité — Éther permanent</td></tr>' +
-        '<tr><td>🌙 Artémis</td><td>5</td><td>Scouts, forêts</td><td>Traque Éternelle — 3 scouts + 10 cases</td></tr>' +
-        '<tr><td>⚡ Zeus</td><td>6</td><td>Tout ×2</td><td>Éternité Olympique — FIN DE JEU</td></tr>' +
-        '</table></div>' +
-
-      '<div class="hp-section" id="pan-uncapped">' + this._h('pan-uncapped-t','♾️ Nœuds Sans Plafond') +
-        this._callout('gold','Investissez autant d\'Éther que vous voulez — le bonus croît indéfiniment. Badge ×N visible sur le nœud.') +
-        '<p class="hp-p">Exemple : <em>Maître Cartographe</em> → +0.5% production par 200 Éther. À 10 000 Éther investi = <strong>+25% production globale permanent</strong>.</p>' +
+        '<div class="hp-card"><div class="hp-glyph">📊</div><div class="hp-card-title">Paliers</div><div class="hp-card-body">10 → 50 → 100 → 500 → 1 000 → 5 000 → 10 000 → 50 000 → … (×5, ×2, alternés, sans fin)</div></div>' +
+        '<div class="hp-card"><div class="hp-glyph">💰</div><div class="hp-card-title">Coût minimal</div><div class="hp-card-body">500 Éther par unité. Le bouton "Tout investir" dépense tout votre Éther disponible en une fois.</div></div>' +
+        '</div>' +
+        '<p class="hp-p">Exemple : Zeus Suprême au palier 10 = +20% production globale permanent. Au palier 100 = +200% production globale.</p>' +
       '</div>'
     );
   }
 
-  // ════════════════════════════════════════════════════════
-  //  🌍 ZONES DIVINES (Phase 8)
-  // ════════════════════════════════════════════════════════
   _tabZones() {
     var self = this;
     var zones = [
-      { id:'z-demeter',    icon:'🌾', god:'Déméter',    color:'#8bc34a', biome:'Plaines Éternelles', resource:'Nectar +5/s', score:'0', frontier:'Frontière ouverte — aucune condition', key:'500 Nourr + 50 Ambroisie + 2 000🪙 — 60s', ritual:'Offrir 200 Ambroisie sur l\'Autel', curse:'Famine (-5%/-15%/-30%/démolition)' },
-      { id:'z-hephaistos', icon:'🔨', god:'Héphaïstos', color:'#ff7043', biome:'Forges Volcaniques', resource:'Métal Divin +2/s', score:'5 000', frontier:'Construire 3 Mines de Fer', key:'300 Fer + 100 Acier + 5 000🪙 — 120s', ritual:'5 bâtiments Métal au niveau max', curse:'Éruption (-5%/-15%/-30%/démolition)' },
-      { id:'z-aphrodite',  icon:'💫', god:'Aphrodite',  color:'#f48fb1', biome:'Côtes Enchantées', resource:'Amrita +1/s + 50🪙', score:'5 000', frontier:'2 Routes sur cases Rivière', key:'8 000🪙 + 100 Ambroisie + 80 Nectar — 150s', ritual:'Atteindre 1 000 Drachmes/s', curse:'Jalousie (-5%/-15%/-30%/démolition)' },
-      { id:'z-hades',      icon:'💀', god:'Hadès',      color:'#7e57c2', biome:'Souterrains du Tartare', resource:'Orichalque +1/s', score:'20 000', frontier:'Percer 2 Tunnels en montagne', key:'50 Orichalque + 500 Fer + 200 Éther — 200s', ritual:'Effectuer 3 Prestiges', curse:'Malédiction (-5%/-15%/-30%/démolition)' },
-      { id:'z-artemis',    icon:'🌙', god:'Artémis',    color:'#4fc3f7', biome:'Forêt Maudite', resource:'Ambroisie +3/s + Bois', score:'100 000', frontier:'Construire un Autel d\'Artémis en forêt', key:'2 000 Bois + 300 Ambroisie + 20 Métal Divin — 300s', ritual:'Révéler 80 cases', curse:'Chasse (-5%/-15%/-30%/démolition)' },
-      { id:'z-zeus',       icon:'⚡', god:'Zeus',       color:'#ffd54f', biome:'Cimes de l\'Olympe', resource:'Foudre +5/s + 2 Éther', score:'500 000', frontier:'Activer 3 Pylônes Sacrés (Ère 3)', key:'1 000 Éther + 200 Orichalque + 100 Métal Divin — 600s', ritual:'Atteindre Codex Niveau 5', curse:'Colère de Zeus (-5%/-15%/-30%/démolition)' },
+      { id:'z-zeus',     icon:'⚡', god:'Zeus',     color:'#ffd54f', biome:'Cimes de l\'Olympe', resource:'Foudre +5/s + Éther', score:'1 000',   frontier:'Frontière ouverte', key:'500 Nourr + 2 000🪙 + 30 Éther — 60s', ritual:'3 Pylônes actifs', curse:'Colère de Zeus (-5%/-15%/-30%/démolition)' },
+      { id:'z-poseidon', icon:'🌊', god:'Poséidon', color:'#29b6f6', biome:'Abysses Océaniques', resource:'Nectar +4/s + Nourr', score:'5 000',   frontier:'2 Routes sur cases Rivière', key:'800 Nourr + 300 Bois + 5 000🪙 — 120s', ritual:'Révéler 30 cases', curse:'Fureur de Poséidon (-5%/-15%/-30%/démolition)' },
+      { id:'z-hades',    icon:'💀', god:'Hadès',    color:'#7e57c2', biome:'Souterrains du Tartare', resource:'Orichalque +1/s', score:'20 000',  frontier:'3 Mines de Fer', key:'500 Fer + 100 Acier + 200 Éther — 200s', ritual:'3 Prestiges accomplis', curse:'Malédiction d\'Hadès (-5%/-15%/-30%/démolition)' },
+      { id:'z-athena',   icon:'🦉', god:'Athéna',   color:'#80cbc4', biome:'Bibliothèque Céleste', resource:'Métal Divin +2/s + Éther', score:'5 000', frontier:'1 Bibliothèque', key:'8 000🪙 + 100 Ambroisie + 300 Fer — 150s', ritual:'1 000 Drachmes/s de production', curse:'Jugement d\'Athéna (-5%/-15%/-30%/démolition)' },
+      { id:'z-apollon',  icon:'☀️', god:'Apollon',  color:'#ffb300', biome:'Plaines de Delphes', resource:'Ambroisie +3/s + Nourr', score:'100 000', frontier:'5 bâtiments Agricoles', key:'2 000 Bois + 300 Ambroisie + 20 Métal Divin — 300s', ritual:'Révéler 80 cases', curse:'Éclipse d\'Apollon (-5%/-15%/-30%/démolition)' },
+      { id:'z-ares',     icon:'⚔️', god:'Arès',     color:'#ef5350', biome:'Champs de Bataille Éternels', resource:'Amrita +2/s + Foudre', score:'500 000', frontier:'1 Forteresse', key:'1 000 Éther + 200 Orichalque + 100 Métal Divin — 600s', ritual:'Codex Niveau 5', curse:'Rage d\'Arès (-5%/-15%/-30%/démolition)' },
     ];
 
     var html =
       '<div class="hp-section" id="z-overview">' + this._h('z-overview-t','🌍 Zones Divines — Vue d\'ensemble') +
-        this._callout('purple','6 zones entourent votre cité. Chaque zone non conquise vous <strong>maudit progressivement</strong>. Les conquérir déverrouille ressources et branches du ' + self._wikiLink('pantheon','pan-intro','Panthéon','🏛️') + '.') +
+        this._callout('purple','6 zones entourent votre cité. Chaque zone non conquise vous <strong>maudit progressivement</strong>. Les conquérir déverrouille ressources, branches du ' + self._wikiLink('pantheon','pan-intro','Panthéon','🏛️') + ', et ressources divines exclusives.') +
         '<p class="hp-p">Gérez dans le panneau Talents 🧠 → onglet 🗺️ Zones.</p>' +
         '<table class="hp-table"><tr><th>Zone</th><th>Biome</th><th>Ressource</th><th>Score requis</th></tr>' +
-        zones.map(function(z){ return '<tr><td>' + z.icon + ' ' + z.god + '</td><td>' + z.biome + '</td><td>' + z.resource + '</td><td>' + z.score + '</td></tr>'; }).join('') +
+        zones.map(function(z){ return '<tr><td style="color:'+z.color+'">'+z.icon+' '+z.god+'</td><td>'+z.biome+'</td><td>'+z.resource+'</td><td>'+z.score+'</td></tr>'; }).join('') +
         '</table></div>' +
 
       '<div class="hp-section" id="z-unlock">' + this._h('z-unlock-t','🗝️ Système de Déverrouillage') +
-        this._callout('red','Toutes les 4 conditions doivent être remplies <strong>simultanément</strong>.') +
+        this._callout('red','4 conditions simultanées à remplir.') +
         '<div class="hp-grid">' +
-        '<div class="hp-card"><div class="hp-glyph">⭐</div><div class="hp-card-title">Score Renaissance</div><div class="hp-card-body">Le score de votre dernier Prestige doit atteindre le seuil (0 à 500 000).</div></div>' +
-        '<div class="hp-card"><div class="hp-glyph">🏔️</div><div class="hp-card-title">Frontière Vivante</div><div class="hp-card-body">Obstacle unique à détruire en construisant certains bâtiments ou terrain.</div></div>' +
-        '<div class="hp-card"><div class="hp-glyph">🗝️</div><div class="hp-card-title">Clé Divine Craftée</div><div class="hp-card-body">Ressources + timer. 2 slots simultanés disponibles.</div></div>' +
-        '<div class="hp-card"><div class="hp-glyph">🕯️</div><div class="hp-card-title">Rituel de Dédicace</div><div class="hp-card-body">Condition narrative unique par zone.</div></div>' +
+        '<div class="hp-card"><div class="hp-glyph">⭐</div><div class="hp-card-title">Score Renaissance</div><div class="hp-card-body">Le score de votre dernier Prestige doit atteindre le seuil requis.</div></div>' +
+        '<div class="hp-card"><div class="hp-glyph">🏔️</div><div class="hp-card-title">Frontière Vivante</div><div class="hp-card-body">Construire certains bâtiments ou remplir une condition de terrain.</div></div>' +
+        '<div class="hp-card"><div class="hp-glyph">🗝️</div><div class="hp-card-title">Clé Divine Craftée</div><div class="hp-card-body">Ressources + timer. Jusqu\'à 2 crafts simultanés.</div></div>' +
+        '<div class="hp-card"><div class="hp-glyph">🕯️</div><div class="hp-card-title">Rituel de Dédicace</div><div class="hp-card-body">Condition narrative unique à chaque zone.</div></div>' +
         '</div></div>' +
 
       zones.map(function(z) {
@@ -681,35 +740,31 @@ class HelpPanel {
           '<div class="hp-h2" style="color:' + z.color + '">' + z.icon + ' Zone ' + z.god + '</div>' +
           '<table class="hp-table"><tr><th>Propriété</th><th>Valeur</th></tr>' +
           '<tr><td>Biome</td><td>' + z.biome + '</td></tr>' +
-          '<tr><td>Ressource</td><td>' + z.resource + '</td></tr>' +
+          '<tr><td>Ressource produite</td><td>' + z.resource + '</td></tr>' +
           '<tr><td>Score requis</td><td>' + z.score + '</td></tr>' +
           '<tr><td>Frontière</td><td>' + z.frontier + '</td></tr>' +
           '<tr><td>Clé Divine</td><td>' + z.key + '</td></tr>' +
           '<tr><td>Rituel</td><td>' + z.ritual + '</td></tr>' +
           '<tr><td>Malédiction</td><td>' + z.curse + '</td></tr>' +
-          '<tr><td>Pages Codex</td><td>+10 à la conquête</td></tr>' +
-          '<tr><td>Panthéon</td><td>Branche ' + z.icon + ' ' + z.god + ' déverrouillée</td></tr>' +
+          '<tr><td>Pages Codex</td><td>+10 à la conquête (+20 pour Arès)</td></tr>' +
+          '<tr><td>Panthéon débloqué</td><td>Branche ' + z.icon + ' ' + z.god + ' + Nœud Suprême</td></tr>' +
           '</table></div>';
       }).join('') +
 
       '<div class="hp-section" id="z-curses">' + this._h('z-curses-t','💀 Malédictions Progressives') +
-        this._callout('red','S\'activent dès 25 cases révélées. S\'intensifient avec le temps.') +
+        this._callout('red','S\'activent dès 25 cases révélées. S\'intensifient avec le temps. <strong>Conquérir la zone stoppe définitivement la malédiction.</strong>') +
         '<table class="hp-table"><tr><th>Stade</th><th>Durée</th><th>Effet</th></tr>' +
         '<tr><td>1</td><td>0–10 min</td><td>Production -5%</td></tr>' +
         '<tr><td>2</td><td>10–30 min</td><td>Production -15%</td></tr>' +
         '<tr><td>3</td><td>30–60 min</td><td>Production -30%</td></tr>' +
-        '<tr><td>4</td><td>60+ min</td><td>-30% + 1 bâtiment détruit /5 min</td></tr>' +
+        '<tr><td>4</td><td>60+ min</td><td>-30% + 1 bâtiment détruit toutes les 5 min</td></tr>' +
         '</table>' +
-        '<p class="hp-p">Post-conquête : malédiction résiduelle -10% jusqu\'à Temple du dieu construit.</p>' +
-        '<p class="hp-p">Indicateur 💀 dans le HUD bas-droit affiche la malédiction la plus sévère active.</p>' +
+        '<p class="hp-p">Indicateur 💀 dans le HUD affiche la malédiction la plus sévère active.</p>' +
       '</div>';
 
     return html;
   }
 
-  // ════════════════════════════════════════════════════════
-  //  ⚡ MODES DE JEU (Phase 9)
-  // ════════════════════════════════════════════════════════
   _tabModes() {
     return (
       '<div class="hp-section" id="m-pantheon">' + this._h('m-pantheon-t','⚡ Mode Panthéon — Mode par défaut') +
@@ -717,7 +772,7 @@ class HelpPanel {
         '<div class="hp-grid">' +
         '<div class="hp-card"><div class="hp-glyph">🏛️</div><div class="hp-card-title">27 Bâtiments</div><div class="hp-card-body">3 Ères, de l\'Antiquité à l\'Âge Divin.</div></div>' +
         '<div class="hp-card"><div class="hp-glyph">🔮</div><div class="hp-card-title">Prestige & Codex</div><div class="hp-card-body">Éther, Codex Olympien (multiplicateur Pages).</div></div>' +
-        '<div class="hp-card"><div class="hp-glyph">🏛️</div><div class="hp-card-title">Panthéon</div><div class="hp-card-body">120 talents permanents sur 8 branches.</div></div>' +
+        '<div class="hp-card"><div class="hp-glyph">🏛️</div><div class="hp-card-title">Panthéon</div><div class="hp-card-body">90 talents sur 6 branches + 6 nœuds Suprêmes sans plafond.</div></div>' +
         '<div class="hp-card"><div class="hp-glyph">🌍</div><div class="hp-card-title">6 Zones Divines</div><div class="hp-card-body">Malédictions, Clés, Rituels, Frontières.</div></div>' +
         '</div></div>' +
 

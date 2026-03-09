@@ -704,16 +704,175 @@ const PANTHEON_NODES = {
 };
 
 // ══════════════════════════════════════════════════════════════
+// NŒUDS SUPRÊMES — déblocage quand tout l'arbre du dieu est maîtrisé
+// Sans plafond — paliers : 10, 50, 100, 500, 1000, 5000, … (×5, ×2 alternés)
+// ══════════════════════════════════════════════════════════════
+const SUPREME_MILESTONES = (function() {
+  // Séquence : 10, 50, 100, 500, 1000, 5000, 10000, 50000, ...
+  // Alternance ×5, ×2, ×5, ×2 ...
+  var ms = [10];
+  var mult = [5,2,5,2,5,2,5,2,5,2];
+  for (var i = 0; i < 40; i++) ms.push(ms[ms.length-1] * mult[i%2]);
+  return ms; // [10, 50, 100, 500, 1000, 5000, 10000, ...]
+})();
+
+// Calcule à quel palier on est pour un total investi donné
+function _supremeTier(total) {
+  var tier = 0;
+  for (var i = 0; i < SUPREME_MILESTONES.length; i++) {
+    if (total >= SUPREME_MILESTONES[i]) tier = i + 1;
+    else break;
+  }
+  return tier;
+}
+
+// Nœuds suprêmes par dieu — effet unique thématique sans plafond
+const SUPREME_NODES = {
+  zeus_supreme: {
+    id: 'zeus_supreme', branch: 'zeus', level: 5, slot: 0,
+    parent: null, uncapped: true, supreme: true,
+    baseCost: 500,
+    icon: '⚡', color: '#ffd54f',
+    name: 'Toute-Puissance Olympienne',
+    desc: 'Par palier atteint : +2% production globale permanente. Sans limite.',
+    effect: { type: 'supremeProdAll', valuePerTier: 2 },
+  },
+  poseidon_supreme: {
+    id: 'poseidon_supreme', branch: 'poseidon', level: 5, slot: 0,
+    parent: null, uncapped: true, supreme: true,
+    baseCost: 500,
+    icon: '🌊', color: '#29b6f6',
+    name: 'Profondeur Abyssale',
+    desc: 'Par palier atteint : -1% coût fouille et +1% vitesse révélation. Sans limite.',
+    effect: { type: 'supremeExplore', valuePerTier: 1 },
+  },
+  hades_supreme: {
+    id: 'hades_supreme', branch: 'hades', level: 5, slot: 0,
+    parent: null, uncapped: true, supreme: true,
+    baseCost: 500,
+    icon: '💀', color: '#7e57c2',
+    name: 'Maître de l\'Éternité',
+    desc: 'Par palier atteint : +1.5% gain d\'Éther permanent. Sans limite.',
+    effect: { type: 'supremeEther', valuePerTier: 1.5 },
+  },
+  athena_supreme: {
+    id: 'athena_supreme', branch: 'athena', level: 5, slot: 0,
+    parent: null, uncapped: true, supreme: true,
+    baseCost: 500,
+    icon: '🦉', color: '#80cbc4',
+    name: 'Sagesse Infinie',
+    desc: 'Par palier atteint : +1 niveau max sur tous les bâtiments. Sans limite.',
+    effect: { type: 'supremeMaxLevel', valuePerTier: 1 },
+  },
+  apollon_supreme: {
+    id: 'apollon_supreme', branch: 'apollon', level: 5, slot: 0,
+    parent: null, uncapped: true, supreme: true,
+    baseCost: 500,
+    icon: '☀️', color: '#ffb300',
+    name: 'Lumière Éternelle',
+    desc: 'Par palier atteint : +3% production Nourriture & Agriculture. Sans limite.',
+    effect: { type: 'supremeFood', valuePerTier: 3 },
+  },
+  ares_supreme: {
+    id: 'ares_supreme', branch: 'ares', level: 5, slot: 0,
+    parent: null, uncapped: true, supreme: true,
+    baseCost: 500,
+    icon: '⚔️', color: '#ef5350',
+    name: 'Furie Sans Fin',
+    desc: 'Par palier atteint : +2% score de Renaissance et +1% vitesse Éclaireurs. Sans limite.',
+    effect: { type: 'supremeScore', valuePerTier: 2 },
+  },
+};
+
+// ══════════════════════════════════════════════════════════════
 // PantheonManager
 // ══════════════════════════════════════════════════════════════
 class PantheonManager {
   constructor(resources) {
     this.rm = resources;
-    // invested[nodeId] = rang actuel (0..5)
+    // invested[nodeId] = rang actuel (0..5 pour nœuds normaux, 0..N pour suprêmes)
     this.invested = {};
+    // Éther investi dans les nœuds suprêmes (séparé pour affichage palier)
+    this.supremeInvested = {}; // { nodeId: totalEtherSpent }
     // Branches déverrouillées par zone
     this.unlockedBranches = new Set();
     this._bindEvents();
+  }
+
+  unlockBranch(branchId) {
+    this.unlockedBranches.add(branchId);
+    EventBus.emit('pantheon:branch_unlocked', { branchId });
+  }
+
+  isBranchUnlocked(branchId) {
+    return this.unlockedBranches.has(branchId);
+  }
+
+  // ── Nœuds suprêmes ────────────────────────────────────────
+  isTreeComplete(branchId) {
+    // Vérifie que tous les 15 nœuds de la branche sont au rang max
+    return Object.values(PANTHEON_NODES)
+      .filter(nd => nd.branch === branchId)
+      .every(nd => (this.invested[nd.id] || 0) >= nd.maxRank);
+  }
+
+  isSupremeUnlocked(nodeId) {
+    const sn = SUPREME_NODES[nodeId];
+    if (!sn) return false;
+    return this.isBranchUnlocked(sn.branch) && this.isTreeComplete(sn.branch);
+  }
+
+  getSupremeTier(nodeId) {
+    return _supremeTier(this.supremeInvested[nodeId] || 0);
+  }
+
+  getSupremeNextMilestone(nodeId) {
+    const spent = this.supremeInvested[nodeId] || 0;
+    const tier  = _supremeTier(spent);
+    return SUPREME_MILESTONES[tier] || null; // null = déjà au-delà de la table (continue)
+  }
+
+  canLearnSupreme(nodeId) {
+    const sn = SUPREME_NODES[nodeId];
+    if (!sn) return { ok: false, reason: 'Nœud inconnu.' };
+    if (!this.isSupremeUnlocked(nodeId)) {
+      if (!this.isBranchUnlocked(sn.branch))
+        return { ok: false, reason: 'Zone ' + sn.branch + ' non conquise.' };
+      return { ok: false, reason: 'Complétez tout l\'arbre ' + sn.branch + ' d\'abord.' };
+    }
+    const cost = sn.baseCost;
+    if (this.rm.get('ether') < cost)
+      return { ok: false, reason: 'Éther insuffisant (' + cost + ' requis).' };
+    return { ok: true };
+  }
+
+  learnSupreme(nodeId, amount, sx, sy) {
+    const sn = SUPREME_NODES[nodeId];
+    if (!sn) return false;
+    const check = this.canLearnSupreme(nodeId);
+    if (!check.ok) {
+      EventBus.emit('ui:feedback', { text: check.reason, x: sx||0, y: sy||0, color: '#e05050' });
+      return false;
+    }
+    const spend = Math.min(amount || sn.baseCost, Math.floor(this.rm.get('ether')));
+    if (spend < sn.baseCost) {
+      EventBus.emit('ui:feedback', { text: 'Éther insuffisant.', x: sx||0, y: sy||0, color: '#e05050' });
+      return false;
+    }
+    // Dépense en multiples de baseCost
+    const units = Math.floor(spend / sn.baseCost);
+    const actualSpend = units * sn.baseCost;
+    this.rm.spend({ ether: actualSpend });
+    const prevTier = this.getSupremeTier(nodeId);
+    this.supremeInvested[nodeId] = (this.supremeInvested[nodeId] || 0) + actualSpend;
+    const newTier = this.getSupremeTier(nodeId);
+    EventBus.emit('pantheon:supreme_invested', { nodeId, spent: actualSpend, tier: newTier });
+    EventBus.emit('resources:updated', this.rm.getSnapshot());
+    const msg = newTier > prevTier
+      ? '✨ Palier ' + newTier + ' atteint ! — ' + sn.name
+      : sn.name + ' +' + actualSpend + ' Éther';
+    EventBus.emit('ui:feedback', { text: msg, x: sx||0, y: sy||0, color: '#ffd700' });
+    return true;
   }
 
   unlockBranch(branchId) {
@@ -841,6 +1000,22 @@ class PantheonManager {
   getRevealSpeedBonus()    { return this._sum(e => e.type==='revealSpeed'     ? e.value : 0); }
   getScoutExtraReveal()    { return this._sum(e => e.type==='scoutExtraReveal'? e.value : 0); }
 
+  // ── Bonus suprêmes ─────────────────────────────────────────
+  _supBonus(nodeId) { return _supremeTier(this.supremeInvested[nodeId] || 0); }
+  getSupremeProdBonus()     { return this._supBonus('zeus_supreme')    * 2;   } // +2% / palier
+  getSupremeEtherBonus()    { return this._supBonus('hades_supreme')   * 1.5; } // +1.5% / palier
+  getSupremeMaxLevelBonus() { return this._supBonus('athena_supreme')  * 1;   } // +1 / palier
+  getSupremeFoodBonus()     { return this._supBonus('apollon_supreme') * 3;   } // +3% / palier
+  getSupremeScoreBonus()    { return this._supBonus('ares_supreme')    * 2;   } // +2% / palier
+  getSupremeDigBonus()      { return this._supBonus('poseidon_supreme')* 1;   } // -1% fouille / palier
+  getSupremeRevealBonus()   { return this._supBonus('poseidon_supreme')* 1;   } // +1% révélation / palier
+
+  // Accès global (incluant nœuds suprêmes)
+  getGlobalProdBonus() {
+    return this._sum(e => e.type==='prodBonusAll' ? e.value : 0)
+         + this.getSupremeProdBonus();
+  }
+
   _bindEvents() {
     EventBus.on('zone:unlocked', (d) => {
       const branch = PANTHEON_BRANCHES.find(b => b.zoneId === d.zoneId);
@@ -851,6 +1026,7 @@ class PantheonManager {
   serialize() {
     return {
       invested:         this.invested,
+      supremeInvested:  this.supremeInvested,
       unlockedBranches: Array.from(this.unlockedBranches),
     };
   }
@@ -858,6 +1034,7 @@ class PantheonManager {
   deserialize(data) {
     if (!data) return;
     this.invested         = data.invested         || {};
+    this.supremeInvested  = data.supremeInvested  || {};
     if (data.unlockedBranches) {
       this.unlockedBranches = new Set(data.unlockedBranches);
     }
